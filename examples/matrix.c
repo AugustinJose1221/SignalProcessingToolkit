@@ -144,6 +144,7 @@ int main()
 
     matrix_free(&A);
     matrix_free(&B);
+    matrix_free(&det);
     matrix_free(&transpose);
     matrix_free(&product);
     matrix_free(&matrix);

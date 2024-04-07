@@ -127,7 +127,14 @@ float matrix_determinant(matrix_t* matrix)
     int col_index;
     matrix_t inner_matrix;
 
-    if(matrix->m == 2)
+    if(matrix->m == 3)
+    {
+        determinant = (matrix_get_element(matrix, 0, 0)*((matrix_get_element(matrix, 1, 1) * matrix_get_element(matrix, 2, 2)) - (matrix_get_element(matrix, 2, 1)*matrix_get_element(matrix, 1, 2))))
+                       - (matrix_get_element(matrix, 0, 1)*((matrix_get_element(matrix, 1, 0) * matrix_get_element(matrix, 2, 2)) - (matrix_get_element(matrix, 2, 0)*matrix_get_element(matrix, 1, 2)))) 
+                       + (matrix_get_element(matrix, 0, 2)*((matrix_get_element(matrix, 1, 0) * matrix_get_element(matrix, 2, 1)) - (matrix_get_element(matrix, 2, 0)*matrix_get_element(matrix, 1, 1)))); 
+        return determinant;
+    }
+    else if(matrix->m == 2)
     {
         determinant = (matrix_get_element(matrix, 0, 0) * matrix_get_element(matrix, 1, 1)) 
                     - (matrix_get_element(matrix, 0, 1) * matrix_get_element(matrix, 1, 0));
