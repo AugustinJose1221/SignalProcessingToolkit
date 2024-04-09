@@ -31,6 +31,7 @@ matrix_t matrix_add(matrix_t* a, matrix_t* b);
 matrix_t matrix_multiply_scalar(matrix_t* matrix, float scalar);
 matrix_t matrix_multiply(matrix_t* a, matrix_t* b);
 matrix_t matrix_transpose(matrix_t* matrix);
+void matrix_copy(matrix_t* src, matrix_t* dest);
 void matrix_printf(matrix_t* matrix, int (*func)(const char*, ...));
 void matrix_free(matrix_t* matrix);
 

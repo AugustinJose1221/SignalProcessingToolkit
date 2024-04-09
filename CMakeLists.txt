@@ -16,5 +16,6 @@ add_executable(signalproc
     emd/emd.c
     imf/imf.c
     matrix/matrix.c
+    kalman/kalman.c
     examples/emd.c
     examples/matrix.c)
