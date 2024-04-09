@@ -436,6 +436,22 @@ matrix_t matrix_transpose(matrix_t* matrix)
     return transpose;
 }
 
+void matrix_copy(matrix_t* src, matrix_t* dest)
+{
+    assert(src != NULL);
+    assert(dest != NULL);
+    assert(src->m == dest->m);
+    assert(src->n == dest->n);
+    for(int i = 0; i < src->m; i++)
+    {
+        for(int j = 0; j < src->n; j++)
+        {
+            matrix_add_element(dest, i, j, matrix_get_element(src, i, j));
+        }
+    }
+    
+}
+
 void matrix_printf(matrix_t* matrix, int (*func)(const char*, ...))
 {
     assert(matrix != NULL);
