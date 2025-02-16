@@ -525,3 +525,9 @@ void test_matrix_printf(void)
     matrix_printf(&matrix, NULL);
     matrix_free(&matrix);
 }
+
+void test_matrix_free(void)
+{
+    matrix_t matrix = matrix_alloc(3, 3);
+    matrix_free(&matrix);
+}
