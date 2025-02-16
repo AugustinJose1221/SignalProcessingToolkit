@@ -51,7 +51,7 @@ void vector_add_from_array(vector_t* vector, uint32_t size, float* data)
     memcpy(vector->data, data, sizeof(float)*size);
 }
 
-void vector_printf(vector_t* vector, int (*func)(const char *, ...))
+void vector_printf(vector_t* vector, print_t func)
 {
     ASSERT(vector != NULL);
     for(int index = 0; index < vector->size; index++)
