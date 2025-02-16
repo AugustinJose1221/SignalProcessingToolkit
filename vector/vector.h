@@ -2,11 +2,17 @@
 #define __VECTOR_H__
 
 #include <stdint.h>
+#include <stdbool.h>
+#ifndef TEST
 #include <point2d/point2d.h>
+#else
+#include "point2d.h"
+#endif
 
 typedef struct{
     uint32_t size;
     float* data;
+    bool dynamic_alloc;
 }vector_t;
 
 vector_t vector_alloc(uint32_t size);
@@ -17,5 +23,6 @@ void vector_printf(vector_t* vector, int (*func)(const char *, ...));
 float vector_get(vector_t* vector, uint32_t index);
 float vector_dot_product(vector_t* x, vector_t* y);
 float vector_norm(vector_t* x);
+void vector_free(vector_t* vector);
 
 #endif//__VECTOR_H__
