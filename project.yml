@@ -98,6 +98,7 @@
 :paths:
   :test:
     - tests/matrix/**
+    - tests/vector/**
   :source:
     - cspline/**
     - emd/**
@@ -120,7 +121,6 @@
     - vector/**
     - vector2d/**
   :support:
-    # - tests/matrix
   :libraries: []
 
 # You can even specify specific files to add or remove from your test
