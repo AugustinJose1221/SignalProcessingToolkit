@@ -99,6 +99,7 @@
   :test:
     - tests/matrix/**
     - tests/vector/**
+    - tests/vector2d/**
   :source:
     - cspline/**
     - emd/**
@@ -167,7 +168,7 @@
 
   # File configuration
   :skeleton_path:  ''              # Subdirectory to store stubs when generated (default: '')
-  :mock_prefix:  'mock_'           # Prefix to append to filenames for mocks
+  :mock_prefix:  'Mock_'           # Prefix to append to filenames for mocks
   :mock_suffix:  ''                # Suffix to append to filenames for mocks
 
   # Parser configuration
@@ -216,7 +217,6 @@
 # Configuration options specific to Unity. 
 :unity:
   :defines:
-    - UNITY_EXCLUDE_FLOAT
 
 # You can optionally have ceedling create environment variables for you before
 # performing the rest of its tasks.
