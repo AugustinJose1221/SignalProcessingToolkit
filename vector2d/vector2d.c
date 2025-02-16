@@ -1,4 +1,8 @@
+#ifndef TEST 
 #include <vector2d/vector2d.h>
+#else
+#include "vector2d.h"
+#endif//TEST
 
 vector_t vector2d_alloc()
 {

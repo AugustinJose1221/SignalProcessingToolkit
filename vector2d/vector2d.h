@@ -1,7 +1,11 @@
 #ifndef __VECTOR2D_H__
 #define __VECTOR2D_H__
 
+#ifndef TEST
 #include <vector/vector.h>
+#else
+#include "vector.h"
+#endif//TEST
 
 vector_t vector2d_alloc();
 vector_t vector2d_static_alloc(uint32_t *mempool);
