@@ -1,12 +1,17 @@
+#ifndef TEST
 #include <matrix/matrix.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
+#include <common/defs.h>
+#else
+#include "matrix.h"
+#include "defs.h"
+#endif
+
+
 
 matrix_t matrix_alloc(uint32_t m, uint32_t n)
 {
-    assert(m > 0);
-    assert(n > 0);
+    ASSERT(m > 0);
+    ASSERT(n > 0);
 
     matrix_t matrix;
 
@@ -20,9 +25,9 @@ matrix_t matrix_alloc(uint32_t m, uint32_t n)
 
 matrix_t matrix_static_alloc(uint32_t m, uint32_t n, float* elem)
 {
-    assert(m > 0);
-    assert(n > 0);
-    assert(elem != NULL);
+    ASSERT(m > 0);
+    ASSERT(n > 0);
+    ASSERT(elem != NULL);
 
     matrix_t matrix;
 
@@ -38,25 +43,25 @@ matrix_t matrix_static_alloc(uint32_t m, uint32_t n, float* elem)
 
 void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, float value)
 {
-    assert(matrix != NULL);
-    assert(i >= 0 && i < matrix->m);
-    assert(j >= 0 && j < matrix->n);
+    ASSERT(matrix != NULL);
+    ASSERT(i >= 0 && i < matrix->m);
+    ASSERT(j >= 0 && j < matrix->n);
     matrix->elem[(i*matrix->n)+j] = value;
 }
 
 float matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j)
 {
-    assert(matrix != NULL);
-    assert(i >= 0 && i < matrix->m);
-    assert(j >= 0 && j < matrix->n);
+    ASSERT(matrix != NULL);
+    ASSERT(i >= 0 && i < matrix->m);
+    ASSERT(j >= 0 && j < matrix->n);
 
     return matrix->elem[(i*matrix->n)+j];
 }
 
 matrix_t matrix_get_nth_row(matrix_t* matrix, uint32_t row_index)
 {
-    assert(matrix != NULL);
-    assert(row_index >= 0 && row_index < matrix->m);
+    ASSERT(matrix != NULL);
+    ASSERT(row_index >= 0 && row_index < matrix->m);
 
     matrix_t row_matrix;
 
@@ -72,8 +77,8 @@ matrix_t matrix_get_nth_row(matrix_t* matrix, uint32_t row_index)
 
 matrix_t matrix_get_nth_col(matrix_t* matrix, uint32_t col_index)
 {
-    assert(matrix != NULL);
-    assert(col_index >= 0 && col_index < matrix->n);
+    ASSERT(matrix != NULL);
+    ASSERT(col_index >= 0 && col_index < matrix->n);
 
     matrix_t col_matrix;
 
@@ -89,7 +94,7 @@ matrix_t matrix_get_nth_col(matrix_t* matrix, uint32_t col_index)
 
 matrix_t matrix_get_order(matrix_t* matrix)
 {
-    assert(matrix != NULL);
+    ASSERT(matrix != NULL);
 
     matrix_t order;
 
@@ -102,8 +107,8 @@ matrix_t matrix_get_order(matrix_t* matrix)
 
 float matrix_trace(matrix_t* matrix)
 {
-    assert(matrix != NULL);
-    assert(matrix_is_square(matrix));
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
 
     float trace = 0;
 
@@ -117,8 +122,8 @@ float matrix_trace(matrix_t* matrix)
 
 float matrix_determinant(matrix_t* matrix)
 {
-    assert(matrix != NULL);
-    assert(matrix_is_square(matrix));
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
 
     float determinant = 0;
     float intermediate = 0;
@@ -183,7 +188,7 @@ float matrix_determinant(matrix_t* matrix)
 
 matrix_t matrix_create_unit_matrix(uint32_t size)
 {
-    assert(size > 0);
+    ASSERT(size > 0);
 
     matrix_t matrix;
 
@@ -209,8 +214,8 @@ matrix_t matrix_create_unit_matrix(uint32_t size)
 
 matrix_t matrix_create_zero_matrix(uint32_t m, uint32_t n)
 {
-    assert(m > 0);
-    assert(n > 0);
+    ASSERT(m > 0);
+    ASSERT(n > 0);
 
     matrix_t matrix;
 
@@ -231,8 +236,8 @@ matrix_t matrix_create_zero_matrix(uint32_t m, uint32_t n)
 
 bool matrix_is_equal(matrix_t* a, matrix_t* b)
 {
-    assert(a != NULL);
-    assert(b != NULL);
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
     
     if(a->m != b->m || a->n != b->n)
     {
@@ -257,7 +262,7 @@ bool matrix_is_equal(matrix_t* a, matrix_t* b)
 
 bool matrix_is_square(matrix_t* matrix)
 {
-    assert(matrix != NULL);
+    ASSERT(matrix != NULL);
 
     if(matrix->m == matrix->n)
     {
@@ -271,7 +276,7 @@ bool matrix_is_square(matrix_t* matrix)
 
 bool matrix_is_zero(matrix_t* matrix)
 {
-    assert(matrix != NULL);
+    ASSERT(matrix != NULL);
 
     for(int i = 0; i < matrix->m; i++)
     {
@@ -288,8 +293,8 @@ bool matrix_is_zero(matrix_t* matrix)
 
 bool matrix_is_unit(matrix_t* matrix)
 {
-    assert(matrix != NULL);
-    assert(matrix_is_square(matrix));
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
 
     for(int i = 0; i < matrix->m; i++)
     {
@@ -317,8 +322,8 @@ bool matrix_is_unit(matrix_t* matrix)
 
 bool matrix_is_multipliable(matrix_t* a, matrix_t* b)
 {
-    assert(a != NULL);
-    assert(b != NULL);
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
 
     matrix_t order_a;
     matrix_t order_b;
@@ -340,8 +345,8 @@ bool matrix_is_multipliable(matrix_t* a, matrix_t* b)
 
 matrix_t matrix_add(matrix_t* a, matrix_t* b)
 {
-    assert(a != NULL);
-    assert(b != NULL);
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
 
     matrix_t order_a;
     matrix_t order_b;
@@ -351,7 +356,7 @@ matrix_t matrix_add(matrix_t* a, matrix_t* b)
     order_a = matrix_get_order(a);
     order_b = matrix_get_order(b);
 
-    assert(matrix_is_equal(&order_a, &order_b));
+    ASSERT(matrix_is_equal(&order_a, &order_b));
     matrix_free(&order_a);
     matrix_free(&order_b);
 
@@ -371,7 +376,7 @@ matrix_t matrix_add(matrix_t* a, matrix_t* b)
 
 matrix_t matrix_multiply_scalar(matrix_t* matrix, float scalar)
 {
-    assert(matrix != NULL);
+    ASSERT(matrix != NULL);
 
     matrix_t product;
     float elem_product;
@@ -392,9 +397,9 @@ matrix_t matrix_multiply_scalar(matrix_t* matrix, float scalar)
 
 matrix_t matrix_multiply(matrix_t* a, matrix_t* b)
 {
-    assert(a != NULL);
-    assert(b != NULL);
-    assert(matrix_is_multipliable(a, b));
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+    ASSERT(matrix_is_multipliable(a, b));
 
     matrix_t product;
     float elem_product = 0;
@@ -419,7 +424,7 @@ matrix_t matrix_multiply(matrix_t* a, matrix_t* b)
 
 matrix_t matrix_transpose(matrix_t* matrix)
 {
-    assert(matrix != NULL);
+    ASSERT(matrix != NULL);
 
     matrix_t transpose;
 
@@ -438,10 +443,10 @@ matrix_t matrix_transpose(matrix_t* matrix)
 
 void matrix_copy(matrix_t* src, matrix_t* dest)
 {
-    assert(src != NULL);
-    assert(dest != NULL);
-    assert(src->m == dest->m);
-    assert(src->n == dest->n);
+    ASSERT(src != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(src->m == dest->m);
+    ASSERT(src->n == dest->n);
     for(int i = 0; i < src->m; i++)
     {
         for(int j = 0; j < src->n; j++)
@@ -454,7 +459,7 @@ void matrix_copy(matrix_t* src, matrix_t* dest)
 
 void matrix_printf(matrix_t* matrix, int (*func)(const char*, ...))
 {
-    assert(matrix != NULL);
+    ASSERT(matrix != NULL);
 
     int (*print_func)(const char*, ...);
 
