@@ -1,27 +1,33 @@
+#ifndef TEST
 #include <utils/binarysearch/binarysearch.h>
-#include <assert.h>
+#include <common/defs.h>
+#else
+#include "binarysearch.h"
+#include "defs.h"
+#endif
+
 
 uint32_t binarysearch_get_index(float* data, float value, uint32_t size)
 {
-    assert(data != NULL);
-    assert(size > 0);
-    assert(value >= data[0] && value <= data[size - 1]);
+    ASSERT(data != NULL);
+    ASSERT(size > 0);
+    ASSERT(value >= data[0] && value <= data[size - 1]);
 
-    int i = 0;
-    int j = size - 1;
-
-    while(j-i > 1)
+    uint32_t left = 0, right = size;
+    
+    while (left < right) 
     {
-        int mid = (i+j)/2;
-        if(value > data[mid])
+        uint32_t mid = left + (right - left) / 2;
+
+        if (data[mid] < value) 
         {
-            i = mid;
-        }
-        else
+            left = mid + 1;
+        } 
+        else 
         {
-            j = mid;
+            right = mid;
         }
     }
-
-    return i;
+    
+    return left;
 }
