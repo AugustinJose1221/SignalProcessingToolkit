@@ -100,6 +100,7 @@
     - tests/matrix/**
     - tests/vector/**
     - tests/vector2d/**
+    - tests/utils/binarysearch/**
   :source:
     - cspline/**
     - emd/**
