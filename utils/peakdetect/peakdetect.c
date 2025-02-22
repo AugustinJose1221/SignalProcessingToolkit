@@ -1,11 +1,16 @@
+#ifndef TEST
 #include <utils/peakdetect/peakdetect.h>
-#include <assert.h>
+#include <common/defs.h>
+#else
+#include "peakdetect.h"
+#include "defs.h"
+#endif
 
 uint32_t peakdetect_get_peaks(float* input, float* index_buffer, float* peak_buffer, uint32_t size)
 {
-    assert(input != NULL);
-    assert(index_buffer != NULL);
-    assert(size > 0);
+    ASSERT(input != NULL);
+    ASSERT(index_buffer != NULL);
+    ASSERT(size > 0);
 
     uint32_t peakcount = 0;
 
