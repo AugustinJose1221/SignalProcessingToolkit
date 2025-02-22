@@ -101,6 +101,7 @@
     - tests/vector/**
     - tests/vector2d/**
     - tests/utils/binarysearch/**
+    - tests/utils/peakdetect/**
   :source:
     - cspline/**
     - emd/**
