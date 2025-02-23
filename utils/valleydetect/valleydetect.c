@@ -1,11 +1,16 @@
+#ifndef TEST
 #include <utils/valleydetect/valleydetect.h>
-#include <assert.h>
+#include <common/defs.h>
+#else
+#include "valleydetect.h"
+#include "defs.h"
+#endif//TEST
 
 uint32_t valleydetect_get_valley(float* input, float* index_buffer, float* valley_buffer, uint32_t size)
 {
-    assert(input != NULL);
-    assert(index_buffer != NULL);
-    assert(size > 0);
+    ASSERT(input != NULL);
+    ASSERT(index_buffer != NULL);
+    ASSERT(size > 0);
 
     uint32_t valleycount = 0;
 
