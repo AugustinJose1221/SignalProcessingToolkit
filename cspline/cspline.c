@@ -1,8 +1,14 @@
+#ifndef TEST
 #include <cspline/cspline.h>
-#include <assert.h>
+#include <common/defs.h>
 #include <utils/binarysearch/binarysearch.h>
-#include <stdlib.h>
 #include <math.h>
+#else
+#include "cspline.h"
+#include "binarysearch.h"
+#include "defs.h"
+#include <math.h>
+#endif
 
 static void load_coordinates(cspline_t* cspline, float* x, float* y);
 static void calculate_derivatives(cspline_t* cspline, cspline_mempool_t mempool);
@@ -12,7 +18,7 @@ static void update_coefficients(cspline_t* cspline, cspline_mempool_t mempool);
 
 cspline_t cspline_alloc(uint32_t size)
 {
-    assert(size != 0);
+    ASSERT(size != 0);
 
     cspline_t cspline;
     
@@ -21,7 +27,7 @@ cspline_t cspline_alloc(uint32_t size)
     cspline.y = (float*)malloc(size*sizeof(float));
     cspline.b = (float*)malloc(size*sizeof(float));
     cspline.c = (float*)malloc((size-1)*sizeof(float));
-    cspline.d = (float*)malloc(size-1*sizeof(float));
+    cspline.d = (float*)malloc((size-1)*sizeof(float));
     cspline.dynamic_alloc = true;
     
     return cspline;
@@ -29,8 +35,8 @@ cspline_t cspline_alloc(uint32_t size)
 
 cspline_t cspline_static_alloc(uint32_t size, float** membank)
 {
-    assert(size != 0);
-    assert(membank != NULL);
+    ASSERT(size != 0);
+    ASSERT(membank != NULL);
 
     cspline_t cspline;
 
@@ -47,7 +53,7 @@ cspline_t cspline_static_alloc(uint32_t size, float** membank)
 
 cspline_mempool_t cspline_alloc_mempool(uint32_t size)
 {
-    assert(size != 0);
+    ASSERT(size != 0);
 
     cspline_mempool_t mempool;
 
@@ -63,7 +69,7 @@ cspline_mempool_t cspline_alloc_mempool(uint32_t size)
 
 cspline_mempool_t cspline_static_alloc_mempool(float** membank)
 {
-    assert(membank != NULL);
+    ASSERT(membank != NULL);
 
     cspline_mempool_t mempool;
 
@@ -79,14 +85,14 @@ cspline_mempool_t cspline_static_alloc_mempool(float** membank)
 
 void cspline_init(cspline_t* cspline, cspline_mempool_t mempool, float* x, float* y)
 {
-    assert(cspline != NULL);
-    assert(x != NULL);
-    assert(y != NULL);
-    assert(mempool.d != NULL);  
-    assert(mempool.b != NULL);  
-    assert(mempool.q != NULL);  
-    assert(mempool.dp != NULL); 
-    assert(mempool.dx != NULL); 
+    ASSERT(cspline != NULL);
+    ASSERT(x != NULL);
+    ASSERT(y != NULL);
+    ASSERT(mempool.d != NULL);  
+    ASSERT(mempool.b != NULL);  
+    ASSERT(mempool.q != NULL);  
+    ASSERT(mempool.dp != NULL); 
+    ASSERT(mempool.dx != NULL); 
 
     load_coordinates(cspline, x, y);
     calculate_derivatives(cspline, mempool);
@@ -134,9 +140,9 @@ void cspline_free_mempool(cspline_mempool_t mempool)
 
 static void load_coordinates(cspline_t* cspline, float* x, float* y)
 {
-    assert(cspline != NULL);
-    assert(x != NULL);
-    assert(y != NULL);
+    ASSERT(cspline != NULL);
+    ASSERT(x != NULL);
+    ASSERT(y != NULL);
 
     for(int index = 0; index < cspline->size; index++)
     {
@@ -147,25 +153,25 @@ static void load_coordinates(cspline_t* cspline, float* x, float* y)
 
 static void calculate_derivatives(cspline_t* cspline, cspline_mempool_t mempool)
 {
-    assert(cspline != NULL);
-    assert(mempool.dx != NULL);
-    assert(mempool.dp != NULL);
+    ASSERT(cspline != NULL);
+    ASSERT(mempool.dx != NULL);
+    ASSERT(mempool.dp != NULL);
 
     for(int index = 0; index < cspline->size - 1; index++)
     {
         mempool.dx[index] = cspline->x[index+1] - cspline->x[index];                     
-        assert(mempool.dx[index] > 0);
+        ASSERT(mempool.dx[index] > 0);
         mempool.dp[index] = (cspline->y[index+1] - cspline->y[index])/mempool.dx[index];            
     }
 }
 
 static void initialize_state_buffers(cspline_t* cspline, cspline_mempool_t mempool)
 {
-    assert(cspline != NULL);
-    assert(mempool.d != NULL);
-    assert(mempool.b != NULL);
-    assert(mempool.q != NULL);
-    assert(mempool.dp != NULL);
+    ASSERT(cspline != NULL);
+    ASSERT(mempool.d != NULL);
+    ASSERT(mempool.b != NULL);
+    ASSERT(mempool.q != NULL);
+    ASSERT(mempool.dp != NULL);
 
     mempool.d[0] = 2;
     mempool.d[cspline->size-1] = 2;
@@ -176,12 +182,12 @@ static void initialize_state_buffers(cspline_t* cspline, cspline_mempool_t mempo
 
 static void update_state_buffers(cspline_t* cspline, cspline_mempool_t mempool)
 {
-    assert(cspline != NULL);
-    assert(mempool.d != NULL);
-    assert(mempool.b != NULL);
-    assert(mempool.q != NULL);
-    assert(mempool.dp != NULL);
-    assert(mempool.dx != NULL);
+    ASSERT(cspline != NULL);
+    ASSERT(mempool.d != NULL);
+    ASSERT(mempool.b != NULL);
+    ASSERT(mempool.q != NULL);
+    ASSERT(mempool.dp != NULL);
+    ASSERT(mempool.dx != NULL);
 
     for(int index = 0; index < cspline->size-2; index++)
     {
@@ -199,12 +205,12 @@ static void update_state_buffers(cspline_t* cspline, cspline_mempool_t mempool)
 
 static void update_coefficients(cspline_t* cspline, cspline_mempool_t mempool)
 {
-    assert(cspline != NULL);
-    assert(mempool.d != NULL);
-    assert(mempool.b != NULL);
-    assert(mempool.q != NULL);
-    assert(mempool.dp != NULL);
-    assert(mempool.dx != NULL);
+    ASSERT(cspline != NULL);
+    ASSERT(mempool.d != NULL);
+    ASSERT(mempool.b != NULL);
+    ASSERT(mempool.q != NULL);
+    ASSERT(mempool.dp != NULL);
+    ASSERT(mempool.dx != NULL);
 
     cspline->b[cspline->size-1] = mempool.b[cspline->size-1] / mempool.d[cspline->size-1];
 
