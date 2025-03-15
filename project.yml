@@ -103,6 +103,7 @@
     - tests/utils/binarysearch/**
     - tests/utils/peakdetect/**
     - tests/utils/valleydetect/**
+    - tests/cspline/**
   :source:
     - cspline/**
     - emd/**
