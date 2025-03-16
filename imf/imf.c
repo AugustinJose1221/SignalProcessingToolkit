@@ -1,11 +1,14 @@
+#ifndef TEST
 #include <imf/imf.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <stdio.h>
+#include <common/defs.h>
+#else
+#include "imf.h"
+#include "defs.h"
+#endif
 
 imf_t imf_alloc(uint32_t size)
 {
-    assert(size > 0);
+    ASSERT(size > 0);
 
     imf_t imf;
 
@@ -19,9 +22,9 @@ imf_t imf_alloc(uint32_t size)
 
 imf_t imf_static_alloc(uint32_t size, float* x, float* y)
 {
-    assert(size > 0);
-    assert(x != NULL);
-    assert(y != NULL);
+    ASSERT(size > 0);
+    ASSERT(x != NULL);
+    ASSERT(y != NULL);
 
     imf_t imf;
 
@@ -35,7 +38,7 @@ imf_t imf_static_alloc(uint32_t size, float* x, float* y)
 
 void imf_printf(imf_t* imf, int (*func)(const char*, ...))
 {
-    assert(imf != NULL);
+    ASSERT(imf != NULL);
     
     int (*print_func)(const char*, ...);
 
@@ -56,9 +59,9 @@ void imf_printf(imf_t* imf, int (*func)(const char*, ...))
 
 void imf_print_all(imf_t* imf, uint32_t size, uint32_t num_of_imf, int (*func)(const char*, ...))
 {
-    assert(imf != NULL);
-    assert(num_of_imf > 0);
-    assert(size > 0);
+    ASSERT(imf != NULL);
+    ASSERT(num_of_imf > 0);
+    ASSERT(size > 0);
 
     int (*print_func)(const char*, ...);
 
