@@ -1,14 +1,22 @@
+#ifndef TEST
 #include <emd/emd.h>
-#include <assert.h>
-#include <stdlib.h>
+#include <common/defs.h>
 #include <string.h>
-#include <stdio.h>
 #include <utils/peakdetect/peakdetect.h>
 #include <utils/valleydetect/valleydetect.h>
+#else
+#include "emd.h"
+#include "defs.h"
+#include <string.h>
+#include "peakdetect.h"
+#include "valleydetect.h"
+#endif
+
+static void emd_update_runtime_params(emd_t* emd, float* x, float* y);
 
 emd_t emd_alloc(uint32_t size)
 {
-    assert(size != 0);
+    ASSERT(size != 0);
 
     emd_t emd;
 
@@ -24,8 +32,8 @@ emd_t emd_alloc(uint32_t size)
 
 emd_t emd_static_alloc(uint32_t size, float** membank, float** mempool, float* peak_buffer, float* valley_buffer)
 {
-    assert(size != 0);
-    assert(membank != NULL);
+    ASSERT(size != 0);
+    ASSERT(membank != NULL);
 
     emd_t emd;
     emd.size = size;
@@ -40,11 +48,11 @@ emd_t emd_static_alloc(uint32_t size, float** membank, float** mempool, float* p
 
 void emd_initialize(emd_t* emd, uint32_t num_of_imf, imf_t* imf, float* x, float* y, float* residue, float* working_buffer, float* peak_index_buffer, float* valley_index_buffer)
 {
-    assert(emd != NULL);
-    assert(num_of_imf > 0);
-    assert(imf != NULL);
-    assert(x != NULL);
-    assert(y != NULL);
+    ASSERT(emd != NULL);
+    ASSERT(num_of_imf > 0);
+    ASSERT(imf != NULL);
+    ASSERT(x != NULL);
+    ASSERT(y != NULL);
 
     emd->imf_count = num_of_imf;
     emd->imf = imf;
@@ -56,19 +64,9 @@ void emd_initialize(emd_t* emd, uint32_t num_of_imf, imf_t* imf, float* x, float
     emd->valley_index_buffer = valley_index_buffer;
 }
 
-void emd_update_runtime_params(emd_t* emd, float* x, float* y)
-{
-    assert(emd != NULL);
-    assert(x != NULL);
-    assert(y != NULL);
-
-    emd->x = x;
-    emd->y = y;
-}
-
 imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, uint32_t* status)
 {
-    assert(emd != NULL);
+    ASSERT(emd != NULL);
 
     uint32_t peakcount = 0;
     uint32_t valleycount = 0;
@@ -149,8 +147,8 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
 
 uint32_t emd_sift(emd_t* emd, uint32_t stopping_threshold)
 {
-    assert(emd != NULL);
-    assert(stopping_threshold > 0);
+    ASSERT(emd != NULL);
+    ASSERT(stopping_threshold > 0);
 
     imf_t* imf;
     uint32_t imf_count = 0;
@@ -182,3 +180,12 @@ void emd_free(emd_t emd)
     }
 }
 
+static void emd_update_runtime_params(emd_t* emd, float* x, float* y)
+{
+    ASSERT(emd != NULL);
+    ASSERT(x != NULL);
+    ASSERT(y != NULL);
+
+    emd->x = x;
+    emd->y = y;
+}

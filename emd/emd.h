@@ -3,9 +3,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef TEST
 #include <cspline/cspline.h>
 #include <imf/imf.h>
-
+#else
+#include "cspline.h"
+#include "imf.h"
+#endif
 typedef struct{
     float* x;
     float* y;
