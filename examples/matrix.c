@@ -150,6 +150,31 @@ int main()
     matrix_free(&matrix);
     matrix_free(&col_matrix);
 
+    printf("\n*************Inverse Input*************\n");
+    matrix_t in;
+    in = matrix_alloc(3, 3);
+    matrix_add_element(&in, 0, 0, 1.2);
+    matrix_add_element(&in, 0, 1, 2.7);
+    matrix_add_element(&in, 0, 2, 1.46);
+    matrix_add_element(&in, 1, 0, 2.19);
+    matrix_add_element(&in, 1, 1, 3.33);
+    matrix_add_element(&in, 1, 2, 1.05);
+    matrix_add_element(&in, 2, 0, 4.12);
+    matrix_add_element(&in, 2, 1, 2.5);
+    matrix_add_element(&in, 2, 2, 2.89);
+    matrix_printf(&in, NULL);
+
+    matrix_t inv = matrix_inverse(&in);
+    printf("\n*************Inverse Output*************\n");
+    matrix_printf(&inv, NULL);
+
+    printf("\n*************Inverse Output*************\n");
+    matrix_t mult = matrix_multiply(&in, &inv);
+    matrix_printf(&mult, NULL);
+
+    matrix_free(&in);
+    matrix_free(&inv);
+    matrix_free(&mult);
 
     return 0;
 }
