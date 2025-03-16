@@ -441,6 +441,68 @@ matrix_t matrix_transpose(matrix_t* matrix)
     return transpose;
 }
 
+matrix_t matrix_inverse(matrix_t* matrix) 
+{
+    ASSERT(matrix_is_square(matrix));
+    
+    uint32_t n = matrix->m;
+    matrix_t augmented = matrix_create_zero_matrix(n, 2 * n);
+    matrix_t inverse = matrix_create_zero_matrix(n, n);
+
+    for (uint32_t i = 0; i < n; i++) 
+    {
+        for (uint32_t j = 0; j < n; j++) 
+        {
+            matrix_add_element(&augmented, i, j, matrix_get_element(matrix, i, j));
+            matrix_add_element(&augmented, i, j + n, (i == j) ? 1.0f : 0.0f);
+        }
+    }
+    
+    // Perform Gaussian-Jordan elimination
+    for (uint32_t i = 0; i < n; i++) 
+    {
+        float pivot = matrix_get_element(&augmented, i, i);
+        if (pivot == 0) // Matrix is singular
+        {
+            matrix_free(&augmented);
+            matrix_free(&inverse);
+            matrix_t zero = matrix_create_zero_matrix(matrix->m, matrix->n);
+            return zero;
+        }
+        
+        // Normalize the pivot row
+        for (uint32_t j = 0; j < 2 * n; j++) 
+        {
+            matrix_add_element(&augmented, i, j, matrix_get_element(&augmented, i, j) / pivot);
+        }
+        
+        // Eliminate other rows
+        for (uint32_t k = 0; k < n; k++) 
+        {
+            if (k != i) 
+            {
+                float factor = matrix_get_element(&augmented, k, i);
+                for (uint32_t j = 0; j < 2 * n; j++) 
+                {
+                    matrix_add_element(&augmented, k, j, matrix_get_element(&augmented, k, j) - factor * matrix_get_element(&augmented, i, j));
+                }
+            }
+        }
+    }
+    
+    // Extract the inverse matrix from the augmented matrix
+    for (uint32_t i = 0; i < n; i++) 
+    {
+        for (uint32_t j = 0; j < n; j++) 
+        {
+            matrix_add_element(&inverse, i, j, matrix_get_element(&augmented, i, j + n));
+        }
+    }
+    
+    matrix_free(&augmented);
+    return inverse;
+}
+
 void matrix_copy(matrix_t* src, matrix_t* dest)
 {
     ASSERT(src != NULL);
