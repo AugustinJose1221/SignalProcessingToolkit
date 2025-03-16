@@ -36,11 +36,11 @@ imf_t imf_static_alloc(uint32_t size, float* x, float* y)
     return imf;
 }
 
-void imf_printf(imf_t* imf, int (*func)(const char*, ...))
+void imf_printf(imf_t* imf, print_t func)
 {
     ASSERT(imf != NULL);
     
-    int (*print_func)(const char*, ...);
+    print_t print_func;
 
     if(func != NULL)
     {
@@ -57,13 +57,13 @@ void imf_printf(imf_t* imf, int (*func)(const char*, ...))
     }
 }
 
-void imf_print_all(imf_t* imf, uint32_t size, uint32_t num_of_imf, int (*func)(const char*, ...))
+void imf_print_all(imf_t* imf, uint32_t size, uint32_t num_of_imf, print_t func)
 {
     ASSERT(imf != NULL);
     ASSERT(num_of_imf > 0);
     ASSERT(size > 0);
 
-    int (*print_func)(const char*, ...);
+    print_t print_func;
 
     if(func != NULL)
     {
