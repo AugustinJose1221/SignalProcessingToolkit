@@ -104,6 +104,7 @@
     - tests/utils/peakdetect/**
     - tests/utils/valleydetect/**
     - tests/cspline/**
+    - tests/imf/**
   :source:
     - cspline/**
     - emd/**
