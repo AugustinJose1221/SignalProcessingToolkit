@@ -196,6 +196,30 @@ void run_matrix_transpose_conformation(void)
     MATRIX_FREE(A3);
 }
 
+void run_matrix_determinant_conformation(void)
+{
+    matrix_t A0;
+    float determinant0;
+    MATRIX_INIT(A0, 2, 2, ((float[]){4, 7, 2, 6}));
+    determinant0 = matrix_determinant(&A0);
+    VALUE_CHECK_EQUAL_CASE(determinant0, 10, "Matrix Test 18");
+    MATRIX_FREE(A0);
+
+    matrix_t A1;
+    float determinant1;
+    MATRIX_INIT(A1, 3, 3, ((float[]){1, 2, 3, 0, 1, 4, 5, 6, 0}));
+    determinant1 = matrix_determinant(&A1);
+    VALUE_CHECK_EQUAL_CASE(determinant1, 1, "Matrix Test 19");
+    MATRIX_FREE(A1);
+
+    matrix_t A2;
+    float determinant2;
+    MATRIX_INIT(A2, 4, 4, ((float[]){1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}));
+    determinant2 = matrix_determinant(&A2);
+    VALUE_CHECK_EQUAL_CASE(determinant2, 0, "Matrix Test 20");
+    MATRIX_FREE(A2);
+}
+
 int main()
 {
     run_matrix_addition_static_conformation();
@@ -203,5 +227,6 @@ int main()
     run_matrix_multiply_conformation();
     run_matrix_transpose_conformation();
     run_matrix_inverse_conformation();
+    run_matrix_determinant_conformation();
     return 0;
 }

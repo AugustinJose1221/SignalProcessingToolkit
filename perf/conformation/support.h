@@ -35,5 +35,6 @@
 #define MATRIX_FREE(mat)        matrix_free(&mat);
 
 #define MATRIX_CHECK_EQUAL_CASE(a,b, msg) CONFORMATION_TEST_CASE(MATRIX_IS_EQUAL(a,b), msg)
+#define VALUE_CHECK_EQUAL_CASE(a,b, msg) CONFORMATION_TEST_CASE((a) == (b), msg)
 
 #endif//__CONFORMATION_SUPPORT_H__
