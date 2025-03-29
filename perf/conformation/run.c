@@ -153,11 +153,55 @@ void run_matrix_transpose_conformation(void)
     MATRIX_FREE(A2);    
 }
 
+ void run_matrix_inverse_conformation(void)
+{
+    matrix_t A0, inverse0, correctInverse0;
+    MATRIX_INIT(A0, 2, 2, ((float[]){4, 7, 2, 6}));
+    inverse0 = matrix_inverse(&A0);
+    MATRIX_INIT(correctInverse0, 2, 2, ((float[]){0.6f, -0.7f, -0.2f, 0.4f}));
+    MATRIX_CHECK_EQUAL_CASE(inverse0, correctInverse0, "Matrix Test 14");
+    MATRIX_FREE(inverse0);
+    MATRIX_FREE(correctInverse0);
+    MATRIX_FREE(A0);
+
+    matrix_t A1, inverse1, correctInverse1;
+    MATRIX_INIT(A1, 3, 3, ((float[]){1, 2, 3, 0, 1, 4, 5, 6, 0}));
+    inverse1 = matrix_inverse(&A1);
+    MATRIX_INIT(correctInverse1, 3, 3, ((float[]){-24, 18, 5, 20, -15, -4, -5, 4, 1}));
+    MATRIX_CHECK_EQUAL_CASE(inverse1, correctInverse1, "Matrix Test 15");
+    MATRIX_FREE(inverse1);
+    MATRIX_FREE(correctInverse1);
+    MATRIX_FREE(A1);
+
+    matrix_t A2, inverse2, correctInverse2;
+    MATRIX_INIT(A2, 4, 4, ((float[]){1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}));
+    inverse2 = matrix_inverse(&A2);
+    MATRIX_INIT(correctInverse2, 4, 4, ((float[]){
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, 0, 0}));
+    MATRIX_CHECK_EQUAL_CASE(inverse2, correctInverse2, "Matrix Test 16");
+    MATRIX_FREE(inverse2);
+    MATRIX_FREE(correctInverse2);
+    MATRIX_FREE(A2);
+
+    matrix_t A3, inverse3, correctInverse3;
+    MATRIX_INIT(A3, 2, 2, ((float[]){1, 2, 3, 4}));
+    inverse3 = matrix_inverse(&A3);
+    MATRIX_INIT(correctInverse3, 2, 2, ((float[]){-2, 1, 1.5f, -0.5f}));
+    MATRIX_CHECK_EQUAL_CASE(inverse3, correctInverse3, "Matrix Test 17");
+    MATRIX_FREE(inverse3);
+    MATRIX_FREE(correctInverse3);
+    MATRIX_FREE(A3);
+}
+
 int main()
 {
     run_matrix_addition_static_conformation();
     run_matrix_multiply_scalar_conformation();
     run_matrix_multiply_conformation();
     run_matrix_transpose_conformation();
+    run_matrix_inverse_conformation();
     return 0;
 }
