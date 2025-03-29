@@ -58,7 +58,7 @@ void run_matrix_addition_static_conformation(void)
     MATRIX_FREE(A4);
 }
 
-void run_matrix_multiply_scalar_conformation()
+void run_matrix_multiply_scalar_conformation(void)
 {
     matrix_t A0, scalar0, product0, correctProduct0;
     MATRIX_INIT(A0, 2, 3, ((float[]){1, 2, 3, 4, 5, 6}));
@@ -97,7 +97,7 @@ void run_matrix_multiply_scalar_conformation()
     MATRIX_FREE(A3);
 }
 
-void run_matrix_multiply_conformation()
+void run_matrix_multiply_conformation(void)
 {
     matrix_t A0, B0, product0, correctProduct0;
     MATRIX_INIT(A0, 2, 3, ((float[]){1, 2, 3, 4, 5, 6}));
@@ -123,10 +123,41 @@ void run_matrix_multiply_conformation()
     MATRIX_FREE(A1);
 }
 
+void run_matrix_transpose_conformation(void)
+{
+    matrix_t A0, transpose0, correctTranspose0;
+    MATRIX_INIT(A0, 2, 3, ((float[]){1, 2, 3, 4, 5, 6}));
+    transpose0 = matrix_transpose(&A0);
+    MATRIX_INIT(correctTranspose0, 3, 2, ((float[]){1, 4, 2, 5, 3, 6}));
+    MATRIX_CHECK_EQUAL_CASE(transpose0, correctTranspose0, "Matrix Test 11");
+    MATRIX_FREE(transpose0);
+    MATRIX_FREE(correctTranspose0);
+    MATRIX_FREE(A0);
+
+    matrix_t A1, transpose1, correctTranspose1;
+    MATRIX_INIT(A1, 3, 2, ((float[]){1.5f, -2.5f, 3.5f, -4.5f, 5.5f, -6.5f}));
+    transpose1 = matrix_transpose(&A1);
+    MATRIX_INIT(correctTranspose1, 2, 3, ((float[]){1.5f, 3.5f, 5.5f, -2.5f, -4.5f, -6.5f}));
+    MATRIX_CHECK_EQUAL_CASE(transpose1, correctTranspose1, "Matrix Test 12");
+    MATRIX_FREE(transpose1);
+    MATRIX_FREE(correctTranspose1);
+    MATRIX_FREE(A1);
+
+    matrix_t A2, transpose2, correctTranspose2;
+    MATRIX_INIT(A2, 4, 4, ((float[]){1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}));
+    transpose2 = matrix_transpose(&A2);
+    MATRIX_INIT(correctTranspose2, 4, 4, ((float[]){1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16}));
+    MATRIX_CHECK_EQUAL_CASE(transpose2, correctTranspose2, "Matrix Test 13");
+    MATRIX_FREE(transpose2);
+    MATRIX_FREE(correctTranspose2);
+    MATRIX_FREE(A2);    
+}
+
 int main()
 {
     run_matrix_addition_static_conformation();
     run_matrix_multiply_scalar_conformation();
     run_matrix_multiply_conformation();
+    run_matrix_transpose_conformation();
     return 0;
 }
