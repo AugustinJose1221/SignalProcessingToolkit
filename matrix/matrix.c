@@ -84,7 +84,7 @@ matrix_t matrix_get_nth_col(matrix_t* matrix, uint32_t col_index)
 
     col_matrix = matrix_alloc(matrix->m, 1);
 
-    for(int i = 0; i < matrix->n; i++)
+    for(int i = 0; i < matrix->m; i++)
     {
         matrix_add_element(&col_matrix, i, 0, matrix_get_element(matrix, i, col_index));
     }

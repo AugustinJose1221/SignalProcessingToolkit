@@ -119,6 +119,63 @@ void test_matrix_get_nth_col(void)
     matrix_free(&col_matrix);
 }
 
+void test_matrix_get_nth_col_of_a_matrix_with_more_rows_than_columns(void)
+{
+    matrix_t matrix = matrix_alloc(3, 2);
+    matrix_add_element(&matrix, 0, 0, 1);
+    matrix_add_element(&matrix, 0, 1, 2);
+    matrix_add_element(&matrix, 1, 0, 3);
+    matrix_add_element(&matrix, 1, 1, 4);
+    matrix_add_element(&matrix, 2, 0, 5);
+    matrix_add_element(&matrix, 2, 1, 6);
+    matrix_t col_matrix = matrix_get_nth_col(&matrix, 0);
+    TEST_ASSERT_EQUAL(3, col_matrix.m);
+    TEST_ASSERT_EQUAL(1, col_matrix.n);
+    TEST_ASSERT_EQUAL(1, matrix_get_element(&col_matrix, 0, 0));
+    TEST_ASSERT_EQUAL(3, matrix_get_element(&col_matrix, 1, 0));
+    TEST_ASSERT_EQUAL(5, matrix_get_element(&col_matrix, 2, 0));
+    matrix_free(&matrix);
+    matrix_free(&col_matrix);
+}
+
+void test_matrix_get_nth_col_of_a_matrix_with_more_columns_than_rows(void)
+{
+    matrix_t matrix = matrix_alloc(2, 4);
+    matrix_add_element(&matrix, 0, 0, 1);
+    matrix_add_element(&matrix, 0, 1, 2);
+    matrix_add_element(&matrix, 0, 2, 3);
+    matrix_add_element(&matrix, 0, 3, 4);
+    matrix_add_element(&matrix, 1, 0, 5);
+    matrix_add_element(&matrix, 1, 1, 6);
+    matrix_add_element(&matrix, 1, 2, 7);
+    matrix_add_element(&matrix, 1, 3, 8);
+    matrix_t col_matrix = matrix_get_nth_col(&matrix, 3);
+    TEST_ASSERT_EQUAL(2, col_matrix.m);
+    TEST_ASSERT_EQUAL(1, col_matrix.n);
+    TEST_ASSERT_EQUAL(4, matrix_get_element(&col_matrix, 0, 0));
+    TEST_ASSERT_EQUAL(8, matrix_get_element(&col_matrix, 1, 0));
+    matrix_free(&matrix);
+    matrix_free(&col_matrix);
+}
+
+void test_matrix_get_nth_row_of_a_matrix_that_is_not_square(void)
+{
+    matrix_t matrix = matrix_alloc(3, 2);
+    matrix_add_element(&matrix, 0, 0, 1);
+    matrix_add_element(&matrix, 0, 1, 2);
+    matrix_add_element(&matrix, 1, 0, 3);
+    matrix_add_element(&matrix, 1, 1, 4);
+    matrix_add_element(&matrix, 2, 0, 5);
+    matrix_add_element(&matrix, 2, 1, 6);
+    matrix_t row_matrix = matrix_get_nth_row(&matrix, 2);
+    TEST_ASSERT_EQUAL(1, row_matrix.m);
+    TEST_ASSERT_EQUAL(2, row_matrix.n);
+    TEST_ASSERT_EQUAL(5, matrix_get_element(&row_matrix, 0, 0));
+    TEST_ASSERT_EQUAL(6, matrix_get_element(&row_matrix, 0, 1));
+    matrix_free(&matrix);
+    matrix_free(&row_matrix);
+}
+
 void test_matrix_get_order(void)
 {
     matrix_t matrix = matrix_alloc(3, 3);
