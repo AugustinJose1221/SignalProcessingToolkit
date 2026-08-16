@@ -101,3 +101,59 @@ def test_every_function_of_the_repository_has_a_comment():
 
 def test_the_documentation_of_the_repository_is_current():
     assert api_doc.main(["api_doc.py", "--check"]) == 0
+
+
+def test_the_program_writes_one_file_for_each_module_and_an_index():
+    documents = api_doc.build_documents()
+
+    assert api_doc.INDEX_PATH in documents
+
+    for name, path, title in api_doc.MODULES:
+        expected = os.path.join(api_doc.MODULE_DIRECTORY, "%s.md" % name)
+        assert expected in documents, "no file for the module %s" % name
+
+    # The index and one file for each module.
+    assert len(documents) == len(api_doc.MODULES) + 1
+
+
+def test_the_index_points_to_the_file_of_each_module():
+    index = api_doc.build_index()
+
+    for name, path, title in api_doc.MODULES:
+        assert "(api/%s.md)" % name in index, "the index does not point to %s" % name
+
+
+def test_the_file_of_a_module_holds_its_functions_and_no_others():
+    document = api_doc.build_module_document("goertzel", "goertzel/goertzel.h",
+                                             "Detection of one frequency")
+
+    assert "### `goertzel_init`" in document
+    assert "### `goertzel_magnitude`" in document
+    # A function of another module must not stand in this file.
+    assert "matrix_alloc" not in document
+
+
+def test_the_check_finds_a_file_that_belongs_to_no_module(tmp_path, monkeypatch):
+    # Put a file into the directory that no module writes. The check must see
+    # it, so that a module that goes away leaves no old file behind.
+    directory = tmp_path / "api"
+    directory.mkdir()
+    (directory / "gone.md").write_text("# gone\n")
+
+    monkeypatch.setattr(api_doc, "MODULE_DIRECTORY", str(directory))
+
+    extra = api_doc.find_files_that_belong_to_no_module({})
+
+    assert len(extra) == 1
+    assert extra[0].endswith("gone.md")
+
+
+def test_the_check_is_quiet_when_every_file_belongs_to_a_module(tmp_path, monkeypatch):
+    directory = tmp_path / "api"
+    directory.mkdir()
+    known = directory / "matrix.md"
+    known.write_text("# matrix\n")
+
+    monkeypatch.setattr(api_doc, "MODULE_DIRECTORY", str(directory))
+
+    assert api_doc.find_files_that_belong_to_no_module({str(known): "# matrix\n"}) == []
