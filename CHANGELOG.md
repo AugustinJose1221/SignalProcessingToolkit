@@ -1,3 +1,28 @@
+## 0.3.0 (2026-08-16)
+
+### Feat
+
+- **goertzel**: Add Goertzel, the wavelet transform and the filter of Savitzky and Golay
+- **ekf**: Add the extended Kalman filter
+- **fir**: Add filters with a finite and an infinite impulse response
+- **hilbert**: Add the Hilbert transform and complete the Hilbert-Huang transform
+- **fft**: Add the fast Fourier transform
+
+### Fix
+
+- **examples**: Restore the names of the new examples
+
+### Docs
+
+- **examples**: Add an example for each of the new modules
+- **readme**: Describe the library by what it does and not by its matrices
+- **api**: Give each module its own file
+- **readme**: Describe the modules of the library by their area
+
+### Build
+
+- **cmake**: Give the version of the project to CMake
+
 ## 0.2.0 (2026-08-16)
 
 ### Feat
