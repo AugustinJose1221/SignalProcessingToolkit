@@ -29,6 +29,8 @@ ALLOWED_NAMES = {"setUp", "tearDown", "main"}
 # name of the module.
 MODULE_PREFIX = {
     "matrix": "matrix_",
+    "cmatrix": "cmatrix_",
+    "cnum": "cnum_",
     "vector": "vector_",
     "vector2d": "vector2d_",
     "cspline": "cspline_",

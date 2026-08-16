@@ -107,7 +107,11 @@
     - tests/imf/**
     - tests/emd/**
     - tests/kalman/**
+    - tests/cnum/**
+    - tests/cmatrix/**
   :source:
+    - cmatrix/**
+    - cnum/**
     - cspline/**
     - emd/**
     - imf/**
@@ -118,6 +122,8 @@
     - vector/**
     - vector2d/**
   :include:
+    - cmatrix/**
+    - cnum/**
     - common/**
     - cspline/**
     - emd/**

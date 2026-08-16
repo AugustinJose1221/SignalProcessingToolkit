@@ -18,6 +18,8 @@ set(SIGNALPROC_SOURCES
     emd/emd.c
     imf/imf.c
     matrix/matrix.c
+    cnum/cnum.c
+    cmatrix/cmatrix.c
     kalman/kalman.c)
 
 # The repository gives a library, thus the first target is a library. A library
