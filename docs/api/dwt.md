@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The discrete wavelet transform. Declared in `dwt/dwt.h`.
+The discrete wavelet transform. Declared in `sptk/transform/dwt.h`.
 
 [Back to the index](../API.md)
 

@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Peak detection. Declared in `utils/peakdetect/peakdetect.h`.
+Peak detection. Declared in `sptk/util/peakdetect.h`.
 
 [Back to the index](../API.md)
 

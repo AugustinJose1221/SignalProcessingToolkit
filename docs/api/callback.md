@@ -7,6 +7,6 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The print callback. Declared in `common/callback.h`.
+The print callback. Declared in `sptk/core/callback.h`.
 
 [Back to the index](../API.md)

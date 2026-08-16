@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Cubic splines. Declared in `cspline/cspline.h`.
+Cubic splines. Declared in `sptk/interpolate/cspline.h`.
 
 [Back to the index](../API.md)
 

@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Vectors of float values. Declared in `vector/vector.h`.
+Vectors of float values. Declared in `sptk/linalg/vector.h`.
 
 [Back to the index](../API.md)
 

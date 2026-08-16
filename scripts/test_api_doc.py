@@ -124,7 +124,7 @@ def test_the_index_points_to_the_file_of_each_module():
 
 
 def test_the_file_of_a_module_holds_its_functions_and_no_others():
-    document = api_doc.build_module_document("goertzel", "goertzel/goertzel.h",
+    document = api_doc.build_module_document("goertzel", "sptk/transform/goertzel.h",
                                              "Detection of one frequency")
 
     assert "### `goertzel_init`" in document

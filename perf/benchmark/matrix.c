@@ -1,6 +1,6 @@
 #include <perf/benchmark/benchmark.h>
 
-#include <matrix/matrix.h>
+#include <sptk/linalg/matrix.h>
 
 #include <stdlib.h>
 

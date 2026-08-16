@@ -11,17 +11,30 @@ interpolation that they need.
 
 ## What the library gives
 
-| Area | Modules | What you do with them |
-| --- | --- | --- |
-| Frequency | `fft`, `goertzel`, `hilbert`, `hht`, `dwt` | Find which frequencies a signal holds, and where |
-| Filters | `fir`, `iir`, `savgol` | Take a band of frequencies away, or smooth a signal |
-| Estimation | `kalman`, `ekf` | Follow a state behind a noisy measurement |
-| Decomposition | `emd`, `imf`, `cspline` | Split a signal into simpler parts, and interpolate |
-| Mathematics | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `vector`, `vector2d` | The arithmetic that the modules above need |
-| Utilities | `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
+The library lies under [sptk](sptk), and each area of work has its own
+directory there:
+
+| Area | Directory | Modules | What you do with them |
+| --- | --- | --- | --- |
+| Transforms | `sptk/transform` | `fft`, `goertzel`, `hilbert`, `hht`, `dwt` | Find which frequencies a signal holds, and where |
+| Filters | `sptk/filter` | `fir`, `iir`, `savgol` | Take a band of frequencies away, or smooth a signal |
+| Estimation | `sptk/estimate` | `kalman`, `ekf` | Follow a state behind a noisy measurement |
+| Decomposition | `sptk/decompose` | `emd`, `imf` | Split a signal into simpler parts |
+| Interpolation | `sptk/interpolate` | `cspline` | Give a smooth curve through a set of points |
+| Linear algebra | `sptk/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `vector`, `vector2d` | The arithmetic that the areas above need |
+| Utilities | `sptk/util` | `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
+| Core | `sptk/core` | `callback`, `defs`, `point2d` | The types and the macros that every module shares |
+
+Include a module by its area:
+
+```c
+#include <sptk/transform/fft.h>
+#include <sptk/filter/fir.h>
+```
 
 [docs/API.md](docs/API.md) describes every module. The directory
-[examples](examples) holds a small program for each area.
+[examples](examples) holds a small program for each area. The tests under
+[tests](tests) follow the same areas as the library.
 
 ## Three rules that shape the library
 
@@ -46,6 +59,9 @@ or the order of a determinant.
 Take a noisy signal, filter it, and look at what frequencies are left:
 
 ```c
+#include <sptk/filter/fir.h>
+#include <sptk/transform/fft.h>
+
 fir_t fir = fir_alloc(31);
 fir_design_low_pass(&fir, 0.1f);
 fir_process_block(&fir, noisy, clean, SIZE);
@@ -143,7 +159,8 @@ The names follow the scheme of the Linux kernel:
 
 - A name is in lower case, with an underscore between the words.
 - The name of a function starts with the name of its module, thus `matrix_add`
-  and not `add_matrix`.
+  and not `add_matrix`. The name of the file is the name of the module, thus
+  every function of `sptk/linalg/matrix.c` starts with `matrix_`.
 - The name of a type is in lower case and ends with `_t`.
 - The name of a macro is in upper case.
 - A function that only its own file uses is static.

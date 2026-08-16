@@ -178,12 +178,7 @@ jobs:
         # reads the libraries that the shared object asks for. Only the C
         # library and the mathematics library may appear.
         run: |
-          gcc -shared -fPIC -std=c99 -I. -o /tmp/libsptk.so \
-            utils/binarysearch/binarysearch.c \
-            utils/peakdetect/peakdetect.c \
-            utils/valleydetect/valleydetect.c \
-            cspline/cspline.c vector/vector.c vector2d/vector2d.c \
-            emd/emd.c imf/imf.c matrix/matrix.c kalman/kalman.c -lm
+          gcc -shared -fPIC -std=c99 -I. -o /tmp/libsptk.so sptk/*/*.c -lm
           echo "The shared object asks for:"
           readelf -d /tmp/libsptk.so | grep NEEDED
           if readelf -d /tmp/libsptk.so | grep NEEDED | grep -qvE 'libc\.so|libm\.so'; then
@@ -203,8 +198,7 @@ jobs:
         # warning cannot come into the repository without a signal.
         run: |
           status=0
-          for source in utils/*/*.c cspline/*.c vector/*.c vector2d/*.c \
-                        emd/*.c imf/*.c matrix/*.c kalman/*.c; do
+          for source in sptk/*/*.c; do
             echo "== $source"
             gcc -std=c99 -Wall -Wextra -Werror -c -I. -o /dev/null "$source" || status=1
           done

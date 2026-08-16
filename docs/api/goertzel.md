@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Detection of one frequency. Declared in `goertzel/goertzel.h`.
+Detection of one frequency. Declared in `sptk/transform/goertzel.h`.
 
 [Back to the index](../API.md)
 

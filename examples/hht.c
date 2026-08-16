@@ -9,12 +9,12 @@
 
 #if (RUN_EXAMPLE == RUN_HHT_EXAMPLE)
 
-#include <hht/hht.h>
-#include <hilbert/hilbert.h>
-#include <fft/fft.h>
-#include <emd/emd.h>
-#include <imf/imf.h>
-#include <cnum/cnum.h>
+#include <sptk/transform/hht.h>
+#include <sptk/transform/hilbert.h>
+#include <sptk/transform/fft.h>
+#include <sptk/decompose/emd.h>
+#include <sptk/decompose/imf.h>
+#include <sptk/linalg/cnum.h>
 #include <math.h>
 #include <stdio.h>
 

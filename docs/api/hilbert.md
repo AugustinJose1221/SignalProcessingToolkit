@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The Hilbert transform. Declared in `hilbert/hilbert.h`.
+The Hilbert transform. Declared in `sptk/transform/hilbert.h`.
 
 [Back to the index](../API.md)
 

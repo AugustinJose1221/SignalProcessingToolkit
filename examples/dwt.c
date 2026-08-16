@@ -9,7 +9,7 @@
 
 #if (RUN_EXAMPLE == RUN_DWT_EXAMPLE)
 
-#include <dwt/dwt.h>
+#include <sptk/transform/dwt.h>
 #include <math.h>
 #include <stdio.h>
 

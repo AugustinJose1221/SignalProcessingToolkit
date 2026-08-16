@@ -13,7 +13,7 @@
 
 #if (RUN_EXAMPLE == RUN_GOERTZEL_EXAMPLE)
 
-#include <goertzel/goertzel.h>
+#include <sptk/transform/goertzel.h>
 #include <math.h>
 #include <stdio.h>
 

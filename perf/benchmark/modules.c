@@ -3,11 +3,11 @@
 
 #include <perf/benchmark/benchmark.h>
 
-#include <vector/vector.h>
-#include <cspline/cspline.h>
-#include <kalman/kalman.h>
-#include <emd/emd.h>
-#include <imf/imf.h>
+#include <sptk/linalg/vector.h>
+#include <sptk/interpolate/cspline.h>
+#include <sptk/estimate/kalman.h>
+#include <sptk/decompose/emd.h>
+#include <sptk/decompose/imf.h>
 
 #include <stdlib.h>
 

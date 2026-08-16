@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The Kalman filter. Declared in `kalman/kalman.h`.
+The Kalman filter. Declared in `sptk/estimate/kalman.h`.
 
 [Back to the index](../API.md)
 

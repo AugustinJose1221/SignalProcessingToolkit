@@ -16,16 +16,28 @@ LIBRARY_PATH = os.path.join(BUILD_DIRECTORY, "libsptk.so")
 
 # The same list of sources as SIGNALPROC_SOURCES in CMakeLists.txt.
 SOURCES = [
-    "utils/binarysearch/binarysearch.c",
-    "utils/peakdetect/peakdetect.c",
-    "utils/valleydetect/valleydetect.c",
-    "cspline/cspline.c",
-    "vector/vector.c",
-    "vector2d/vector2d.c",
-    "emd/emd.c",
-    "imf/imf.c",
-    "matrix/matrix.c",
-    "kalman/kalman.c",
+    "sptk/linalg/cmatrix.c",
+    "sptk/linalg/cnum.c",
+    "sptk/linalg/matrix.c",
+    "sptk/linalg/pmatrix.c",
+    "sptk/linalg/vector.c",
+    "sptk/linalg/vector2d.c",
+    "sptk/interpolate/cspline.c",
+    "sptk/transform/dwt.c",
+    "sptk/transform/fft.c",
+    "sptk/transform/goertzel.c",
+    "sptk/transform/hht.c",
+    "sptk/transform/hilbert.c",
+    "sptk/filter/fir.c",
+    "sptk/filter/iir.c",
+    "sptk/filter/savgol.c",
+    "sptk/estimate/ekf.c",
+    "sptk/estimate/kalman.c",
+    "sptk/decompose/emd.c",
+    "sptk/decompose/imf.c",
+    "sptk/util/binarysearch.c",
+    "sptk/util/peakdetect.c",
+    "sptk/util/valleydetect.c",
 ]
 
 

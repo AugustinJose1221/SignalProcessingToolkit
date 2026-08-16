@@ -2,7 +2,7 @@
 
 #if (RUN_EXAMPLE == RUN_MATRIX_EXAMPLE)
 
-#include <matrix/matrix.h>
+#include <sptk/linalg/matrix.h>
 #include <stdio.h>
 
 #define NUM_OF_ROWS 3

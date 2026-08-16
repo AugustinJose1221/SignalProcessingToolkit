@@ -1,7 +1,7 @@
 #ifndef __CONFORMATION_MATRIX_SUPPORT_H__
 #define __CONFORMATION_MATRIX_SUPPORT_H__
 
-#include <matrix/matrix.h>
+#include <sptk/linalg/matrix.h>
 #include <gsl/gsl_matrix.h>
 
 void support_init();

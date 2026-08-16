@@ -20,10 +20,10 @@ import sptk  # noqa: E402
 PROBE = r"""
 #include <stddef.h>
 #include <stdio.h>
-#include <matrix/matrix.h>
-#include <vector/vector.h>
-#include <cspline/cspline.h>
-#include <kalman/kalman.h>
+#include <sptk/linalg/matrix.h>
+#include <sptk/linalg/vector.h>
+#include <sptk/interpolate/cspline.h>
+#include <sptk/estimate/kalman.h>
 
 int main(void)
 {

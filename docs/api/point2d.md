@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-A point on a plane. Declared in `point2d/point2d.h`.
+A point on a plane. Declared in `sptk/core/point2d.h`.
 
 [Back to the index](../API.md)
 

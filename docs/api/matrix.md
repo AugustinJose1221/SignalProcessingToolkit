@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Matrices of float values. Declared in `matrix/matrix.h`.
+Matrices of float values. Declared in `sptk/linalg/matrix.h`.
 
 [Back to the index](../API.md)
 

@@ -2,9 +2,9 @@
 
 #if (RUN_EXAMPLE == RUN_EMD_EXAMPLE)
 
-#include <cspline/cspline.h>
-#include <emd/emd.h>
-#include <imf/imf.h>
+#include <sptk/interpolate/cspline.h>
+#include <sptk/decompose/emd.h>
+#include <sptk/decompose/imf.h>
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>

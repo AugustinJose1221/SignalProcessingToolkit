@@ -1,7 +1,7 @@
 #ifndef __CONFORMATION_MATRIX_H__
 #define __CONFORMATION_MATRIX_H__
 
-#include <matrix/matrix.h>
+#include <sptk/linalg/matrix.h>
 #include <perf/conformation/support.h>
 
 #define MATRIX_INIT(mat, m, n, arr)  do\

@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Matrices of complex numbers. Declared in `cmatrix/cmatrix.h`.
+Matrices of complex numbers. Declared in `sptk/linalg/cmatrix.h`.
 
 [Back to the index](../API.md)
 

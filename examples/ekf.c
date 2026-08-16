@@ -20,8 +20,8 @@
 
 #if (RUN_EXAMPLE == RUN_EKF_EXAMPLE)
 
-#include <ekf/ekf.h>
-#include <matrix/matrix.h>
+#include <sptk/estimate/ekf.h>
+#include <sptk/linalg/matrix.h>
 #include <math.h>
 #include <stdio.h>
 

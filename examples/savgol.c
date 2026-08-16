@@ -11,7 +11,7 @@
 
 #if (RUN_EXAMPLE == RUN_SAVGOL_EXAMPLE)
 
-#include <savgol/savgol.h>
+#include <sptk/filter/savgol.h>
 #include <math.h>
 #include <stdio.h>
 

@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Filters with a finite impulse response. Declared in `fir/fir.h`.
+Filters with a finite impulse response. Declared in `sptk/filter/fir.h`.
 
 [Back to the index](../API.md)
 

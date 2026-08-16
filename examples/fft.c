@@ -7,8 +7,8 @@
 
 #if (RUN_EXAMPLE == RUN_FFT_EXAMPLE)
 
-#include <fft/fft.h>
-#include <cnum/cnum.h>
+#include <sptk/transform/fft.h>
+#include <sptk/linalg/cnum.h>
 #include <math.h>
 #include <stdio.h>
 

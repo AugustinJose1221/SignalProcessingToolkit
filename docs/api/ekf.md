@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The extended Kalman filter. Declared in `ekf/ekf.h`.
+The extended Kalman filter. Declared in `sptk/estimate/ekf.h`.
 
 [Back to the index](../API.md)
 

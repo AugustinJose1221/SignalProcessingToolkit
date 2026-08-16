@@ -8,8 +8,8 @@
 
 #if (RUN_EXAMPLE == RUN_FILTER_EXAMPLE)
 
-#include <fir/fir.h>
-#include <iir/iir.h>
+#include <sptk/filter/fir.h>
+#include <sptk/filter/iir.h>
 #include <math.h>
 #include <stdio.h>
 

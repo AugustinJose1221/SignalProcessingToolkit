@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Empirical mode decomposition. Declared in `emd/emd.h`.
+Empirical mode decomposition. Declared in `sptk/decompose/emd.h`.
 
 [Back to the index](../API.md)
 

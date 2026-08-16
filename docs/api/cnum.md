@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Complex numbers. Declared in `cnum/cnum.h`.
+Complex numbers. Declared in `sptk/linalg/cnum.h`.
 
 [Back to the index](../API.md)
 

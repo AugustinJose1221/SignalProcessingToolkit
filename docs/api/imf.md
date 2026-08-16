@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Intrinsic mode functions. Declared in `imf/imf.h`.
+Intrinsic mode functions. Declared in `sptk/decompose/imf.h`.
 
 [Back to the index](../API.md)
 

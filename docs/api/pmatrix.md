@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Matrices with a parameter. Declared in `pmatrix/pmatrix.h`.
+Matrices with a parameter. Declared in `sptk/linalg/pmatrix.h`.
 
 [Back to the index](../API.md)
 

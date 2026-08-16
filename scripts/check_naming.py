@@ -25,33 +25,13 @@ REPOSITORY = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # from Unity, thus this repository cannot change them.
 ALLOWED_NAMES = {"setUp", "tearDown", "main"}
 
-# The modules of the library. Each function of a module must start with the
-# name of the module.
-MODULE_PREFIX = {
-    "matrix": "matrix_",
-    "cmatrix": "cmatrix_",
-    "pmatrix": "pmatrix_",
-    "fft": "fft_",
-    "hilbert": "hilbert_",
-    "hht": "hht_",
-    "fir": "fir_",
-    "iir": "iir_",
-    "ekf": "ekf_",
-    "goertzel": "goertzel_",
-    "dwt": "dwt_",
-    "savgol": "savgol_",
-    "cnum": "cnum_",
-    "vector": "vector_",
-    "vector2d": "vector2d_",
-    "cspline": "cspline_",
-    "imf": "imf_",
-    "emd": "emd_",
-    "kalman": "kalman_",
-    "point2d": "point2d_",
-    "utils/binarysearch": "binarysearch_",
-    "utils/peakdetect": "peakdetect_",
-    "utils/valleydetect": "valleydetect_",
-}
+# The library lies under this directory. Each file there holds one module, and
+# the name of the file is the name of the module.
+LIBRARY_DIRECTORY = "sptk"
+
+# The headers that hold no module of their own. They give a type or a macro,
+# and no function starts with their name.
+HEADERS_WITHOUT_A_MODULE = {"callback", "defs", "point2d"}
 
 SKIPPED_DIRECTORIES = ("build", ".git", "vendor")
 
@@ -108,11 +88,23 @@ def source_files(paths):
 
 
 def module_prefix_for(path):
+    """Give the prefix that every function of this file must carry.
+
+    The name of the file is the name of the module, thus matrix.c and matrix.h
+    both give the prefix matrix_. A file outside the library, such as a test or
+    a benchmark, carries no prefix.
+    """
     relative = os.path.relpath(os.path.abspath(path), REPOSITORY)
-    if relative.startswith(("tests" + os.sep, "perf" + os.sep, "examples" + os.sep)):
+
+    if not relative.startswith(LIBRARY_DIRECTORY + os.sep):
         return None
-    directory = os.path.dirname(relative)
-    return MODULE_PREFIX.get(directory.replace(os.sep, "/"))
+
+    module = os.path.splitext(os.path.basename(relative))[0]
+
+    if module in HEADERS_WITHOUT_A_MODULE:
+        return None
+
+    return module + "_"
 
 
 def parameter_names(parameters):

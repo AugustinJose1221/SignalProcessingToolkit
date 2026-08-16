@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The fast Fourier transform. Declared in `fft/fft.h`.
+The fast Fourier transform. Declared in `sptk/transform/fft.h`.
 
 [Back to the index](../API.md)
 

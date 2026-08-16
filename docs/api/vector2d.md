@@ -7,7 +7,7 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Vectors with two values. Declared in `vector2d/vector2d.h`.
+Vectors with two values. Declared in `sptk/linalg/vector2d.h`.
 
 [Back to the index](../API.md)
 
