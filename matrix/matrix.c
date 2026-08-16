@@ -151,11 +151,10 @@ float matrix_determinant(matrix_t* matrix)
     }
     else
     {
-        inner_matrix = matrix_alloc(matrix->m-1, matrix->n-1);
-
         for(int i = 0; i < matrix->n; i++)
         {
             row_index = 0;
+            inner_matrix = matrix_alloc(matrix->m-1, matrix->n-1);
             for(int j = 0; j < matrix->m; j++)
             {
                 col_index = 0;
