@@ -754,3 +754,226 @@ void test_matrix_free(void)
     matrix_t matrix = matrix_alloc(3, 3);
     matrix_free(&matrix);
 }
+void test_matrix_add_into(void)
+{
+    matrix_t a = matrix_alloc(2, 2);
+    matrix_add_element(&a, 0, 0, 1);
+    matrix_add_element(&a, 0, 1, 2);
+    matrix_add_element(&a, 1, 0, 3);
+    matrix_add_element(&a, 1, 1, 4);
+    matrix_t b = matrix_create_unit_matrix(2);
+    matrix_t dest = matrix_alloc(2, 2);
+
+    matrix_add_into(&a, &b, &dest);
+
+    TEST_ASSERT_EQUAL(2, matrix_get_element(&dest, 0, 0));
+    TEST_ASSERT_EQUAL(2, matrix_get_element(&dest, 0, 1));
+    TEST_ASSERT_EQUAL(3, matrix_get_element(&dest, 1, 0));
+    TEST_ASSERT_EQUAL(5, matrix_get_element(&dest, 1, 1));
+
+    matrix_free(&a);
+    matrix_free(&b);
+    matrix_free(&dest);
+}
+
+void test_matrix_subtract_into(void)
+{
+    matrix_t a = matrix_alloc(2, 2);
+    matrix_add_element(&a, 0, 0, 5);
+    matrix_add_element(&a, 0, 1, 6);
+    matrix_add_element(&a, 1, 0, 7);
+    matrix_add_element(&a, 1, 1, 8);
+    matrix_t b = matrix_create_unit_matrix(2);
+    matrix_t dest = matrix_alloc(2, 2);
+
+    matrix_subtract_into(&a, &b, &dest);
+
+    TEST_ASSERT_EQUAL(4, matrix_get_element(&dest, 0, 0));
+    TEST_ASSERT_EQUAL(6, matrix_get_element(&dest, 0, 1));
+    TEST_ASSERT_EQUAL(7, matrix_get_element(&dest, 1, 0));
+    TEST_ASSERT_EQUAL(7, matrix_get_element(&dest, 1, 1));
+
+    matrix_free(&a);
+    matrix_free(&b);
+    matrix_free(&dest);
+}
+
+void test_matrix_multiply_into(void)
+{
+    matrix_t a = matrix_alloc(2, 3);
+    for(uint32_t i = 0; i < 2; i++)
+    {
+        for(uint32_t j = 0; j < 3; j++)
+        {
+            matrix_add_element(&a, i, j, (float)((i*3)+j+1));
+        }
+    }
+    matrix_t b = matrix_alloc(3, 2);
+    for(uint32_t i = 0; i < 3; i++)
+    {
+        for(uint32_t j = 0; j < 2; j++)
+        {
+            matrix_add_element(&b, i, j, (float)((i*2)+j+1));
+        }
+    }
+    matrix_t dest = matrix_alloc(2, 2);
+
+    matrix_multiply_into(&a, &b, &dest);
+
+    // The same result as the operation that makes a new matrix.
+    matrix_t reference = matrix_multiply(&a, &b);
+    TEST_ASSERT_EQUAL(true, matrix_is_equal(&dest, &reference));
+
+    matrix_free(&a);
+    matrix_free(&b);
+    matrix_free(&dest);
+    matrix_free(&reference);
+}
+
+void test_matrix_multiply_scalar_into(void)
+{
+    matrix_t matrix = matrix_alloc(2, 2);
+    matrix_add_element(&matrix, 0, 0, 1);
+    matrix_add_element(&matrix, 0, 1, -2);
+    matrix_add_element(&matrix, 1, 0, 3);
+    matrix_add_element(&matrix, 1, 1, -4);
+    matrix_t dest = matrix_alloc(2, 2);
+
+    matrix_multiply_scalar_into(&matrix, 2.5f, &dest);
+
+    TEST_ASSERT_EQUAL_FLOAT(2.5f, matrix_get_element(&dest, 0, 0));
+    TEST_ASSERT_EQUAL_FLOAT(-5.0f, matrix_get_element(&dest, 0, 1));
+    TEST_ASSERT_EQUAL_FLOAT(7.5f, matrix_get_element(&dest, 1, 0));
+    TEST_ASSERT_EQUAL_FLOAT(-10.0f, matrix_get_element(&dest, 1, 1));
+
+    matrix_free(&matrix);
+    matrix_free(&dest);
+}
+
+void test_matrix_transpose_into(void)
+{
+    matrix_t matrix = matrix_alloc(2, 3);
+    matrix_add_element(&matrix, 0, 0, 1);
+    matrix_add_element(&matrix, 0, 1, 2);
+    matrix_add_element(&matrix, 0, 2, 3);
+    matrix_add_element(&matrix, 1, 0, 4);
+    matrix_add_element(&matrix, 1, 1, 5);
+    matrix_add_element(&matrix, 1, 2, 6);
+    matrix_t dest = matrix_alloc(3, 2);
+
+    matrix_transpose_into(&matrix, &dest);
+
+    TEST_ASSERT_EQUAL(1, matrix_get_element(&dest, 0, 0));
+    TEST_ASSERT_EQUAL(4, matrix_get_element(&dest, 0, 1));
+    TEST_ASSERT_EQUAL(2, matrix_get_element(&dest, 1, 0));
+    TEST_ASSERT_EQUAL(5, matrix_get_element(&dest, 1, 1));
+    TEST_ASSERT_EQUAL(3, matrix_get_element(&dest, 2, 0));
+    TEST_ASSERT_EQUAL(6, matrix_get_element(&dest, 2, 1));
+
+    matrix_free(&matrix);
+    matrix_free(&dest);
+}
+
+void test_matrix_set_unit(void)
+{
+    matrix_t matrix = matrix_alloc(3, 3);
+    matrix_add_element(&matrix, 0, 0, 9);
+    matrix_add_element(&matrix, 1, 2, 9);
+
+    matrix_set_unit(&matrix);
+
+    TEST_ASSERT_EQUAL(true, matrix_is_unit(&matrix));
+
+    matrix_free(&matrix);
+}
+
+void test_matrix_set_zero(void)
+{
+    matrix_t matrix = matrix_alloc(2, 3);
+    matrix_add_element(&matrix, 0, 0, 9);
+    matrix_add_element(&matrix, 1, 2, 9);
+
+    matrix_set_zero(&matrix);
+
+    TEST_ASSERT_EQUAL(true, matrix_is_zero(&matrix));
+
+    matrix_free(&matrix);
+}
+
+void test_matrix_inverse_into(void)
+{
+    matrix_t matrix = matrix_alloc(2, 2);
+    matrix_add_element(&matrix, 0, 0, 4);
+    matrix_add_element(&matrix, 0, 1, 7);
+    matrix_add_element(&matrix, 1, 0, 2);
+    matrix_add_element(&matrix, 1, 1, 6);
+    matrix_t dest = matrix_alloc(2, 2);
+    matrix_t scratch = matrix_alloc(2, 4);
+
+    TEST_ASSERT_EQUAL(true, matrix_inverse_into(&matrix, &dest, &scratch));
+
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.6f, matrix_get_element(&dest, 0, 0));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.7f, matrix_get_element(&dest, 0, 1));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.2f, matrix_get_element(&dest, 1, 0));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.4f, matrix_get_element(&dest, 1, 1));
+
+    matrix_free(&matrix);
+    matrix_free(&dest);
+    matrix_free(&scratch);
+}
+
+void test_matrix_inverse_into_reports_a_singular_matrix(void)
+{
+    matrix_t matrix = matrix_alloc(2, 2);
+    matrix_add_element(&matrix, 0, 0, 1);
+    matrix_add_element(&matrix, 0, 1, 2);
+    matrix_add_element(&matrix, 1, 0, 2);
+    matrix_add_element(&matrix, 1, 1, 4);
+    matrix_t dest = matrix_alloc(2, 2);
+    matrix_t scratch = matrix_alloc(2, 4);
+
+    TEST_ASSERT_EQUAL(false, matrix_inverse_into(&matrix, &dest, &scratch));
+
+    matrix_free(&matrix);
+    matrix_free(&dest);
+    matrix_free(&scratch);
+}
+
+void test_the_operations_that_write_into_a_matrix_need_no_heap(void)
+{
+    // Every matrix here holds memory that the caller gives. Thus this test
+    // shows that a program with no heap can do the operations.
+    float elements_a[4] = {1, 2, 3, 4};
+    float elements_b[4] = {5, 6, 7, 8};
+    float elements_dest[4];
+    float elements_scratch[8];
+
+    matrix_t a = matrix_static_alloc(2, 2, elements_a);
+    matrix_t b = matrix_static_alloc(2, 2, elements_b);
+    matrix_t dest = matrix_static_alloc(2, 2, elements_dest);
+    matrix_t scratch = matrix_static_alloc(2, 4, elements_scratch);
+
+    matrix_add_into(&a, &b, &dest);
+    TEST_ASSERT_EQUAL(6, matrix_get_element(&dest, 0, 0));
+    TEST_ASSERT_EQUAL(12, matrix_get_element(&dest, 1, 1));
+
+    matrix_subtract_into(&b, &a, &dest);
+    TEST_ASSERT_EQUAL(4, matrix_get_element(&dest, 0, 0));
+
+    matrix_multiply_into(&a, &b, &dest);
+    TEST_ASSERT_EQUAL(19, matrix_get_element(&dest, 0, 0));
+
+    matrix_transpose_into(&a, &dest);
+    TEST_ASSERT_EQUAL(3, matrix_get_element(&dest, 0, 1));
+
+    matrix_set_unit(&dest);
+    TEST_ASSERT_EQUAL(true, matrix_is_unit(&dest));
+
+    TEST_ASSERT_EQUAL(true, matrix_inverse_into(&a, &dest, &scratch));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -2.0f, matrix_get_element(&dest, 0, 0));
+
+    matrix_free(&a);
+    matrix_free(&b);
+    matrix_free(&dest);
+    matrix_free(&scratch);
+}

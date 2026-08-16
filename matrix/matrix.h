@@ -37,4 +37,25 @@ void matrix_copy(matrix_t* src, matrix_t* dest);
 void matrix_printf(matrix_t* matrix, int (*func)(const char*, ...));
 void matrix_free(matrix_t* matrix);
 
+// Operations that write into a matrix that already holds memory.
+//
+// The operations above make a new matrix for each result. Code that must not
+// use the heap cannot call them. These operations write into a destination
+// that the caller gives, thus they get no memory.
+//
+// The destination must have the correct order, and it must not be one of the
+// sources.
+void matrix_add_into(matrix_t* a, matrix_t* b, matrix_t* dest);
+void matrix_subtract_into(matrix_t* a, matrix_t* b, matrix_t* dest);
+void matrix_multiply_into(matrix_t* a, matrix_t* b, matrix_t* dest);
+void matrix_multiply_scalar_into(matrix_t* matrix, float scalar, matrix_t* dest);
+void matrix_transpose_into(matrix_t* matrix, matrix_t* dest);
+void matrix_set_unit(matrix_t* matrix);
+void matrix_set_zero(matrix_t* matrix);
+
+// The scratch matrix must have the order n x 2n, where n is the order of the
+// matrix. The function gives false if the matrix is singular, and it does not
+// change the destination then.
+bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch);
+
 #endif//__MATRIX_H__

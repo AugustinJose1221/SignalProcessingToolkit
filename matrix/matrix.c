@@ -192,21 +192,7 @@ matrix_t matrix_create_unit_matrix(uint32_t size)
     matrix_t matrix;
 
     matrix = matrix_alloc(size, size);
-
-    for(int i = 0; i < size; i++)
-    {
-        for(int j = 0; j < size; j++)
-        {
-            if(i == j)
-            {
-                matrix_add_element(&matrix, i, j, 1);
-            }
-            else
-            {
-                matrix_add_element(&matrix, i, j, 0);
-            }
-        }
-    }
+    matrix_set_unit(&matrix);
 
     return matrix;
 }
@@ -219,14 +205,7 @@ matrix_t matrix_create_zero_matrix(uint32_t m, uint32_t n)
     matrix_t matrix;
 
     matrix = matrix_alloc(m, n);
-
-    for(int i = 0; i < m; i++)
-    {
-        for(int j = 0; j < n; j++)
-        {
-            matrix_add_element(&matrix, i, j, 0.0);
-        }
-    }
+    matrix_set_zero(&matrix);
 
     return matrix;
 }
@@ -347,28 +326,10 @@ matrix_t matrix_add(matrix_t* a, matrix_t* b)
     ASSERT(a != NULL);
     ASSERT(b != NULL);
 
-    matrix_t order_a;
-    matrix_t order_b;
     matrix_t sum;
-    float elem_sum;
-
-    order_a = matrix_get_order(a);
-    order_b = matrix_get_order(b);
-
-    ASSERT(matrix_is_equal(&order_a, &order_b));
-    matrix_free(&order_a);
-    matrix_free(&order_b);
 
     sum = matrix_alloc(a->m, a->n);
-
-    for(int i = 0; i < a->m; i++)
-    {
-        for(int j = 0; j < a->n; j++)
-        {
-            elem_sum = matrix_get_element(a, i, j) + matrix_get_element(b, i, j);
-            matrix_add_element(&sum, i, j, elem_sum);
-        }
-    }
+    matrix_add_into(a, b, &sum);
 
     return sum;
 }
@@ -378,28 +339,10 @@ matrix_t matrix_subtract(matrix_t* a, matrix_t* b)
     ASSERT(a != NULL);
     ASSERT(b != NULL);
 
-    matrix_t order_a;
-    matrix_t order_b;
     matrix_t difference;
-    float elem_difference;
-
-    order_a = matrix_get_order(a);
-    order_b = matrix_get_order(b);
-
-    ASSERT(matrix_is_equal(&order_a, &order_b));
-    matrix_free(&order_a);
-    matrix_free(&order_b);
 
     difference = matrix_alloc(a->m, a->n);
-
-    for(int i = 0; i < a->m; i++)
-    {
-        for(int j = 0; j < a->n; j++)
-        {
-            elem_difference = matrix_get_element(a, i, j) - matrix_get_element(b, i, j);
-            matrix_add_element(&difference, i, j, elem_difference);
-        }
-    }
+    matrix_subtract_into(a, b, &difference);
 
     return difference;
 }
@@ -409,18 +352,9 @@ matrix_t matrix_multiply_scalar(matrix_t* matrix, float scalar)
     ASSERT(matrix != NULL);
 
     matrix_t product;
-    float elem_product;
 
     product = matrix_alloc(matrix->m, matrix->n);
-
-    for(int i = 0; i < matrix->m; i++)
-    {
-        for(int j = 0; j < matrix->n; j++)
-        {
-            elem_product = matrix_get_element(matrix, i, j) * scalar;
-            matrix_add_element(&product, i, j, elem_product);
-        }
-    }
+    matrix_multiply_scalar_into(matrix, scalar, &product);
 
     return product;
 }
@@ -432,22 +366,9 @@ matrix_t matrix_multiply(matrix_t* a, matrix_t* b)
     ASSERT(matrix_is_multipliable(a, b));
 
     matrix_t product;
-    float elem_product = 0;
 
     product = matrix_alloc(a->m, b->n);
-
-    for(int i = 0; i < a->m; i++)
-    {
-        for(int j = 0; j < b->n; j++)
-        {
-            elem_product = 0;
-            for(int k = 0; k < a->n; k++)
-            {
-                elem_product += matrix_get_element(a, i, k)*matrix_get_element(b, k, j);
-            }
-            matrix_add_element(&product, i, j, elem_product);
-        }
-    }
+    matrix_multiply_into(a, b, &product);
 
     return product;
 }
@@ -459,102 +380,31 @@ matrix_t matrix_transpose(matrix_t* matrix)
     matrix_t transpose;
 
     transpose = matrix_alloc(matrix->n, matrix->m);
-
-    for(int i = 0; i < matrix->m; i++)
-    {
-        for(int j = 0; j < matrix->n; j++)
-        {
-            matrix_add_element(&transpose, j, i, matrix_get_element(matrix, i, j));
-        }
-    }
+    matrix_transpose_into(matrix, &transpose);
 
     return transpose;
 }
 
-matrix_t matrix_inverse(matrix_t* matrix) 
+matrix_t matrix_inverse(matrix_t* matrix)
 {
+    ASSERT(matrix != NULL);
     ASSERT(matrix_is_square(matrix));
-    
-    uint32_t n = matrix->m;
-    matrix_t augmented = matrix_create_zero_matrix(n, 2 * n);
-    matrix_t inverse = matrix_create_zero_matrix(n, n);
 
-    for (uint32_t i = 0; i < n; i++) 
+    matrix_t inverse;
+    matrix_t scratch;
+
+    inverse = matrix_alloc(matrix->m, matrix->n);
+    scratch = matrix_alloc(matrix->m, 2*matrix->n);
+
+    if(!matrix_inverse_into(matrix, &inverse, &scratch))
     {
-        for (uint32_t j = 0; j < n; j++) 
-        {
-            matrix_add_element(&augmented, i, j, matrix_get_element(matrix, i, j));
-            matrix_add_element(&augmented, i, j + n, (i == j) ? 1.0f : 0.0f);
-        }
+        // A singular matrix has no inverse. The zero matrix is the signal for
+        // that state.
+        matrix_set_zero(&inverse);
     }
-    
-    // Perform Gaussian-Jordan elimination
-    for (uint32_t i = 0; i < n; i++)
-    {
-        // Move the row with the largest element of this column to the pivot
-        // position. This keeps the division stable. It also moves a zero out
-        // of the pivot position, because a zero there does not always show a
-        // singular matrix.
-        uint32_t pivot_row = i;
-        for (uint32_t k = i + 1; k < n; k++)
-        {
-            float candidate = matrix_get_element(&augmented, k, i);
-            float best = matrix_get_element(&augmented, pivot_row, i);
-            if ((candidate < 0 ? -candidate : candidate) > (best < 0 ? -best : best))
-            {
-                pivot_row = k;
-            }
-        }
 
-        if (pivot_row != i)
-        {
-            for (uint32_t j = 0; j < 2 * n; j++)
-            {
-                float swap = matrix_get_element(&augmented, i, j);
-                matrix_add_element(&augmented, i, j, matrix_get_element(&augmented, pivot_row, j));
-                matrix_add_element(&augmented, pivot_row, j, swap);
-            }
-        }
+    matrix_free(&scratch);
 
-        float pivot = matrix_get_element(&augmented, i, i);
-        if (pivot == 0) // Matrix is singular
-        {
-            matrix_free(&augmented);
-            matrix_free(&inverse);
-            matrix_t zero = matrix_create_zero_matrix(matrix->m, matrix->n);
-            return zero;
-        }
-
-        // Normalize the pivot row
-        for (uint32_t j = 0; j < 2 * n; j++) 
-        {
-            matrix_add_element(&augmented, i, j, matrix_get_element(&augmented, i, j) / pivot);
-        }
-        
-        // Eliminate other rows
-        for (uint32_t k = 0; k < n; k++) 
-        {
-            if (k != i) 
-            {
-                float factor = matrix_get_element(&augmented, k, i);
-                for (uint32_t j = 0; j < 2 * n; j++) 
-                {
-                    matrix_add_element(&augmented, k, j, matrix_get_element(&augmented, k, j) - factor * matrix_get_element(&augmented, i, j));
-                }
-            }
-        }
-    }
-    
-    // Extract the inverse matrix from the augmented matrix
-    for (uint32_t i = 0; i < n; i++) 
-    {
-        for (uint32_t j = 0; j < n; j++) 
-        {
-            matrix_add_element(&inverse, i, j, matrix_get_element(&augmented, i, j + n));
-        }
-    }
-    
-    matrix_free(&augmented);
     return inverse;
 }
 
@@ -606,4 +456,210 @@ void matrix_free(matrix_t* matrix)
         free(matrix->elem);
         matrix->dynamic_alloc = false;
     }
+}
+// Operations that write into a matrix that already holds memory
+
+void matrix_add_into(matrix_t* a, matrix_t* b, matrix_t* dest)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(a->m == b->m && a->n == b->n);
+    ASSERT(dest->m == a->m && dest->n == a->n);
+
+    for(uint32_t i = 0; i < a->m; i++)
+    {
+        for(uint32_t j = 0; j < a->n; j++)
+        {
+            matrix_add_element(dest, i, j,
+                               matrix_get_element(a, i, j) + matrix_get_element(b, i, j));
+        }
+    }
+}
+
+void matrix_subtract_into(matrix_t* a, matrix_t* b, matrix_t* dest)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(a->m == b->m && a->n == b->n);
+    ASSERT(dest->m == a->m && dest->n == a->n);
+
+    for(uint32_t i = 0; i < a->m; i++)
+    {
+        for(uint32_t j = 0; j < a->n; j++)
+        {
+            matrix_add_element(dest, i, j,
+                               matrix_get_element(a, i, j) - matrix_get_element(b, i, j));
+        }
+    }
+}
+
+void matrix_multiply_into(matrix_t* a, matrix_t* b, matrix_t* dest)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(a->n == b->m);
+    ASSERT(dest->m == a->m && dest->n == b->n);
+
+    float sum;
+
+    for(uint32_t i = 0; i < a->m; i++)
+    {
+        for(uint32_t j = 0; j < b->n; j++)
+        {
+            sum = 0.0f;
+            for(uint32_t k = 0; k < a->n; k++)
+            {
+                sum += matrix_get_element(a, i, k) * matrix_get_element(b, k, j);
+            }
+            matrix_add_element(dest, i, j, sum);
+        }
+    }
+}
+
+void matrix_multiply_scalar_into(matrix_t* matrix, float scalar, matrix_t* dest)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(dest->m == matrix->m && dest->n == matrix->n);
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            matrix_add_element(dest, i, j, matrix_get_element(matrix, i, j) * scalar);
+        }
+    }
+}
+
+void matrix_transpose_into(matrix_t* matrix, matrix_t* dest)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(dest->m == matrix->n);
+    ASSERT(dest->n == matrix->m);
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            matrix_add_element(dest, j, i, matrix_get_element(matrix, i, j));
+        }
+    }
+}
+
+void matrix_set_unit(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            matrix_add_element(matrix, i, j, (i == j) ? 1.0f : 0.0f);
+        }
+    }
+}
+
+void matrix_set_zero(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            matrix_add_element(matrix, i, j, 0.0f);
+        }
+    }
+}
+
+bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(scratch != NULL);
+    ASSERT(matrix_is_square(matrix));
+    ASSERT(dest->m == matrix->m && dest->n == matrix->n);
+    ASSERT(scratch->m == matrix->m && scratch->n == 2*matrix->n);
+
+    uint32_t n = matrix->m;
+    uint32_t pivot_row;
+    float pivot;
+    float factor;
+    float swap;
+
+    for(uint32_t i = 0; i < n; i++)
+    {
+        for(uint32_t j = 0; j < n; j++)
+        {
+            matrix_add_element(scratch, i, j, matrix_get_element(matrix, i, j));
+            matrix_add_element(scratch, i, j + n, (i == j) ? 1.0f : 0.0f);
+        }
+    }
+
+    for(uint32_t i = 0; i < n; i++)
+    {
+        // Move the row with the largest element of this column to the pivot
+        // position. This keeps the division stable. It also moves a zero out
+        // of the pivot position, because a zero there does not always show a
+        // singular matrix.
+        pivot_row = i;
+        for(uint32_t k = i + 1; k < n; k++)
+        {
+            float candidate = matrix_get_element(scratch, k, i);
+            float best = matrix_get_element(scratch, pivot_row, i);
+            if((candidate < 0 ? -candidate : candidate) > (best < 0 ? -best : best))
+            {
+                pivot_row = k;
+            }
+        }
+
+        if(pivot_row != i)
+        {
+            for(uint32_t j = 0; j < 2*n; j++)
+            {
+                swap = matrix_get_element(scratch, i, j);
+                matrix_add_element(scratch, i, j, matrix_get_element(scratch, pivot_row, j));
+                matrix_add_element(scratch, pivot_row, j, swap);
+            }
+        }
+
+        pivot = matrix_get_element(scratch, i, i);
+        if(pivot == 0.0f)
+        {
+            return false;
+        }
+
+        for(uint32_t j = 0; j < 2*n; j++)
+        {
+            matrix_add_element(scratch, i, j, matrix_get_element(scratch, i, j) / pivot);
+        }
+
+        for(uint32_t k = 0; k < n; k++)
+        {
+            if(k != i)
+            {
+                factor = matrix_get_element(scratch, k, i);
+                for(uint32_t j = 0; j < 2*n; j++)
+                {
+                    matrix_add_element(scratch, k, j, matrix_get_element(scratch, k, j)
+                                                      - (factor * matrix_get_element(scratch, i, j)));
+                }
+            }
+        }
+    }
+
+    for(uint32_t i = 0; i < n; i++)
+    {
+        for(uint32_t j = 0; j < n; j++)
+        {
+            matrix_add_element(dest, i, j, matrix_get_element(scratch, i, j + n));
+        }
+    }
+
+    return true;
 }

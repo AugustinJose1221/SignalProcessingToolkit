@@ -6,14 +6,6 @@
 #include "defs.h"
 #endif
 
-// The destination of these operations must not be one of the sources.
-static void multiply_into(matrix_t* a, matrix_t* b, matrix_t* dest);
-static void add_into(matrix_t* a, matrix_t* b, matrix_t* dest);
-static void subtract_into(matrix_t* a, matrix_t* b, matrix_t* dest);
-static void transpose_into(matrix_t* matrix, matrix_t* dest);
-static void unit_into(matrix_t* dest);
-static bool inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* augmented);
-
 static matrix_t take_from_pool(float** pool, uint32_t m, uint32_t n);
 static void build_matrices(kalman_t* kalman, float* mempool);
 
@@ -198,14 +190,14 @@ void kalman_predict(kalman_t* kalman)
 
     kalman_scratch_t* scratch = &kalman->scratch;
 
-    multiply_into(&kalman->a, &kalman->_x, &scratch->nx1_a);
-    multiply_into(&kalman->b, &kalman->u, &scratch->nx1_b);
-    add_into(&scratch->nx1_a, &scratch->nx1_b, &kalman->x);
+    matrix_multiply_into(&kalman->a, &kalman->_x, &scratch->nx1_a);
+    matrix_multiply_into(&kalman->b, &kalman->u, &scratch->nx1_b);
+    matrix_add_into(&scratch->nx1_a, &scratch->nx1_b, &kalman->x);
 
-    multiply_into(&kalman->a, &kalman->p, &scratch->nxnx_a);
-    transpose_into(&kalman->a, &scratch->nxnx_b);
-    multiply_into(&scratch->nxnx_a, &scratch->nxnx_b, &scratch->nxnx_c);
-    add_into(&scratch->nxnx_c, &kalman->q, &kalman->p);
+    matrix_multiply_into(&kalman->a, &kalman->p, &scratch->nxnx_a);
+    matrix_transpose_into(&kalman->a, &scratch->nxnx_b);
+    matrix_multiply_into(&scratch->nxnx_a, &scratch->nxnx_b, &scratch->nxnx_c);
+    matrix_add_into(&scratch->nxnx_c, &kalman->q, &kalman->p);
 
     matrix_copy(&kalman->x, &kalman->_x);
 }
@@ -225,35 +217,35 @@ bool kalman_update(kalman_t* kalman)
 
     // The innovation, which is the difference between the measurement and the
     // expected measurement.
-    multiply_into(&kalman->c, &kalman->x, &scratch->ny1_a);
-    subtract_into(&kalman->y, &scratch->ny1_a, &scratch->ny1_b);
+    matrix_multiply_into(&kalman->c, &kalman->x, &scratch->ny1_a);
+    matrix_subtract_into(&kalman->y, &scratch->ny1_a, &scratch->ny1_b);
 
     // The innovation covariance.
-    multiply_into(&kalman->c, &kalman->p, &scratch->nynx_a);
-    transpose_into(&kalman->c, &scratch->nxny_a);
-    multiply_into(&scratch->nynx_a, &scratch->nxny_a, &scratch->nyny_a);
-    add_into(&scratch->nyny_a, &kalman->r, &scratch->nyny_b);
+    matrix_multiply_into(&kalman->c, &kalman->p, &scratch->nynx_a);
+    matrix_transpose_into(&kalman->c, &scratch->nxny_a);
+    matrix_multiply_into(&scratch->nynx_a, &scratch->nxny_a, &scratch->nyny_a);
+    matrix_add_into(&scratch->nyny_a, &kalman->r, &scratch->nyny_b);
 
-    if(!inverse_into(&scratch->nyny_b, &scratch->nyny_c, &scratch->augmented))
+    if(!matrix_inverse_into(&scratch->nyny_b, &scratch->nyny_c, &scratch->augmented))
     {
         kalman->singular = true;
         return false;
     }
 
     // The gain.
-    multiply_into(&kalman->p, &scratch->nxny_a, &scratch->nxny_b);
-    multiply_into(&scratch->nxny_b, &scratch->nyny_c, &kalman->k);
+    matrix_multiply_into(&kalman->p, &scratch->nxny_a, &scratch->nxny_b);
+    matrix_multiply_into(&scratch->nxny_b, &scratch->nyny_c, &kalman->k);
 
     // The corrected state.
-    multiply_into(&kalman->k, &scratch->ny1_b, &scratch->nx1_a);
-    add_into(&kalman->x, &scratch->nx1_a, &scratch->nx1_b);
+    matrix_multiply_into(&kalman->k, &scratch->ny1_b, &scratch->nx1_a);
+    matrix_add_into(&kalman->x, &scratch->nx1_a, &scratch->nx1_b);
     matrix_copy(&scratch->nx1_b, &kalman->x);
 
     // The corrected covariance.
-    multiply_into(&kalman->k, &kalman->c, &scratch->nxnx_a);
-    unit_into(&scratch->nxnx_b);
-    subtract_into(&scratch->nxnx_b, &scratch->nxnx_a, &scratch->nxnx_c);
-    multiply_into(&scratch->nxnx_c, &kalman->p, &scratch->nxnx_a);
+    matrix_multiply_into(&kalman->k, &kalman->c, &scratch->nxnx_a);
+    matrix_set_unit(&scratch->nxnx_b);
+    matrix_subtract_into(&scratch->nxnx_b, &scratch->nxnx_a, &scratch->nxnx_c);
+    matrix_multiply_into(&scratch->nxnx_c, &kalman->p, &scratch->nxnx_a);
     matrix_copy(&scratch->nxnx_a, &kalman->p);
 
     matrix_copy(&kalman->x, &kalman->_x);
@@ -312,169 +304,4 @@ void kalman_free(kalman_t* kalman)
         kalman->mempool = NULL;
         kalman->dynamic_alloc = false;
     }
-}
-
-// Matrix operations that write into a matrix that already has memory. The
-// matrix module gives a new matrix for each operation. The filter cannot use
-// those functions, because a static filter must not get memory while it runs.
-
-static void multiply_into(matrix_t* a, matrix_t* b, matrix_t* dest)
-{
-    ASSERT(a->n == b->m);
-    ASSERT(dest->m == a->m);
-    ASSERT(dest->n == b->n);
-
-    float sum;
-
-    for(uint32_t i = 0; i < a->m; i++)
-    {
-        for(uint32_t j = 0; j < b->n; j++)
-        {
-            sum = 0.0f;
-            for(uint32_t k = 0; k < a->n; k++)
-            {
-                sum += matrix_get_element(a, i, k) * matrix_get_element(b, k, j);
-            }
-            matrix_add_element(dest, i, j, sum);
-        }
-    }
-}
-
-static void add_into(matrix_t* a, matrix_t* b, matrix_t* dest)
-{
-    ASSERT(a->m == b->m && a->n == b->n);
-    ASSERT(dest->m == a->m && dest->n == a->n);
-
-    for(uint32_t i = 0; i < a->m; i++)
-    {
-        for(uint32_t j = 0; j < a->n; j++)
-        {
-            matrix_add_element(dest, i, j, matrix_get_element(a, i, j) + matrix_get_element(b, i, j));
-        }
-    }
-}
-
-static void subtract_into(matrix_t* a, matrix_t* b, matrix_t* dest)
-{
-    ASSERT(a->m == b->m && a->n == b->n);
-    ASSERT(dest->m == a->m && dest->n == a->n);
-
-    for(uint32_t i = 0; i < a->m; i++)
-    {
-        for(uint32_t j = 0; j < a->n; j++)
-        {
-            matrix_add_element(dest, i, j, matrix_get_element(a, i, j) - matrix_get_element(b, i, j));
-        }
-    }
-}
-
-static void transpose_into(matrix_t* matrix, matrix_t* dest)
-{
-    ASSERT(dest->m == matrix->n);
-    ASSERT(dest->n == matrix->m);
-
-    for(uint32_t i = 0; i < matrix->m; i++)
-    {
-        for(uint32_t j = 0; j < matrix->n; j++)
-        {
-            matrix_add_element(dest, j, i, matrix_get_element(matrix, i, j));
-        }
-    }
-}
-
-static void unit_into(matrix_t* dest)
-{
-    ASSERT(dest->m == dest->n);
-
-    for(uint32_t i = 0; i < dest->m; i++)
-    {
-        for(uint32_t j = 0; j < dest->n; j++)
-        {
-            matrix_add_element(dest, i, j, (i == j) ? 1.0f : 0.0f);
-        }
-    }
-}
-
-// Gauss-Jordan elimination with a partial pivot. The augmented matrix must have
-// the order n x 2n. The function gives false if the matrix is singular.
-static bool inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* augmented)
-{
-    ASSERT(matrix->m == matrix->n);
-    ASSERT(dest->m == matrix->m && dest->n == matrix->n);
-    ASSERT(augmented->m == matrix->m && augmented->n == 2*matrix->n);
-
-    uint32_t n = matrix->m;
-    uint32_t pivot_row;
-    float pivot;
-    float factor;
-    float swap;
-
-    for(uint32_t i = 0; i < n; i++)
-    {
-        for(uint32_t j = 0; j < n; j++)
-        {
-            matrix_add_element(augmented, i, j, matrix_get_element(matrix, i, j));
-            matrix_add_element(augmented, i, j + n, (i == j) ? 1.0f : 0.0f);
-        }
-    }
-
-    for(uint32_t i = 0; i < n; i++)
-    {
-        // Find the row with the largest element in this column. This keeps the
-        // division stable, and it moves a zero pivot out of the way.
-        pivot_row = i;
-        for(uint32_t k = i + 1; k < n; k++)
-        {
-            float candidate = matrix_get_element(augmented, k, i);
-            float best = matrix_get_element(augmented, pivot_row, i);
-            if((candidate < 0 ? -candidate : candidate) > (best < 0 ? -best : best))
-            {
-                pivot_row = k;
-            }
-        }
-
-        if(pivot_row != i)
-        {
-            for(uint32_t j = 0; j < 2*n; j++)
-            {
-                swap = matrix_get_element(augmented, i, j);
-                matrix_add_element(augmented, i, j, matrix_get_element(augmented, pivot_row, j));
-                matrix_add_element(augmented, pivot_row, j, swap);
-            }
-        }
-
-        pivot = matrix_get_element(augmented, i, i);
-        if(pivot == 0.0f)
-        {
-            return false;
-        }
-
-        for(uint32_t j = 0; j < 2*n; j++)
-        {
-            matrix_add_element(augmented, i, j, matrix_get_element(augmented, i, j) / pivot);
-        }
-
-        for(uint32_t k = 0; k < n; k++)
-        {
-            if(k != i)
-            {
-                factor = matrix_get_element(augmented, k, i);
-                for(uint32_t j = 0; j < 2*n; j++)
-                {
-                    matrix_add_element(augmented, k, j, matrix_get_element(augmented, k, j)
-                                                        - (factor * matrix_get_element(augmented, i, j)));
-                }
-            }
-        }
-    }
-
-    for(uint32_t i = 0; i < n; i++)
-    {
-        for(uint32_t j = 0; j < n; j++)
-        {
-            matrix_add_element(dest, i, j, matrix_get_element(augmented, i, j + n));
-        }
-    }
-
-    return true;
 }
