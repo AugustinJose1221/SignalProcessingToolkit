@@ -1,5 +1,6 @@
 #include <perf/conformation/vector/support.h>
 #include <math.h>
+#include <stdlib.h>
 #include <gsl/gsl_vector_float.h>
 #include <gsl/gsl_blas.h>
 

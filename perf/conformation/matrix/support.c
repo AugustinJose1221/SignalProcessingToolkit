@@ -1,6 +1,7 @@
 #include <perf/conformation/support.h>
 #include <perf/conformation/matrix/support.h>
 #include <math.h>
+#include <stdlib.h>
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_linalg.h>
 
