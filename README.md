@@ -2,10 +2,26 @@
 
 A C library for your complex signal processing needs.
 
-The library holds a matrix module, a vector module, a cubic spline, an
-empirical mode decomposition and a Kalman filter. Each module gives two ways to
-get memory: one that uses the heap, and one that takes memory from the caller.
-The second way lets the library work on a target that has no heap.
+Each module gives two ways to get memory: one that uses the heap, and one that
+takes memory from the caller. The second way lets the library work on a target
+that has no heap.
+
+| Area | Modules |
+| --- | --- |
+| Frequency | `fft`, `goertzel`, `hilbert`, `hht`, `dwt` |
+| Filters | `fir`, `iir`, `savgol`, `kalman`, `ekf` |
+| Decomposition | `emd`, `imf`, `cspline` |
+| Mathematics | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `vector`, `vector2d` |
+| Utilities | `binarysearch`, `peakdetect`, `valleydetect` |
+
+`fft` reaches the frequency domain, and `goertzel` watches one frequency with
+three float values only. `hilbert` gives the amplitude and the frequency at
+each point of time, and `hht` joins it with `emd` to give the Hilbert-Huang
+transform. `dwt` says which frequencies a signal holds and where they lie.
+
+`fir` and `iir` take a band of frequencies out of a signal. `savgol` smooths a
+signal and keeps the height of a peak. `kalman` follows a state through a
+linear model, and `ekf` follows it through a model that a function describes.
 
 ## The three kinds of matrix
 
