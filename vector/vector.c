@@ -21,14 +21,14 @@ vector_t vector_alloc(uint32_t size)
     return vector;
 }
 
-vector_t vector_static_alloc(uint32_t size, uint32_t* mempool)
+vector_t vector_static_alloc(uint32_t size, float* mempool)
 {
     ASSERT(size > 0);
     ASSERT(mempool != NULL);
 
     vector_t vector;
     vector.size = size;
-    vector.data = (float*)mempool;
+    vector.data = mempool;
     vector.dynamic_alloc = false;
 
     return vector;

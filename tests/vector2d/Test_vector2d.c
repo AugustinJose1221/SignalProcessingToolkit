@@ -23,8 +23,8 @@ void test_vector2d_alloc(void)
 
 void test_vector2d_static_alloc(void)
 {
-    uint32_t mempool[2];
-    vector_t vector = {2, (float*)mempool, false};
+    float mempool[2];
+    vector_t vector = {2, mempool, false};
     vector_static_alloc_ExpectAndReturn(2, mempool, vector);
     vector_t vector2d = vector2d_static_alloc(mempool);
     TEST_ASSERT_EQUAL(2, vector2d.size);

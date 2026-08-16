@@ -287,3 +287,76 @@ void test_emd_free_keeps_the_memory_of_a_static_decomposition(void)
     TEST_ASSERT_EQUAL_PTR(peak_buffer, emd.peak_buffer);
     TEST_ASSERT_EQUAL_PTR(valley_buffer, emd.valley_buffer);
 }
+
+void test_emd_get_imf_with_a_signal_that_is_too_short(void)
+{
+    // A signal with fewer than three samples holds no peak and no valley. The
+    // buffers hold one element for each sample, thus the function must not
+    // build an envelope for such a signal.
+    for(uint32_t size = 1; size < EMD_MINIMUM_SIZE; size++)
+    {
+        float short_x[EMD_MINIMUM_SIZE];
+        float short_y[EMD_MINIMUM_SIZE];
+        float short_residue[EMD_MINIMUM_SIZE];
+        float short_working[EMD_MINIMUM_SIZE];
+        float short_peak_index[EMD_MINIMUM_SIZE];
+        float short_valley_index[EMD_MINIMUM_SIZE];
+        imf_t short_imf = imf_alloc(size);
+        uint32_t status = 1;
+
+        for(uint32_t index = 0; index < size; index++)
+        {
+            short_x[index] = (float)index;
+            short_y[index] = (float)index;
+            short_residue[index] = (float)index;
+        }
+
+        emd_t emd = emd_alloc(size);
+        emd_initialize(&emd, 1, &short_imf, short_x, short_y, short_residue,
+                       short_working, short_peak_index, short_valley_index);
+
+        imf_t* result = emd_get_imf(&emd, 0, 3, &status);
+
+        TEST_ASSERT_EQUAL(0, status);
+        for(uint32_t index = 0; index < size; index++)
+        {
+            TEST_ASSERT_EQUAL_FLOAT(0.0f, result->y[index]);
+        }
+
+        emd_free(emd);
+        imf_free(short_imf);
+    }
+}
+
+void test_emd_sift_with_a_signal_that_only_rises(void)
+{
+    // A signal that only rises holds no peak and no valley. The detection
+    // writes nothing into the buffers, thus the envelopes must take their
+    // value from the signal and not from memory that holds no value.
+    emd_t emd = emd_alloc(SAMPLE_SIZE);
+    float original[SAMPLE_SIZE];
+
+    for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
+    {
+        y[index] = (float)index;
+        original[index] = y[index];
+    }
+
+    emd_initialize(&emd, NUMBER_OF_IMF, imf, x, y, residue, working_buffer,
+                   peak_index_buffer, valley_index_buffer);
+
+    uint32_t imf_count = emd_sift(&emd, 3);
+
+    for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
+    {
+        float sum = residue[index];
+        for(uint32_t i = 0; i < imf_count; i++)
+        {
+            sum += imf[i].y[index];
+        }
+        TEST_ASSERT_FLOAT_WITHIN(RECONSTRUCTION_TOLERANCE(original[index]),
+                                 original[index], sum);
+    }
+
+    emd_free(emd);
+}

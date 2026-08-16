@@ -10,6 +10,10 @@
 #include "cspline.h"
 #include "imf.h"
 #endif
+// A signal with fewer than three samples holds no peak and no valley, thus
+// the decomposition cannot take anything out of it.
+#define EMD_MINIMUM_SIZE    3u
+
 typedef struct{
     float* x;
     float* y;

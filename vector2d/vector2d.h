@@ -8,7 +8,7 @@
 #endif//TEST
 
 vector_t vector2d_alloc();
-vector_t vector2d_static_alloc(uint32_t *mempool);
+vector_t vector2d_static_alloc(float* mempool);
 void vector2d_add_point_at_index(vector_t* vector, uint32_t index, float data);
 void vector2d_add_from_array(vector_t* vector, float* data);
 void vector2d_printf(vector_t* vector, int (*func)(const char *, ...));

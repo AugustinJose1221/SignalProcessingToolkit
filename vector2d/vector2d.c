@@ -9,7 +9,7 @@ vector_t vector2d_alloc()
     return vector_alloc(2);
 }
 
-vector_t vector2d_static_alloc(uint32_t *mempool)
+vector_t vector2d_static_alloc(float* mempool)
 {
     return vector_static_alloc(2, mempool);
 }

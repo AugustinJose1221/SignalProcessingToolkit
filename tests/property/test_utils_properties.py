@@ -131,3 +131,18 @@ def test_a_short_signal_has_no_peak_and_no_valley(lib, data):
                                     len(data)) == 0
     assert lib.valleydetect_get_valley(array, index_buffer, value_buffer,
                                        len(data)) == 0
+
+
+@given(pair=rising_data_and_value(),
+       distance=st.floats(min_value=1.0, max_value=100.0, width=32))
+def test_the_binary_search_gives_an_index_inside_the_list_for_any_value(lib, pair,
+                                                                        distance):
+    # The caller reads the list at the index that the search gives. Thus the
+    # index must stay inside the list, even for a value that lies outside the
+    # range of the list.
+    data, _ = pair
+    array = sptk.float_array(data)
+
+    for value in (data[0] - distance, data[-1] + distance, data[0], data[-1]):
+        index = lib.binarysearch_get_index(array, sp.to_float32(value), len(data))
+        assert 0 <= index < len(data)

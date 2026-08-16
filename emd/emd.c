@@ -13,6 +13,8 @@
 #endif
 
 static void emd_update_runtime_params(emd_t* emd, float* x, float* y);
+static float emd_get_largest(float* data, uint32_t size);
+static float emd_get_smallest(float* data, uint32_t size);
 
 emd_t emd_alloc(uint32_t size)
 {
@@ -70,30 +72,61 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
 
     uint32_t peakcount = 0;
     uint32_t valleycount = 0;
-    uint32_t start_index = (uint32_t)emd->x[0];
-    uint32_t shift = (uint32_t)(emd->x[1]-emd->x[0]);
+    uint32_t start_index;
+    uint32_t shift;
     uint32_t iteration_count = 0;
 
     float interpolation_index = 0;
 
+    *status = 0;
+
+    // A signal with fewer than three samples holds no peak and no valley, thus
+    // the decomposition cannot take anything out of it. The buffers hold one
+    // element for each sample, and the code below needs room for two more
+    // points than the number of peaks. Without this guard the function reads
+    // and writes after the end of the buffers.
+    if(emd->size < EMD_MINIMUM_SIZE)
+    {
+        for(uint32_t index = 0; index < emd->size; index++)
+        {
+            emd->imf[imf_index].x[index] = (float)index;
+            emd->imf[imf_index].y[index] = 0.0f;
+        }
+        return &emd->imf[imf_index];
+    }
+
+    start_index = (uint32_t)emd->x[0];
+    shift = (uint32_t)(emd->x[1]-emd->x[0]);
+
     memcpy(emd->working_buffer, emd->residue, sizeof(float)*emd->size);
-    
+
     peakcount = peakdetect_get_peaks(emd->working_buffer, &emd->peak_index_buffer[1], &emd->peak_buffer[1], emd->size);
     valleycount = valleydetect_get_valley(emd->working_buffer, &emd->valley_index_buffer[1], &emd->valley_buffer[1], emd->size);
+
+    // A signal that only rises or only falls holds no peak and no valley. The
+    // detection then writes nothing, and the two buffers hold no value. Take
+    // the largest sample for the upper envelope and the smallest sample for
+    // the lower envelope, so that both envelopes hold a value.
+    if(peakcount == 0)
+    {
+        emd->peak_buffer[1] = emd_get_largest(emd->working_buffer, emd->size);
+    }
+    if(valleycount == 0)
+    {
+        emd->valley_buffer[1] = emd_get_smallest(emd->working_buffer, emd->size);
+    }
 
     emd->peak_buffer[0] = emd->peak_buffer[1];
     emd->peak_index_buffer[0] = 0;
     peakcount++;
     emd->peak_buffer[peakcount] = emd->peak_buffer[peakcount-1];
     emd->peak_index_buffer[peakcount++] = emd->size-1;
-    
+
     emd->valley_buffer[0] = emd->valley_buffer[1];
     emd->valley_index_buffer[0] = 0;
     valleycount++;
     emd->valley_buffer[valleycount] = emd->valley_buffer[valleycount-1];
     emd->valley_index_buffer[valleycount++] = emd->size-1;
-    
-    *status = 0;
 
     while(peakcount > 1 && valleycount > 1 && iteration_count < stopping_threshold)
     {
@@ -187,4 +220,40 @@ static void emd_update_runtime_params(emd_t* emd, float* x, float* y)
 
     emd->x = x;
     emd->y = y;
+}
+
+static float emd_get_largest(float* data, uint32_t size)
+{
+    ASSERT(data != NULL);
+    ASSERT(size > 0);
+
+    float largest = data[0];
+
+    for(uint32_t index = 1; index < size; index++)
+    {
+        if(data[index] > largest)
+        {
+            largest = data[index];
+        }
+    }
+
+    return largest;
+}
+
+static float emd_get_smallest(float* data, uint32_t size)
+{
+    ASSERT(data != NULL);
+    ASSERT(size > 0);
+
+    float smallest = data[0];
+
+    for(uint32_t index = 1; index < size; index++)
+    {
+        if(data[index] < smallest)
+        {
+            smallest = data[index];
+        }
+    }
+
+    return smallest;
 }
