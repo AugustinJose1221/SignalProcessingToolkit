@@ -1,0 +1,95 @@
+#ifndef IIR_H
+#define IIR_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+// A filter with an infinite impulse response, as a chain of biquad sections.
+//
+// Such a filter feeds its own output back into itself. Thus it gives a sharp
+// edge with very few operations for each sample: a section of two poles needs
+// five multiplications, where an FIR filter of the same sharpness needs
+// dozens. The cost is that the filter moves the different frequencies by
+// different times, and that a filter with bad coefficients can run away.
+//
+// One section holds two poles. The order of the whole filter is two times the
+// number of sections, thus a filter of the order 4 needs two sections. The
+// design functions build the coefficients of a filter of Butterworth, whose
+// band that passes is as flat as it can be.
+//
+// Give the cutoff as a part of the sample rate, thus 0.25 means one quarter of
+// the sample rate. The value must lie between 0 and 0.5.
+//
+// Each section keeps its state in the form of Direct Form II transposed. That
+// form needs two values for each section, and it holds the error of a float
+// better than the plain form does.
+
+// The number of coefficients of one section: b0, b1, b2, a1 and a2.
+#define IIR_COEFFICIENT_COUNT       5u
+
+// The number of values of the state of one section.
+#define IIR_STATE_COUNT             2u
+
+// The number of float values that a filter with the given number of sections
+// needs for its coefficients.
+#define IIR_COEFFICIENT_SIZE(sections)  ((sections) * IIR_COEFFICIENT_COUNT)
+
+// The number of float values that a filter with the given number of sections
+// needs for its state.
+#define IIR_STATE_SIZE(sections)        ((sections) * IIR_STATE_COUNT)
+
+typedef struct{
+    uint32_t sections;          // The number of biquad sections
+    float* coefficient;         // Five coefficients for each section
+    float* state;               // Two values for each section
+    bool dynamic_alloc;         // True if the memory comes from the heap
+}iir_t;
+
+// Give a filter with the given number of sections. The memory comes from the
+// heap. The filter lets everything pass until a design function or
+// iir_set_section gives it coefficients. Give the filter to iir_free when you
+// no longer need it.
+iir_t iir_alloc(uint32_t sections);
+
+// Give a filter that uses the memory that the caller holds. The list
+// coefficient must hold IIR_COEFFICIENT_SIZE(sections) float values, and the
+// list state must hold IIR_STATE_SIZE(sections) of them. This function takes
+// no memory from the heap.
+iir_t iir_static_alloc(uint32_t sections, float* coefficient, float* state);
+
+// Build the coefficients of a filter of Butterworth that lets the low
+// frequencies pass. The order of the filter is two times the number of
+// sections.
+void iir_design_low_pass(iir_t* iir, float cutoff);
+
+// Build the coefficients of a filter of Butterworth that lets the high
+// frequencies pass.
+void iir_design_high_pass(iir_t* iir, float cutoff);
+
+// Write the five coefficients of one section. The three coefficients b belong
+// to the input, and the two coefficients a belong to the feedback. The
+// function divides every coefficient by a0, thus the caller may give the
+// coefficients as another program calculated them.
+void iir_set_section(iir_t* iir, uint32_t section, float b0, float b1, float b2,
+                     float a0, float a1, float a2);
+
+// Give the filtered value of one sample.
+float iir_process_sample(iir_t* iir, float sample);
+
+// Filter a block of samples. The input and the output may be the same list.
+void iir_process_block(iir_t* iir, const float* input, float* output, uint32_t size);
+
+// Set the state of every section to zero. The filter then behaves as a filter
+// that has seen no sample yet.
+void iir_reset(iir_t* iir);
+
+// Give the size of the answer of the filter at the given frequency, which is a
+// part of the sample rate. A value of 1 says that the frequency passes
+// unchanged, and a value of 0 says that the filter stops it.
+float iir_get_gain(iir_t* iir, float frequency);
+
+// Release the memory of a filter that came from iir_alloc. This function does
+// nothing for a filter that came from iir_static_alloc.
+void iir_free(iir_t* iir);
+
+#endif//IIR_H

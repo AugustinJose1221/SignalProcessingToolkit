@@ -113,11 +113,15 @@
     - tests/fft/**
     - tests/hilbert/**
     - tests/hht/**
+    - tests/fir/**
+    - tests/iir/**
   :source:
     - cmatrix/**
     - fft/**
+    - fir/**
     - hht/**
     - hilbert/**
+    - iir/**
     - pmatrix/**
     - cnum/**
     - cspline/**
@@ -132,8 +136,10 @@
   :include:
     - cmatrix/**
     - fft/**
+    - fir/**
     - hht/**
     - hilbert/**
+    - iir/**
     - pmatrix/**
     - cnum/**
     - common/**

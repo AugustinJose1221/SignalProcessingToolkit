@@ -16,6 +16,8 @@ python3 scripts/api_doc.py
 - [`fft`](#fft) &mdash; The fast Fourier transform
 - [`hilbert`](#hilbert) &mdash; The Hilbert transform
 - [`hht`](#hht) &mdash; The Hilbert-Huang transform
+- [`fir`](#fir) &mdash; Filters with a finite impulse response
+- [`iir`](#iir) &mdash; Filters with an infinite impulse response
 - [`vector`](#vector) &mdash; Vectors of float values
 - [`vector2d`](#vector2d) &mdash; Vectors with two values
 - [`cspline`](#cspline) &mdash; Cubic splines
@@ -1270,6 +1272,290 @@ counts as much as the square of its amplitude.
 A point with a small amplitude holds a phase that noise moves easily. This
 mean gives such a point little weight, thus it describes the function better
 than a plain mean does.
+
+---
+
+## fir
+
+Filters with a finite impulse response. Declared in `fir/fir.h`.
+
+### Types
+
+#### `fir_t`
+
+```c
+typedef struct{
+    uint32_t length;            // The number of coefficients
+    float* coefficient;         // The coefficients
+    float* history;             // The last samples, length of them
+    uint32_t position;          // Where the next sample goes in the history
+    bool dynamic_alloc;         // True if the memory comes from the heap
+}fir_t;
+```
+
+### Functions
+
+#### `fir_alloc`
+
+```c
+fir_t fir_alloc(uint32_t length);
+```
+
+Give a filter with the given number of coefficients. The memory comes from
+the heap, and every coefficient and every sample of the history holds zero.
+Give the filter to fir_free when you no longer need it.
+
+#### `fir_static_alloc`
+
+```c
+fir_t fir_static_alloc(uint32_t length, float* coefficient, float* history);
+```
+
+Give a filter that uses the memory that the caller holds. Both lists must
+hold as many float values as the given length. This function takes no
+memory from the heap.
+
+#### `fir_design_low_pass`
+
+```c
+void fir_design_low_pass(fir_t* fir, float cutoff);
+```
+
+Build the coefficients of a filter that lets the low frequencies pass. The
+cutoff is a part of the sample rate, and it must lie between 0 and 0.5.
+
+#### `fir_design_high_pass`
+
+```c
+void fir_design_high_pass(fir_t* fir, float cutoff);
+```
+
+Build the coefficients of a filter that lets the high frequencies pass.
+
+#### `fir_design_band_pass`
+
+```c
+void fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff);
+```
+
+Build the coefficients of a filter that lets a band of frequencies pass. The
+low cutoff must be smaller than the high cutoff, and both must lie between 0
+and 0.5.
+
+#### `fir_set_coefficient`
+
+```c
+void fir_set_coefficient(fir_t* fir, uint32_t index, float value);
+```
+
+Write one coefficient. Use this function to give the filter a set of
+coefficients that another program calculated.
+
+#### `fir_get_coefficient`
+
+```c
+float fir_get_coefficient(fir_t* fir, uint32_t index);
+```
+
+Give one coefficient.
+
+#### `fir_process_sample`
+
+```c
+float fir_process_sample(fir_t* fir, float sample);
+```
+
+Give the filtered value of one sample. The filter keeps the sample in its
+history, thus the next call sees it.
+
+#### `fir_process_block`
+
+```c
+void fir_process_block(fir_t* fir, const float* input, float* output, uint32_t size);
+```
+
+Filter a block of samples. The input and the output may be the same list.
+
+#### `fir_reset`
+
+```c
+void fir_reset(fir_t* fir);
+```
+
+Set every sample of the history to zero. The filter then behaves as a filter
+that has seen no sample yet.
+
+#### `fir_get_gain`
+
+```c
+float fir_get_gain(fir_t* fir, float frequency);
+```
+
+Give the size of the answer of the filter at the given frequency, which is a
+part of the sample rate. A value of 1 says that the frequency passes
+unchanged, and a value of 0 says that the filter stops it.
+
+#### `fir_free`
+
+```c
+void fir_free(fir_t* fir);
+```
+
+Release the memory of a filter that came from fir_alloc. This function does
+nothing for a filter that came from fir_static_alloc.
+
+---
+
+## iir
+
+Filters with an infinite impulse response. Declared in `iir/iir.h`.
+
+### Macros
+
+#### `IIR_COEFFICIENT_COUNT`
+
+```c
+#define IIR_COEFFICIENT_COUNT       5u
+```
+
+The number of coefficients of one section: b0, b1, b2, a1 and a2.
+
+#### `IIR_STATE_COUNT`
+
+```c
+#define IIR_STATE_COUNT             2u
+```
+
+The number of values of the state of one section.
+
+#### `IIR_COEFFICIENT_SIZE`
+
+```c
+#define IIR_COEFFICIENT_SIZE(sections)  ((sections) * IIR_COEFFICIENT_COUNT)
+```
+
+The number of float values that a filter with the given number of sections
+needs for its coefficients.
+
+#### `IIR_STATE_SIZE`
+
+```c
+#define IIR_STATE_SIZE(sections)        ((sections) * IIR_STATE_COUNT)
+```
+
+The number of float values that a filter with the given number of sections
+needs for its state.
+
+### Types
+
+#### `iir_t`
+
+```c
+typedef struct{
+    uint32_t sections;          // The number of biquad sections
+    float* coefficient;         // Five coefficients for each section
+    float* state;               // Two values for each section
+    bool dynamic_alloc;         // True if the memory comes from the heap
+}iir_t;
+```
+
+### Functions
+
+#### `iir_alloc`
+
+```c
+iir_t iir_alloc(uint32_t sections);
+```
+
+Give a filter with the given number of sections. The memory comes from the
+heap. The filter lets everything pass until a design function or
+iir_set_section gives it coefficients. Give the filter to iir_free when you
+no longer need it.
+
+#### `iir_static_alloc`
+
+```c
+iir_t iir_static_alloc(uint32_t sections, float* coefficient, float* state);
+```
+
+Give a filter that uses the memory that the caller holds. The list
+coefficient must hold IIR_COEFFICIENT_SIZE(sections) float values, and the
+list state must hold IIR_STATE_SIZE(sections) of them. This function takes
+no memory from the heap.
+
+#### `iir_design_low_pass`
+
+```c
+void iir_design_low_pass(iir_t* iir, float cutoff);
+```
+
+Build the coefficients of a filter of Butterworth that lets the low
+frequencies pass. The order of the filter is two times the number of
+sections.
+
+#### `iir_design_high_pass`
+
+```c
+void iir_design_high_pass(iir_t* iir, float cutoff);
+```
+
+Build the coefficients of a filter of Butterworth that lets the high
+frequencies pass.
+
+#### `iir_set_section`
+
+```c
+void iir_set_section(iir_t* iir, uint32_t section, float b0, float b1, float b2, float a0, float a1, float a2);
+```
+
+Write the five coefficients of one section. The three coefficients b belong
+to the input, and the two coefficients a belong to the feedback. The
+function divides every coefficient by a0, thus the caller may give the
+coefficients as another program calculated them.
+
+#### `iir_process_sample`
+
+```c
+float iir_process_sample(iir_t* iir, float sample);
+```
+
+Give the filtered value of one sample.
+
+#### `iir_process_block`
+
+```c
+void iir_process_block(iir_t* iir, const float* input, float* output, uint32_t size);
+```
+
+Filter a block of samples. The input and the output may be the same list.
+
+#### `iir_reset`
+
+```c
+void iir_reset(iir_t* iir);
+```
+
+Set the state of every section to zero. The filter then behaves as a filter
+that has seen no sample yet.
+
+#### `iir_get_gain`
+
+```c
+float iir_get_gain(iir_t* iir, float frequency);
+```
+
+Give the size of the answer of the filter at the given frequency, which is a
+part of the sample rate. A value of 1 says that the frequency passes
+unchanged, and a value of 0 says that the filter stops it.
+
+#### `iir_free`
+
+```c
+void iir_free(iir_t* iir);
+```
+
+Release the memory of a filter that came from iir_alloc. This function does
+nothing for a filter that came from iir_static_alloc.
 
 ---
 
