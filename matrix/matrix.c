@@ -373,6 +373,37 @@ matrix_t matrix_add(matrix_t* a, matrix_t* b)
     return sum;
 }
 
+matrix_t matrix_subtract(matrix_t* a, matrix_t* b)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+
+    matrix_t order_a;
+    matrix_t order_b;
+    matrix_t difference;
+    float elem_difference;
+
+    order_a = matrix_get_order(a);
+    order_b = matrix_get_order(b);
+
+    ASSERT(matrix_is_equal(&order_a, &order_b));
+    matrix_free(&order_a);
+    matrix_free(&order_b);
+
+    difference = matrix_alloc(a->m, a->n);
+
+    for(int i = 0; i < a->m; i++)
+    {
+        for(int j = 0; j < a->n; j++)
+        {
+            elem_difference = matrix_get_element(a, i, j) - matrix_get_element(b, i, j);
+            matrix_add_element(&difference, i, j, elem_difference);
+        }
+    }
+
+    return difference;
+}
+
 matrix_t matrix_multiply_scalar(matrix_t* matrix, float scalar)
 {
     ASSERT(matrix != NULL);

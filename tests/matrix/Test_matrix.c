@@ -393,6 +393,74 @@ void test_matrix_add(void)
     matrix_free(&matrix_c);
 }
 
+void test_matrix_subtract(void)
+{
+    matrix_t matrix_a = matrix_alloc(3, 3);
+    matrix_add_element(&matrix_a, 0, 0, 1);
+    matrix_add_element(&matrix_a, 0, 1, 2);
+    matrix_add_element(&matrix_a, 0, 2, 3);
+    matrix_add_element(&matrix_a, 1, 0, 4);
+    matrix_add_element(&matrix_a, 1, 1, 5);
+    matrix_add_element(&matrix_a, 1, 2, 6);
+    matrix_add_element(&matrix_a, 2, 0, 7);
+    matrix_add_element(&matrix_a, 2, 1, 8);
+    matrix_add_element(&matrix_a, 2, 2, 9);
+    matrix_t matrix_b = matrix_create_unit_matrix(3);
+    matrix_t matrix_c = matrix_subtract(&matrix_a, &matrix_b);
+    TEST_ASSERT_EQUAL(0, matrix_get_element(&matrix_c, 0, 0));
+    TEST_ASSERT_EQUAL(2, matrix_get_element(&matrix_c, 0, 1));
+    TEST_ASSERT_EQUAL(3, matrix_get_element(&matrix_c, 0, 2));
+    TEST_ASSERT_EQUAL(4, matrix_get_element(&matrix_c, 1, 0));
+    TEST_ASSERT_EQUAL(4, matrix_get_element(&matrix_c, 1, 1));
+    TEST_ASSERT_EQUAL(6, matrix_get_element(&matrix_c, 1, 2));
+    TEST_ASSERT_EQUAL(7, matrix_get_element(&matrix_c, 2, 0));
+    TEST_ASSERT_EQUAL(8, matrix_get_element(&matrix_c, 2, 1));
+    TEST_ASSERT_EQUAL(8, matrix_get_element(&matrix_c, 2, 2));
+    matrix_free(&matrix_a);
+    matrix_free(&matrix_b);
+    matrix_free(&matrix_c);
+}
+
+void test_matrix_subtract_gives_zero_for_equal_matrices(void)
+{
+    matrix_t matrix_a = matrix_alloc(2, 3);
+    matrix_add_element(&matrix_a, 0, 0, -1.5f);
+    matrix_add_element(&matrix_a, 0, 1, 0);
+    matrix_add_element(&matrix_a, 0, 2, 2.5f);
+    matrix_add_element(&matrix_a, 1, 0, 3.25f);
+    matrix_add_element(&matrix_a, 1, 1, -4.75f);
+    matrix_add_element(&matrix_a, 1, 2, 6);
+    matrix_t matrix_b = matrix_alloc(2, 3);
+    matrix_copy(&matrix_a, &matrix_b);
+    matrix_t matrix_c = matrix_subtract(&matrix_a, &matrix_b);
+    TEST_ASSERT_EQUAL(2, matrix_c.m);
+    TEST_ASSERT_EQUAL(3, matrix_c.n);
+    TEST_ASSERT_EQUAL(true, matrix_is_zero(&matrix_c));
+    matrix_free(&matrix_a);
+    matrix_free(&matrix_b);
+    matrix_free(&matrix_c);
+}
+
+void test_matrix_subtract_is_not_commutative(void)
+{
+    matrix_t matrix_a = matrix_alloc(2, 2);
+    matrix_add_element(&matrix_a, 0, 0, 5);
+    matrix_add_element(&matrix_a, 0, 1, 6);
+    matrix_add_element(&matrix_a, 1, 0, 7);
+    matrix_add_element(&matrix_a, 1, 1, 8);
+    matrix_t matrix_b = matrix_create_unit_matrix(2);
+    matrix_t matrix_c = matrix_subtract(&matrix_a, &matrix_b);
+    matrix_t matrix_d = matrix_subtract(&matrix_b, &matrix_a);
+    TEST_ASSERT_EQUAL(4, matrix_get_element(&matrix_c, 0, 0));
+    TEST_ASSERT_EQUAL(-4, matrix_get_element(&matrix_d, 0, 0));
+    TEST_ASSERT_EQUAL(6, matrix_get_element(&matrix_c, 0, 1));
+    TEST_ASSERT_EQUAL(-6, matrix_get_element(&matrix_d, 0, 1));
+    matrix_free(&matrix_a);
+    matrix_free(&matrix_b);
+    matrix_free(&matrix_c);
+    matrix_free(&matrix_d);
+}
+
 void test_matrix_multiply_scalar(void)
 {
     matrix_t matrix = matrix_alloc(3, 3);

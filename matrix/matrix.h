@@ -28,6 +28,7 @@ bool matrix_is_zero(matrix_t* matrix);
 bool matrix_is_unit(matrix_t* matrix);
 bool matrix_is_multipliable(matrix_t* a, matrix_t* b);
 matrix_t matrix_add(matrix_t* a, matrix_t* b);
+matrix_t matrix_subtract(matrix_t* a, matrix_t* b);
 matrix_t matrix_multiply_scalar(matrix_t* matrix, float scalar);
 matrix_t matrix_multiply(matrix_t* a, matrix_t* b);
 matrix_t matrix_transpose(matrix_t* matrix);
