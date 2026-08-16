@@ -138,6 +138,45 @@ branch merges into `development`. When `development` is stable, a branch with
 the name `release/vX.Y.Z` comes from it. Only fixes go into a release branch,
 and that branch then merges into `main`.
 
+### Making a release
+
+The bump command of commitizen is not in use, thus a release is made by hand.
+When `development` is stable:
+
+1. Make the release branch from `development`:
+
+   ```bash
+   git checkout development && git checkout -b release/vX.Y.Z
+   ```
+
+2. Write the entry for the new version at the top of `CHANGELOG.md`. Take the
+   text of each entry from the subject of each commit since the last tag:
+
+   ```bash
+   git log --reverse --format='%s' <last tag>..HEAD
+   ```
+
+3. Change the version in the `project` command of `CMakeLists.txt` to the new
+   version.
+
+4. Commit the two files, and give the commit the message
+   `docs(changelog): Add the entry for the version X.Y.Z`.
+
+5. Only fixes go into the release branch after this point. Run the tests, the
+   naming check and the documentation check again after each fix.
+
+6. Merge the branch into `main` and into `development`, and make the tag:
+
+   ```bash
+   git checkout main && git merge --ff-only release/vX.Y.Z
+   git checkout development && git merge --ff-only release/vX.Y.Z
+   git tag -a X.Y.Z -m "X.Y.Z"
+   git push origin main development X.Y.Z
+   ```
+
+The name of the tag holds no letter v, but the name of the branch does. The
+tag 0.1.0 set that rule.
+
 Each push runs the workflow in
 [.github/workflows/tests.yml](.github/workflows/tests.yml). It runs the
 documentation check, the naming check, the unit tests, the property based
