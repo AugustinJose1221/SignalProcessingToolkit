@@ -148,6 +148,21 @@ jobs:
           cmake --build build/example
           ./build/example/signalproc_example
 
+      - name: Build every example
+        # Each example holds its own main function inside a condition on
+        # RUN_EXAMPLE, thus one build gives one example. This step walks
+        # through them, so that an example that stops working cannot pass
+        # without a signal.
+        run: |
+          for example in FFT FILTER HHT EKF GOERTZEL DWT SAVGOL EMD MATRIX; do
+            echo "== $example"
+            sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
+            cmake -S . -B build/example -DBUILD_EXAMPLE=ON > /dev/null
+            cmake --build build/example > /dev/null
+            ./build/example/signalproc_example > /dev/null
+          done
+          git checkout examples/run_example.h
+
       - name: Build and run the benchmark
         # The benchmark needs no external library. The workflow runs it so that
         # a change that stops the benchmark cannot pass without a signal. It

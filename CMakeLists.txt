@@ -47,7 +47,14 @@ option(BUILD_EXAMPLE "Build the example program. First choose an example in exam
 if(BUILD_EXAMPLE)
     add_executable(signalproc_example
         examples/emd.c
-        examples/matrix.c)
+        examples/matrix.c
+        examples/fft.c
+        examples/filter.c
+        examples/hht.c
+        examples/ekf.c
+        examples/goertzel.c
+        examples/dwt.c
+        examples/savgol.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()

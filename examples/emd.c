@@ -30,13 +30,13 @@ int main()
     imf_t imf[NUMBER_OF_IMF];
 
     srand(time(0));
-    for(int i = 0; i < SAMPLE_SIZE; i++)
+    for(uint32_t i = 0; i < SAMPLE_SIZE; i++)
     {
         x[i] = i;
         y[i] = sin(RADS_TO_DEG(10*i)) + sin(RADS_TO_DEG(20*i)) /*+ log(rand())*/;
     }
 
-    for(int i = 0; i < NUMBER_OF_IMF; i++)
+    for(uint32_t i = 0; i < NUMBER_OF_IMF; i++)
     {
         imf[i] = imf_alloc(SAMPLE_SIZE);
     }

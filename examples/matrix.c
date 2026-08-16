@@ -126,7 +126,6 @@ int main()
     matrix_printf(&transpose, NULL);
     
     matrix_t det;
-    int counter = 1;
 
     det = matrix_alloc(3, 3);
     matrix_add_element(&det, 0, 0, 1.2);
