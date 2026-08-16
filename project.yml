@@ -100,10 +100,12 @@
     - tests/cmatrix/**
     - tests/cnum/**
     - tests/cspline/**
+    - tests/dwt/**
     - tests/ekf/**
     - tests/emd/**
     - tests/fft/**
     - tests/fir/**
+    - tests/goertzel/**
     - tests/hht/**
     - tests/hilbert/**
     - tests/iir/**
@@ -111,6 +113,7 @@
     - tests/kalman/**
     - tests/matrix/**
     - tests/pmatrix/**
+    - tests/savgol/**
     - tests/utils/binarysearch/**
     - tests/utils/peakdetect/**
     - tests/utils/valleydetect/**
@@ -120,10 +123,12 @@
     - cmatrix/**
     - cnum/**
     - cspline/**
+    - dwt/**
     - ekf/**
     - emd/**
     - fft/**
     - fir/**
+    - goertzel/**
     - hht/**
     - hilbert/**
     - iir/**
@@ -132,6 +137,7 @@
     - matrix/**
     - pmatrix/**
     - point2d/**
+    - savgol/**
     - utils/**
     - vector/**
     - vector2d/**
@@ -140,10 +146,12 @@
     - cnum/**
     - common/**
     - cspline/**
+    - dwt/**
     - ekf/**
     - emd/**
     - fft/**
     - fir/**
+    - goertzel/**
     - hht/**
     - hilbert/**
     - iir/**
@@ -152,6 +160,7 @@
     - matrix/**
     - pmatrix/**
     - point2d/**
+    - savgol/**
     - utils/**
     - vector/**
     - vector2d/**

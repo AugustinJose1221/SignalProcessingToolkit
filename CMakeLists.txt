@@ -29,6 +29,9 @@ set(SIGNALPROC_SOURCES
     fir/fir.c
     iir/iir.c
     ekf/ekf.c
+    goertzel/goertzel.c
+    dwt/dwt.c
+    savgol/savgol.c
     kalman/kalman.c)
 
 # The repository gives a library, thus the first target is a library. A library

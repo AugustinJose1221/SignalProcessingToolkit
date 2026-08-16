@@ -25,6 +25,9 @@ python3 scripts/api_doc.py
 - [`emd`](#emd) &mdash; Empirical mode decomposition
 - [`kalman`](#kalman) &mdash; The Kalman filter
 - [`ekf`](#ekf) &mdash; The extended Kalman filter
+- [`goertzel`](#goertzel) &mdash; Detection of one frequency
+- [`dwt`](#dwt) &mdash; The discrete wavelet transform
+- [`savgol`](#savgol) &mdash; The filter of Savitzky and Golay
 - [`binarysearch`](#binarysearch) &mdash; Binary search
 - [`peakdetect`](#peakdetect) &mdash; Peak detection
 - [`valleydetect`](#valleydetect) &mdash; Valley detection
@@ -2617,6 +2620,328 @@ void ekf_free(ekf_t* ekf);
 
 Release the memory of a filter that came from ekf_alloc. This function does
 nothing for a filter that came from ekf_static_alloc.
+
+---
+
+## goertzel
+
+Detection of one frequency. Declared in `goertzel/goertzel.h`.
+
+### Types
+
+#### `goertzel_t`
+
+```c
+typedef struct{
+    float coefficient;          // Comes from the frequency and the block size
+    float sine;                 // Holds the phase of the result
+    float cosine;               // Holds the phase of the result
+    float first;                // The state of one sample ago
+    float second;               // The state of two samples ago
+    uint32_t block_size;        // The number of samples of one block
+    uint32_t count;             // The number of samples that came in
+}goertzel_t;
+```
+
+### Functions
+
+#### `goertzel_init`
+
+```c
+goertzel_t goertzel_init(float frequency, float sample_rate, uint32_t block_size);
+```
+
+Give a detector for one frequency.
+
+The frequency and the sample rate are both in hertz, and the frequency must
+be below half the sample rate. The block size is the number of samples that
+the detector reads before it gives a result.
+
+This function takes no memory. The whole state lies inside the structure,
+thus a caller on a target with no heap can hold it anywhere.
+
+#### `goertzel_process_sample`
+
+```c
+void goertzel_process_sample(goertzel_t* goertzel, float sample);
+```
+
+Give one sample to the detector.
+
+#### `goertzel_process_block`
+
+```c
+void goertzel_process_block(goertzel_t* goertzel, const float* input, uint32_t size);
+```
+
+Give a block of samples to the detector.
+
+#### `goertzel_is_block_complete`
+
+```c
+bool goertzel_is_block_complete(goertzel_t* goertzel);
+```
+
+True when the detector has read a whole block. Read the result then, and
+call goertzel_reset before the next block.
+
+#### `goertzel_magnitude_squared`
+
+```c
+float goertzel_magnitude_squared(goertzel_t* goertzel);
+```
+
+Give the square of the size of the answer at the frequency of the detector.
+This function takes no square root, thus it is faster than
+goertzel_magnitude. Use it to compare the strength of two frequencies.
+
+#### `goertzel_magnitude`
+
+```c
+float goertzel_magnitude(goertzel_t* goertzel);
+```
+
+Give the size of the answer at the frequency of the detector.
+
+#### `goertzel_phase`
+
+```c
+float goertzel_phase(goertzel_t* goertzel);
+```
+
+Give the phase of the answer in radians, between -pi and pi.
+
+#### `goertzel_reset`
+
+```c
+void goertzel_reset(goertzel_t* goertzel);
+```
+
+Set the state to zero, so that the detector can read a new block. The
+frequency and the block size do not change.
+
+---
+
+## dwt
+
+The discrete wavelet transform. Declared in `dwt/dwt.h`.
+
+### Macros
+
+#### `DWT_MAX_COEFFICIENT_COUNT`
+
+```c
+#define DWT_MAX_COEFFICIENT_COUNT   4u
+```
+
+The largest number of coefficients that a wavelet of this module holds.
+
+### Types
+
+#### `dwt_t`
+
+```c
+typedef struct{
+    dwt_wavelet_t wavelet;      // Which wavelet the transform uses
+    uint32_t length;            // The number of coefficients of that wavelet
+    float low[DWT_MAX_COEFFICIENT_COUNT];   // The filter of the approximation
+    float high[DWT_MAX_COEFFICIENT_COUNT];  // The filter of the detail
+}dwt_t;
+```
+
+### Functions
+
+#### `dwt_init`
+
+```c
+dwt_t dwt_init(dwt_wavelet_t wavelet);
+```
+
+Give a transform that uses the given wavelet. This function takes no memory.
+The whole state lies inside the structure.
+
+#### `dwt_is_valid_size`
+
+```c
+bool dwt_is_valid_size(uint32_t size, uint32_t levels);
+```
+
+True if a signal of the given size can go through the given number of
+levels. Each level halves the size, thus the size must divide by two that
+many times, and the size of the last level must still hold at least two
+samples.
+
+#### `dwt_forward`
+
+```c
+void dwt_forward(dwt_t* dwt, const float* signal, uint32_t size, float* approximation, float* detail);
+```
+
+Take one level of the transform.
+
+The signal holds size values. The function writes size/2 values into the
+approximation and size/2 values into the detail. The size must be even, and
+the three lists must not be the same memory.
+
+#### `dwt_inverse`
+
+```c
+void dwt_inverse(dwt_t* dwt, const float* approximation, const float* detail, uint32_t size, float* signal);
+```
+
+Take one level of the inverse transform.
+
+The approximation and the detail hold size/2 values each, and the function
+writes size values into the signal. The size must be even.
+
+#### `dwt_forward_multi`
+
+```c
+void dwt_forward_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels, float* work);
+```
+
+Take several levels of the transform, one after the other.
+
+The function writes the result over the signal. After the call the first
+size/(2^levels) values hold the approximation of the last level. The values
+after it hold the detail of the last level, then the detail of the level
+before it, and so on up to the detail of the first level, which fills the
+second half of the list.
+
+The work buffer must hold as many values as the signal. The function gets no
+memory.
+
+#### `dwt_inverse_multi`
+
+```c
+void dwt_inverse_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels, float* work);
+```
+
+Take several levels of the inverse transform. The list holds the result of
+dwt_forward_multi, and the function writes the signal over it. The work
+buffer must hold as many values as the signal.
+
+#### `dwt_threshold`
+
+```c
+void dwt_threshold(float* data, uint32_t size, float limit);
+```
+
+Set every value of the list whose size is below the limit to zero.
+
+Use this function on the detail values of a transform to take noise out of a
+signal. Give it the part of the list that holds the details, and not the
+approximation.
+
+---
+
+## savgol
+
+The filter of Savitzky and Golay. Declared in `savgol/savgol.h`.
+
+### Types
+
+#### `savgol_t`
+
+```c
+typedef struct{
+    uint32_t window;            // The number of samples of the window, odd
+    uint32_t order;             // The order of the polynomial
+    uint32_t derivative;        // Which derivative the filter gives
+    float* coefficient;         // One coefficient for each sample of the window
+    bool dynamic_alloc;         // True if the memory comes from the heap
+}savgol_t;
+```
+
+### Functions
+
+#### `savgol_alloc`
+
+```c
+savgol_t savgol_alloc(uint32_t window);
+```
+
+Give a filter for the given window. The memory comes from the heap. Give the
+filter to savgol_free when you no longer need it.
+
+#### `savgol_static_alloc`
+
+```c
+savgol_t savgol_static_alloc(uint32_t window, float* coefficient);
+```
+
+Give a filter that uses the memory at coefficient, which must hold as many
+float values as the window. This function takes no memory from the heap.
+
+#### `savgol_is_valid`
+
+```c
+bool savgol_is_valid(uint32_t window, uint32_t order, uint32_t derivative);
+```
+
+True if the window and the order fit together: the window must be odd and
+larger than the order, and the derivative must not be above the order.
+
+#### `savgol_design`
+
+```c
+bool savgol_design(savgol_t* savgol, uint32_t order, uint32_t derivative);
+```
+
+Build the coefficients of the filter.
+
+A derivative of 0 gives the smoothed signal. A derivative of 1 gives the
+first derivative, 2 the second one, and so on. The order must be below the
+size of the window, and the derivative must not be above the order.
+
+This function gets memory from the heap for the matrices of the least
+squares. It runs one time, before the filter reads any sample. The filter
+itself gets no memory.
+
+Give false if the window and the order do not fit together, or if the
+matrix of the least squares has no inverse.
+
+#### `savgol_get_coefficient`
+
+```c
+float savgol_get_coefficient(savgol_t* savgol, uint32_t index);
+```
+
+Give one coefficient of the filter.
+
+#### `savgol_apply`
+
+```c
+float savgol_apply(savgol_t* savgol, const float* window);
+```
+
+Give the filtered value at the middle of the given window of samples. The
+list must hold as many samples as the window of the filter.
+
+#### `savgol_process_block`
+
+```c
+void savgol_process_block(savgol_t* savgol, const float* input, float* output, uint32_t size);
+```
+
+Filter a whole signal.
+
+The function writes as many values as the signal holds. Near the two ends
+there are not enough samples for a whole window, thus the function repeats
+the first and the last sample to fill it. The input and the output must not
+be the same list.
+
+The result of a derivative is for one step of the sample. Divide it by the
+time between two samples to get a derivative for the time.
+
+#### `savgol_free`
+
+```c
+void savgol_free(savgol_t* savgol);
+```
+
+Release the memory of a filter that came from savgol_alloc. This function
+does nothing for a filter that came from savgol_static_alloc.
 
 ---
 
