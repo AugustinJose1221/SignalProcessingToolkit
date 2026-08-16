@@ -1,58 +1,62 @@
 # SignalProcessingToolkit
 
-A C library for your complex signal processing needs.
+A C library for signal processing.
 
-Each module gives two ways to get memory: one that uses the heap, and one that
-takes memory from the caller. The second way lets the library work on a target
-that has no heap.
+The library takes a signal apart, cleans it, and follows what it describes. It
+holds the transforms that show which frequencies a signal carries, the filters
+that take a band of frequencies away, the decompositions that split a signal
+into simpler parts, and the estimators that follow a state behind a noisy
+measurement. Underneath them sit the vectors, the matrices and the
+interpolation that they need.
 
-| Area | Modules |
-| --- | --- |
-| Frequency | `fft`, `goertzel`, `hilbert`, `hht`, `dwt` |
-| Filters | `fir`, `iir`, `savgol`, `kalman`, `ekf` |
-| Decomposition | `emd`, `imf`, `cspline` |
-| Mathematics | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `vector`, `vector2d` |
-| Utilities | `binarysearch`, `peakdetect`, `valleydetect` |
+## What the library gives
 
-`fft` reaches the frequency domain, and `goertzel` watches one frequency with
-three float values only. `hilbert` gives the amplitude and the frequency at
-each point of time, and `hht` joins it with `emd` to give the Hilbert-Huang
-transform. `dwt` says which frequencies a signal holds and where they lie.
-
-`fir` and `iir` take a band of frequencies out of a signal. `savgol` smooths a
-signal and keeps the height of a peak. `kalman` follows a state through a
-linear model, and `ekf` follows it through a model that a function describes.
-
-## The three kinds of matrix
-
-| Module | Element | Use it for |
+| Area | Modules | What you do with them |
 | --- | --- | --- |
-| `matrix` | a float value | The common case |
-| `cmatrix` | a complex number, from the `cnum` module | The frequency domain |
-| `pmatrix` | a pointer to a function of one parameter | A matrix such as `[sin(x) cos(x)]` |
+| Frequency | `fft`, `goertzel`, `hilbert`, `hht`, `dwt` | Find which frequencies a signal holds, and where |
+| Filters | `fir`, `iir`, `savgol` | Take a band of frequencies away, or smooth a signal |
+| Estimation | `kalman`, `ekf` | Follow a state behind a noisy measurement |
+| Decomposition | `emd`, `imf`, `cspline` | Split a signal into simpler parts, and interpolate |
+| Mathematics | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `vector`, `vector2d` | The arithmetic that the modules above need |
+| Utilities | `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
 
-`cmatrix` gives the same names as `matrix` for the same operations, and two
-more that belong to complex numbers only: `cmatrix_conjugate_transpose` and
-`cmatrix_is_hermitian`.
+[docs/API.md](docs/API.md) describes every module. The directory
+[examples](examples) holds a small program for each area.
 
-`pmatrix` holds no arithmetic of its own. Give it a value for the parameter,
-and it gives a `matrix_t` that every other module can take:
+## Three rules that shape the library
+
+**It needs no external library.** It uses the C standard library only. Some
+test tools need other software, but the library itself does not. A step of the
+workflow reads the shared object and stops if it asks for anything but the C
+library and the mathematics library.
+
+**It can run without a heap.** Each module gives two ways to get memory: one
+that uses the heap, and one that takes memory that the caller already holds.
+The second way lets the library work on a target that has no heap. Where an
+operation would need memory while it runs, the module gives a second form that
+writes into a result that the caller gives, such as `matrix_multiply_into`
+beside `matrix_multiply`.
+
+**It holds every value in a float.** A float keeps about 7 digits. Each module
+says in its header where that limit matters, such as the size of a transform
+or the order of a determinant.
+
+## An example
+
+Take a noisy signal, filter it, and look at what frequencies are left:
 
 ```c
-pmatrix_t rotation = pmatrix_alloc(2, 2);
-pmatrix_add_element(&rotation, 0, 0, cosf);
-pmatrix_add_element(&rotation, 0, 1, negative_sine);
-pmatrix_add_element(&rotation, 1, 0, sinf);
-pmatrix_add_element(&rotation, 1, 1, cosf);
+fir_t fir = fir_alloc(31);
+fir_design_low_pass(&fir, 0.1f);
+fir_process_block(&fir, noisy, clean, SIZE);
 
-matrix_t values = pmatrix_evaluate(&rotation, angle);
+fft_t fft = fft_alloc(SIZE);
+cnum_t spectrum[SIZE];
+float magnitude[SIZE];
+
+fft_forward_real(&fft, clean, spectrum);
+fft_magnitude(spectrum, magnitude, SIZE);
 ```
-
-A function of the standard library such as `sinf` fits the type of an element
-directly.
-
-**The library needs no external library.** It uses the C standard library only.
-Some test tools need other software, but the library itself does not.
 
 ## Build
 
@@ -62,12 +66,15 @@ cmake -S . -B build && cmake --build build
 
 This gives the static library `libsignalproc.a`.
 
-To build the example program, first choose an example in
-`examples/run_example.h`, and then give:
+To build an example program, first choose one in `examples/run_example.h`, and
+then give:
 
 ```bash
 cmake -S . -B build -DBUILD_EXAMPLE=ON && cmake --build build
+./build/signalproc_example
 ```
+
+The directory [examples](examples) says which examples there are.
 
 ## Tests
 
@@ -111,17 +118,20 @@ two runs compare with each other.
 
 ## Documentation
 
-[docs/API.md](docs/API.md) describes every module, type, macro and function.
+[docs/API.md](docs/API.md) is the index. Each module has its own file under
+[docs/api](docs/api), which describes every type, macro and function of that
+module.
 
-The file comes from the comments in the headers, thus the documentation and the
-code cannot say two different things. After a change to a header, make the file
+The files come from the comments in the headers, thus the documentation and the
+code cannot say two different things. After a change to a header, make the files
 again:
 
 ```bash
 python3 scripts/api_doc.py
 ```
 
-To examine that every function has a comment and that the file is current:
+To examine that every function has a comment, that the files are current, and
+that no file belongs to a module that went away:
 
 ```bash
 python3 scripts/api_doc.py --check
