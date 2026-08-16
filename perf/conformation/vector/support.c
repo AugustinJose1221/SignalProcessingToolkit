@@ -17,7 +17,7 @@ bool support_vector_dot_product_check(int size, float min, float max)
 {
     vector_t A;
     vector_t B;
-    float dotProduct;
+    float dot_product;
     gsl_vector_float *gsl_A = gsl_vector_float_alloc(size);
     gsl_vector_float *gsl_B = gsl_vector_float_alloc(size);
 
@@ -27,11 +27,11 @@ bool support_vector_dot_product_check(int size, float min, float max)
     support_fill_random_vector_single(&A, gsl_A, size, min, max);
     support_fill_random_vector_single(&B, gsl_B, size, min, max);
 
-    dotProduct = vector_dot_product(&A, &B);
-    float gsl_dotProduct = 0.0f;
-    gsl_blas_sdot(gsl_A, gsl_B, &gsl_dotProduct);
+    dot_product = vector_dot_product(&A, &B);
+    float gsl_dot_product = 0.0f;
+    gsl_blas_sdot(gsl_A, gsl_B, &gsl_dot_product);
 
-    bool flag = fabs(dotProduct - gsl_dotProduct) < 1e-3;
+    bool flag = fabs(dot_product - gsl_dot_product) < 1e-3;
 
     vector_free(&A);
     vector_free(&B);

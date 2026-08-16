@@ -4,29 +4,29 @@
 static void run_vector_dot_product_static_conformation(void)
 {
     vector_t A0, B0;
-    float dotProduct0;
+    float dot_product0;
     VECTOR_INIT(A0, 3, ((float[]){1, 2, 3}));
     VECTOR_INIT(B0, 3, ((float[]){4, 5, 6}));
-    dotProduct0 = vector_dot_product(&A0, &B0);
-    VALUE_CHECK_EQUAL_CASE(dotProduct0, 32.0f, "Vector Static Dot Product Test");
+    dot_product0 = vector_dot_product(&A0, &B0);
+    VALUE_CHECK_EQUAL_CASE(dot_product0, 32.0f, "Vector Static Dot Product Test");
     VECTOR_FREE(A0);
     VECTOR_FREE(B0);
 
     vector_t A1, B1;
-    float dotProduct1;
+    float dot_product1;
     VECTOR_INIT(A1, 4, ((float[]){-1.5f, 2.5f, -3.5f, 4.5f}));
     VECTOR_INIT(B1, 4, ((float[]){-4.5f, 3.5f, -2.5f, 1.5f}));
-    dotProduct1 = vector_dot_product(&A1, &B1);
-    VALUE_CHECK_EQUAL_CASE(dotProduct1, 31.0f, "Vector Static Dot Product Test");
+    dot_product1 = vector_dot_product(&A1, &B1);
+    VALUE_CHECK_EQUAL_CASE(dot_product1, 31.0f, "Vector Static Dot Product Test");
     VECTOR_FREE(A1);
     VECTOR_FREE(B1);
 
     vector_t A2, B2;
-    float dotProduct2;
+    float dot_product2;
     VECTOR_INIT(A2, 2, ((float[]){7.5f, -8.5f}));
     VECTOR_INIT(B2, 2, ((float[]){-9.5f, 10.5f}));
-    dotProduct2 = vector_dot_product(&A2, &B2);
-    VALUE_CHECK_EQUAL_CASE(dotProduct2, -160.5f, "Vector Static Dot Product Test");
+    dot_product2 = vector_dot_product(&A2, &B2);
+    VALUE_CHECK_EQUAL_CASE(dot_product2, -160.5f, "Vector Static Dot Product Test");
 }
 
 static void run_vector_dot_product_dynamic_conformation(void)

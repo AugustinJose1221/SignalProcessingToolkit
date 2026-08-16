@@ -4,31 +4,31 @@
 #include <string.h>
 #include <stdio.h>
 
-extern int testCasesRun;
-extern int testCasesPassed;
-extern int testCasesFailed;
+extern int test_cases_run;
+extern int test_cases_passed;
+extern int test_cases_failed;
 
 #define CONFORMATION_TEST_CASE(exp, msg) do\
                                      {\
-                                        testCasesRun++;\
+                                        test_cases_run++;\
                                         if(exp)\
                                         {\
-                                            testCasesPassed++;\
-                                            printf("Test %d [%s]:\tTest Passed\n", testCasesRun, msg);\
+                                            test_cases_passed++;\
+                                            printf("Test %d [%s]:\tTest Passed\n", test_cases_run, msg);\
                                         }\
                                         else\
                                         {\
-                                            testCasesFailed++;\
-                                            printf("Test %d [%s]:\tTest Failed\n", testCasesRun, msg);\
+                                            test_cases_failed++;\
+                                            printf("Test %d [%s]:\tTest Failed\n", test_cases_run, msg);\
                                         }\
                                      }while(0)\
 
 #define CONFORMATION_TEST_SUMMARY() do\
                                      {\
                                         printf("\n----------------------------\n");\
-                                        printf("Total Test Cases Run: %d\n", testCasesRun);\
-                                        printf("Total Test Cases Passed: %d\n", testCasesPassed);\
-                                        printf("Total Test Cases Failed: %d\n", testCasesFailed);\
+                                        printf("Total Test Cases Run: %d\n", test_cases_run);\
+                                        printf("Total Test Cases Passed: %d\n", test_cases_passed);\
+                                        printf("Total Test Cases Failed: %d\n", test_cases_failed);\
                                         printf("----------------------------\n");\
                                     }while(0)\
 

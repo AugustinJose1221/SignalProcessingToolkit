@@ -2,9 +2,9 @@
 #include <perf/conformation/matrix/matrix.h>
 #include <perf/conformation/vector/vector.h>
 
-int testCasesRun = 0;
-int testCasesPassed = 0;
-int testCasesFailed = 0;
+int test_cases_run = 0;
+int test_cases_passed = 0;
+int test_cases_failed = 0;
 
 static void run_static_conformation_tests(void)
 {

@@ -116,28 +116,28 @@ bool support_matrix_scalar_multiplication_check(int rows, int cols, float min, f
     return flag;
 }
 
-bool support_matrix_multiplication_check(int rowsA, int colsA, int rowsB, int colsB, float min, float max)
+bool support_matrix_multiplication_check(int rows_a, int cols_a, int rows_b, int cols_b, float min, float max)
 {
     matrix_t A;
     matrix_t B;
     matrix_t product;
 
-    A = matrix_alloc(rowsA, colsA);
-    B = matrix_alloc(rowsB, colsB);
-    gsl_matrix_float *gsl_A = gsl_matrix_float_alloc(rowsA, colsA);
-    gsl_matrix_float *gsl_B = gsl_matrix_float_alloc(colsA, colsB);
-    gsl_matrix_float *gsl_product = gsl_matrix_float_alloc(rowsA, colsB);
+    A = matrix_alloc(rows_a, cols_a);
+    B = matrix_alloc(rows_b, cols_b);
+    gsl_matrix_float *gsl_A = gsl_matrix_float_alloc(rows_a, cols_a);
+    gsl_matrix_float *gsl_B = gsl_matrix_float_alloc(cols_a, cols_b);
+    gsl_matrix_float *gsl_product = gsl_matrix_float_alloc(rows_a, cols_b);
 
-    support_fill_random_matrix_single(&A, gsl_A, rowsA, colsA, min, max);
-    support_fill_random_matrix_single(&B, gsl_B, rowsB, colsB, min, max);
+    support_fill_random_matrix_single(&A, gsl_A, rows_a, cols_a, min, max);
+    support_fill_random_matrix_single(&B, gsl_B, rows_b, cols_b, min, max);
 
     product = matrix_multiply(&A, &B);
     gsl_blas_sgemm(CblasNoTrans, CblasNoTrans, 1.0, gsl_A, gsl_B, 0.0, gsl_product);
 
     bool flag = true;
-    for(int i = 0; i < rowsA; i++)
+    for(int i = 0; i < rows_a; i++)
     {
-        for(int j = 0; j < colsB; j++)
+        for(int j = 0; j < cols_b; j++)
         {
             float expected = gsl_matrix_float_get(gsl_product, i, j);
             float computed = matrix_get_element(&product, i, j);
