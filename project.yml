@@ -109,8 +109,10 @@
     - tests/kalman/**
     - tests/cnum/**
     - tests/cmatrix/**
+    - tests/pmatrix/**
   :source:
     - cmatrix/**
+    - pmatrix/**
     - cnum/**
     - cspline/**
     - emd/**
@@ -123,6 +125,7 @@
     - vector2d/**
   :include:
     - cmatrix/**
+    - pmatrix/**
     - cnum/**
     - common/**
     - cspline/**

@@ -7,6 +7,34 @@ empirical mode decomposition and a Kalman filter. Each module gives two ways to
 get memory: one that uses the heap, and one that takes memory from the caller.
 The second way lets the library work on a target that has no heap.
 
+## The three kinds of matrix
+
+| Module | Element | Use it for |
+| --- | --- | --- |
+| `matrix` | a float value | The common case |
+| `cmatrix` | a complex number, from the `cnum` module | The frequency domain |
+| `pmatrix` | a pointer to a function of one parameter | A matrix such as `[sin(x) cos(x)]` |
+
+`cmatrix` gives the same names as `matrix` for the same operations, and two
+more that belong to complex numbers only: `cmatrix_conjugate_transpose` and
+`cmatrix_is_hermitian`.
+
+`pmatrix` holds no arithmetic of its own. Give it a value for the parameter,
+and it gives a `matrix_t` that every other module can take:
+
+```c
+pmatrix_t rotation = pmatrix_alloc(2, 2);
+pmatrix_add_element(&rotation, 0, 0, cosf);
+pmatrix_add_element(&rotation, 0, 1, negative_sine);
+pmatrix_add_element(&rotation, 1, 0, sinf);
+pmatrix_add_element(&rotation, 1, 1, cosf);
+
+matrix_t values = pmatrix_evaluate(&rotation, angle);
+```
+
+A function of the standard library such as `sinf` fits the type of an element
+directly.
+
 **The library needs no external library.** It uses the C standard library only.
 Some test tools need other software, but the library itself does not.
 

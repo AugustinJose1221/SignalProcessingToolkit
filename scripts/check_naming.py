@@ -30,6 +30,7 @@ ALLOWED_NAMES = {"setUp", "tearDown", "main"}
 MODULE_PREFIX = {
     "matrix": "matrix_",
     "cmatrix": "cmatrix_",
+    "pmatrix": "pmatrix_",
     "cnum": "cnum_",
     "vector": "vector_",
     "vector2d": "vector2d_",
