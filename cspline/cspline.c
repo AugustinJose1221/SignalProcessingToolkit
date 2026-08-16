@@ -108,7 +108,22 @@ void cspline_update_size(cspline_t* cspline, uint32_t size)
 
 float cspline_get_interpolated_point(cspline_t* cspline, float x)
 {
-    int i = binarysearch_get_index(cspline->x, x, cspline->size);
+    // The binary search gives the first knot that is not less than x. The
+    // coefficients b, c and d belong to the interval that starts at the knot
+    // on the left of x. Thus the search result must move one knot to the left.
+    // The arrays c and d hold size-1 elements, one for each interval, thus the
+    // index must stay below size-1.
+    uint32_t i = binarysearch_get_index(cspline->x, x, cspline->size);
+
+    if(i > 0)
+    {
+        i--;
+    }
+    if(i > cspline->size - 2)
+    {
+        i = cspline->size - 2;
+    }
+
     float dx = x - cspline->x[i];
     float y = cspline->y[i] + (cspline->b[i]*dx) + (cspline->c[i]*pow(dx,2)) + (cspline->d[i]*pow(dx,3));
     return y;

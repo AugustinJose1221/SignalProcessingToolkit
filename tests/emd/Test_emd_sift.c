@@ -97,6 +97,36 @@ void test_emd_get_imf_fills_the_x_values_with_the_sample_number(void)
     emd_free(emd);
 }
 
+void test_emd_get_imf_gives_a_function_that_moves_around_zero(void)
+{
+    // An intrinsic mode function moves around zero, because the sifting takes
+    // away the mean of the two envelopes. The function must also stay near the
+    // size of the signal.
+    emd_t emd = emd_alloc(SAMPLE_SIZE);
+    uint32_t status = 0;
+    float sum = 0.0f;
+
+    emd_initialize(&emd, NUMBER_OF_IMF, imf, x, y, residue, working_buffer,
+                   peak_index_buffer, valley_index_buffer);
+
+    for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
+    {
+        residue[index] = y[index];
+    }
+
+    imf_t* result = emd_get_imf(&emd, 0, 10, &status);
+
+    for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
+    {
+        sum += result->y[index];
+        TEST_ASSERT_TRUE(fabsf(result->y[index]) < 5.0f);
+    }
+
+    TEST_ASSERT_FLOAT_WITHIN(0.5f, 0.0f, sum/(float)SAMPLE_SIZE);
+
+    emd_free(emd);
+}
+
 void test_emd_get_imf_stops_at_the_given_number_of_iterations(void)
 {
     // With a threshold of zero the loop does not start. Thus the status stays

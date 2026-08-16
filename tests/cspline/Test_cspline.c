@@ -23,10 +23,17 @@ void test_cspline_alloc(void)
 
 void test_cspline_static_alloc(void)
 {
-    float membank[5];
+    float bank0[3];
+    float bank1[3];
+    float bank2[3];
+    float bank3[3];
+    float bank4[3];
+    float* membank[5] = {bank0, bank1, bank2, bank3, bank4};
     cspline_t cspline = cspline_static_alloc(3, membank);
     TEST_ASSERT_EQUAL(3, cspline.size);
     TEST_ASSERT_EQUAL(false, cspline.dynamic_alloc);
+    TEST_ASSERT_EQUAL_PTR(bank0, cspline.x);
+    TEST_ASSERT_EQUAL_PTR(bank1, cspline.y);
     cspline_free(cspline);
 }
 
@@ -105,4 +112,43 @@ void test_cspline_free_mempool(void)
     float *membank[5]={mempool0, mempool1, mempool2, mempool3, mempool4};
     mempool = cspline_static_alloc_mempool(membank);
     cspline_free_mempool(mempool);
+}
+
+void test_cspline_free_releases_the_memory_of_a_dynamic_spline(void)
+{
+    cspline_t cspline = cspline_alloc(4);
+
+    TEST_ASSERT_EQUAL(true, cspline.dynamic_alloc);
+    TEST_ASSERT_NOT_NULL(cspline.x);
+    TEST_ASSERT_NOT_NULL(cspline.y);
+    TEST_ASSERT_NOT_NULL(cspline.b);
+    TEST_ASSERT_NOT_NULL(cspline.c);
+    TEST_ASSERT_NOT_NULL(cspline.d);
+
+    for(uint32_t index = 0; index < cspline.size; index++)
+    {
+        cspline.x[index] = (float)index;
+        cspline.y[index] = (float)index;
+    }
+
+    cspline_free(cspline);
+}
+
+void test_cspline_free_keeps_the_memory_of_a_static_spline(void)
+{
+    float bank0[3] = {1, 2, 3};
+    float bank1[3] = {4, 5, 6};
+    float bank2[3];
+    float bank3[3];
+    float bank4[3];
+    float* membank[5] = {bank0, bank1, bank2, bank3, bank4};
+
+    cspline_t cspline = cspline_static_alloc(3, membank);
+
+    cspline_free(cspline);
+
+    // The memory belongs to the caller. It must still hold the values.
+    TEST_ASSERT_EQUAL_FLOAT(1.0f, bank0[0]);
+    TEST_ASSERT_EQUAL_FLOAT(6.0f, bank1[2]);
+    TEST_ASSERT_EQUAL_PTR(bank0, cspline.x);
 }
