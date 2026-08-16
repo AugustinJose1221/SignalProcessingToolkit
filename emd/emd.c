@@ -71,7 +71,6 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
     uint32_t peakcount = 0;
     uint32_t valleycount = 0;
     uint32_t start_index = (uint32_t)emd->x[0];
-    uint32_t end_index = (uint32_t)emd->x[emd->size-1];
     uint32_t shift = (uint32_t)(emd->x[1]-emd->x[0]);
     uint32_t iteration_count = 0;
 
@@ -101,7 +100,7 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
         cspline_update_size(&emd->cspline, peakcount);
         cspline_init(&emd->cspline, emd->cspline_mempool, emd->peak_index_buffer, emd->peak_buffer);
 
-        for(int index = 0; index < emd->size; index++)
+        for(uint32_t index = 0; index < emd->size; index++)
         {
             interpolation_index = start_index + (index*shift);
             emd->imf[imf_index].x[index] = index;
@@ -110,7 +109,7 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
 
         cspline_update_size(&emd->cspline, valleycount);
         cspline_init(&emd->cspline, emd->cspline_mempool, emd->valley_index_buffer, emd->valley_buffer);
-        for(int index = 0; index < emd->size; index++)
+        for(uint32_t index = 0; index < emd->size; index++)
         {
             interpolation_index = start_index + (index*shift);
             emd->imf[imf_index].x[index] = index;
@@ -118,7 +117,7 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
             emd->imf[imf_index].y[index] /=2;
         }
 
-        for(int index = 0; index < emd->size; index++)
+        for(uint32_t index = 0; index < emd->size; index++)
         {
             emd->imf[imf_index].y[index] = emd->working_buffer[index]-emd->imf[imf_index].y[index];
             emd->working_buffer[index] = emd->imf[imf_index].y[index];
@@ -158,7 +157,7 @@ uint32_t emd_sift(emd_t* emd, uint32_t stopping_threshold)
 
     do{
         imf = emd_get_imf(emd, imf_count, stopping_threshold, &status);
-        for(int index = 0; index < emd->size; index++)
+        for(uint32_t index = 0; index < emd->size; index++)
         {
             emd->residue[index] = emd->residue[index] - imf->y[index];
         }   

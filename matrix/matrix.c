@@ -44,16 +44,16 @@ matrix_t matrix_static_alloc(uint32_t m, uint32_t n, float* elem)
 void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, float value)
 {
     ASSERT(matrix != NULL);
-    ASSERT(i >= 0 && i < matrix->m);
-    ASSERT(j >= 0 && j < matrix->n);
+    ASSERT(i < matrix->m);
+    ASSERT(j < matrix->n);
     matrix->elem[(i*matrix->n)+j] = value;
 }
 
 float matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j)
 {
     ASSERT(matrix != NULL);
-    ASSERT(i >= 0 && i < matrix->m);
-    ASSERT(j >= 0 && j < matrix->n);
+    ASSERT(i < matrix->m);
+    ASSERT(j < matrix->n);
 
     return matrix->elem[(i*matrix->n)+j];
 }
@@ -61,13 +61,13 @@ float matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j)
 matrix_t matrix_get_nth_row(matrix_t* matrix, uint32_t row_index)
 {
     ASSERT(matrix != NULL);
-    ASSERT(row_index >= 0 && row_index < matrix->m);
+    ASSERT(row_index < matrix->m);
 
     matrix_t row_matrix;
 
     row_matrix = matrix_alloc(1, matrix->n);
 
-    for(int i = 0; i < matrix->n; i++)
+    for(uint32_t i = 0; i < matrix->n; i++)
     {
        matrix_add_element(&row_matrix, 0, i, matrix_get_element(matrix, row_index, i));
     }
@@ -78,13 +78,13 @@ matrix_t matrix_get_nth_row(matrix_t* matrix, uint32_t row_index)
 matrix_t matrix_get_nth_col(matrix_t* matrix, uint32_t col_index)
 {
     ASSERT(matrix != NULL);
-    ASSERT(col_index >= 0 && col_index < matrix->n);
+    ASSERT(col_index < matrix->n);
 
     matrix_t col_matrix;
 
     col_matrix = matrix_alloc(matrix->m, 1);
 
-    for(int i = 0; i < matrix->m; i++)
+    for(uint32_t i = 0; i < matrix->m; i++)
     {
         matrix_add_element(&col_matrix, i, 0, matrix_get_element(matrix, i, col_index));
     }
@@ -112,7 +112,7 @@ float matrix_trace(matrix_t* matrix)
 
     float trace = 0;
 
-    for(int i = 0; i < matrix->m; i++)
+    for(uint32_t i = 0; i < matrix->m; i++)
     {
         trace += matrix_get_element(matrix, i, i);
     }
@@ -151,18 +151,18 @@ float matrix_determinant(matrix_t* matrix)
     }
     else
     {
-        for(int i = 0; i < matrix->n; i++)
+        for(uint32_t i = 0; i < matrix->n; i++)
         {
             row_index = 0;
             inner_matrix = matrix_alloc(matrix->m-1, matrix->n-1);
-            for(int j = 0; j < matrix->m; j++)
+            for(uint32_t j = 0; j < matrix->m; j++)
             {
                 col_index = 0;
                 if(j == 0)
                 {
                     continue;
                 }
-                for(int k = 0; k < matrix->n; k++)
+                for(uint32_t k = 0; k < matrix->n; k++)
                 {
                     if(k == i)
                     {
@@ -223,9 +223,9 @@ bool matrix_is_equal(matrix_t* a, matrix_t* b)
     }
     else
     {
-        for(int i = 0; i < a->m; i++)
+        for(uint32_t i = 0; i < a->m; i++)
         {
-            for(int j = 0; j < b->n; j++)
+            for(uint32_t j = 0; j < b->n; j++)
             {
                 if(matrix_get_element(a, i, j) != matrix_get_element(b, i, j))
                 {
@@ -256,9 +256,9 @@ bool matrix_is_zero(matrix_t* matrix)
 {
     ASSERT(matrix != NULL);
 
-    for(int i = 0; i < matrix->m; i++)
+    for(uint32_t i = 0; i < matrix->m; i++)
     {
-        for(int j = 0; j < matrix->n; j++)
+        for(uint32_t j = 0; j < matrix->n; j++)
         {
             if(matrix_get_element(matrix, i, j) != 0)
             {
@@ -274,9 +274,9 @@ bool matrix_is_unit(matrix_t* matrix)
     ASSERT(matrix != NULL);
     ASSERT(matrix_is_square(matrix));
 
-    for(int i = 0; i < matrix->m; i++)
+    for(uint32_t i = 0; i < matrix->m; i++)
     {
-        for(int j = 0; j < matrix->n; j++)
+        for(uint32_t j = 0; j < matrix->n; j++)
         {
             if(i == j)
             {
@@ -414,9 +414,9 @@ void matrix_copy(matrix_t* src, matrix_t* dest)
     ASSERT(dest != NULL);
     ASSERT(src->m == dest->m);
     ASSERT(src->n == dest->n);
-    for(int i = 0; i < src->m; i++)
+    for(uint32_t i = 0; i < src->m; i++)
     {
-        for(int j = 0; j < src->n; j++)
+        for(uint32_t j = 0; j < src->n; j++)
         {
             matrix_add_element(dest, i, j, matrix_get_element(src, i, j));
         }
@@ -439,9 +439,9 @@ void matrix_printf(matrix_t* matrix, int (*func)(const char*, ...))
         print_func = printf;
     }
 
-    for(int i = 0; i < matrix->m; i++)
+    for(uint32_t i = 0; i < matrix->m; i++)
     {
-        for(int j = 0; j < matrix->n; j++)
+        for(uint32_t j = 0; j < matrix->n; j++)
         {
             print_func("%f\t", matrix_get_element(matrix, i, j));
         }

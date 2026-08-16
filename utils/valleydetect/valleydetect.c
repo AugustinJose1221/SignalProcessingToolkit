@@ -16,7 +16,7 @@ uint32_t valleydetect_get_valley(float* input, float* index_buffer, float* valle
 
     if(size > 2)
     {
-        for(int index = 1; index < size-1; index++)
+        for(uint32_t index = 1; index < size-1; index++)
         {
             if(input[index] < input[index-1] && input[index] < input[index+1])
             {

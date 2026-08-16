@@ -51,7 +51,7 @@ void imf_printf(imf_t* imf, print_t func)
         print_func = printf;
     }
 
-    for(int index = 0; index < imf->size; index++)
+    for(uint32_t index = 0; index < imf->size; index++)
     {
         print_func("%f, %f\n", imf->x[index], imf->y[index]);
     }
@@ -74,9 +74,9 @@ void imf_print_all(imf_t* imf, uint32_t size, uint32_t num_of_imf, print_t func)
         print_func = printf;
     }
 
-    for(int index = 0; index < size; index++)
+    for(uint32_t index = 0; index < size; index++)
     {
-        for(int imf_index = 0; imf_index < num_of_imf; imf_index++)
+        for(uint32_t imf_index = 0; imf_index < num_of_imf; imf_index++)
         {
             print_func("%f", imf[imf_index].y[index]);
             if(imf_index == num_of_imf - 1)

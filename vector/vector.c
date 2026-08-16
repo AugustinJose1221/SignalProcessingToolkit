@@ -37,7 +37,7 @@ vector_t vector_static_alloc(uint32_t size, uint32_t* mempool)
 void vector_add_point_at_index(vector_t* vector, uint32_t index, float data)
 {
     ASSERT(vector != NULL);
-    ASSERT(index >= 0 && index < vector->size);
+    ASSERT(index < vector->size);
 
     vector->data[index] = data;
 }
@@ -54,7 +54,7 @@ void vector_add_from_array(vector_t* vector, uint32_t size, float* data)
 void vector_printf(vector_t* vector, print_t func)
 {
     ASSERT(vector != NULL);
-    for(int index = 0; index < vector->size; index++)
+    for(uint32_t index = 0; index < vector->size; index++)
     {
         if(func != NULL)
         {
@@ -70,7 +70,7 @@ void vector_printf(vector_t* vector, print_t func)
 float vector_get(vector_t* vector, uint32_t index)
 {
     ASSERT(vector != NULL);
-    ASSERT(index >= 0 && index < vector->size);
+    ASSERT(index < vector->size);
 
     return vector->data[index];
 }
@@ -82,7 +82,7 @@ float vector_dot_product(vector_t* x, vector_t* y)
     ASSERT(x->size == y->size);
 
     float product = 0;
-    for(int index = 0; index < x->size; index++)
+    for(uint32_t index = 0; index < x->size; index++)
     {
         product += x->data[index]*y->data[index];
     }

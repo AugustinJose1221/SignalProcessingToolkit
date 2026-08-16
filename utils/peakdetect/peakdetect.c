@@ -16,7 +16,7 @@ uint32_t peakdetect_get_peaks(float* input, float* index_buffer, float* peak_buf
 
     if(size > 2)
     {
-        for(int index = 1; index < size-1; index++)
+        for(uint32_t index = 1; index < size-1; index++)
         {
             if(input[index] > input[index-1] && input[index] > input[index+1])
             {

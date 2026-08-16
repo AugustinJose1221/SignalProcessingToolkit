@@ -159,7 +159,7 @@ static void load_coordinates(cspline_t* cspline, float* x, float* y)
     ASSERT(x != NULL);
     ASSERT(y != NULL);
 
-    for(int index = 0; index < cspline->size; index++)
+    for(uint32_t index = 0; index < cspline->size; index++)
     {
         cspline->x[index] = x[index];
         cspline->y[index] = y[index];
@@ -172,7 +172,7 @@ static void calculate_derivatives(cspline_t* cspline, cspline_mempool_t mempool)
     ASSERT(mempool.dx != NULL);
     ASSERT(mempool.dp != NULL);
 
-    for(int index = 0; index < cspline->size - 1; index++)
+    for(uint32_t index = 0; index < cspline->size - 1; index++)
     {
         mempool.dx[index] = cspline->x[index+1] - cspline->x[index];                     
         ASSERT(mempool.dx[index] > 0);
@@ -204,14 +204,14 @@ static void update_state_buffers(cspline_t* cspline, cspline_mempool_t mempool)
     ASSERT(mempool.dp != NULL);
     ASSERT(mempool.dx != NULL);
 
-    for(int index = 0; index < cspline->size-2; index++)
+    for(uint32_t index = 0; index < cspline->size-2; index++)
     {
         mempool.d[index+1] = ((2*mempool.dx[index])/mempool.dx[index+1]) + 2;
         mempool.b[index+1] = 3*(mempool.dp[index]+(mempool.dp[index+1]*mempool.dx[index]/mempool.dx[index+1]));
         mempool.q[index+1] = mempool.dx[index]/mempool.dx[index+1];
     }
 
-    for(int index = 1; index < cspline->size; index++)
+    for(uint32_t index = 1; index < cspline->size; index++)
     {
         mempool.d[index] -= mempool.q[index-1]/mempool.d[index-1];
         mempool.b[index] -= mempool.b[index-1]/mempool.d[index-1];
@@ -234,7 +234,7 @@ static void update_coefficients(cspline_t* cspline, cspline_mempool_t mempool)
         cspline->b[index] = (mempool.b[index] - (mempool.q[index]*cspline->b[index+1]))/mempool.d[index];
     }
 
-    for(int index = 0; index < cspline->size-1; index++)
+    for(uint32_t index = 0; index < cspline->size-1; index++)
     {
         cspline->c[index] = ((-2*cspline->b[index]) - cspline->b[index+1] + (3*mempool.dp[index]))/mempool.dx[index];
         cspline->d[index] = (cspline->b[index] + cspline->b[index+1] - (2*mempool.dp[index]))/(mempool.dx[index]*mempool.dx[index]);
