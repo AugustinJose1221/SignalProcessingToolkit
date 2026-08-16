@@ -1,9 +1,21 @@
-// Take noise out of a signal and keep its edges.
+// Read the weight from a scale that stands on a shaking table.
 //
-// The signal holds two steps and a noise. A low pass filter would take the
-// noise away but would also make the two edges round. The wavelet transform
-// keeps them, because a step gives few large values of the detail while the
-// noise spreads over every value.
+// A load cell gives a reading that is almost flat while nothing changes, and
+// that steps up when an item goes onto the scale. The table shakes, thus the
+// reading holds noise on top of those steps.
+//
+// A low pass filter would take the noise away, but it would also make each
+// step round, thus the moment when the item arrived would become unclear and
+// the weight would settle slowly.
+//
+// A wavelet transform keeps the step sharp. The reason: a step gives a few
+// large values of the detail at the place where it stands, while the noise
+// spreads a small value over every place. Clear the small values and the step
+// stays.
+//
+// TO PORT THIS: replace read_load_cell with a read from your own scale. Set
+// LIMIT from the noise of your own device: read it while nothing stands on the
+// scale, and take about three times the size of what you see.
 
 #include <examples/run_example.h>
 
@@ -13,80 +25,103 @@
 #include <math.h>
 #include <stdio.h>
 
-#define SIZE        64u
+#define SIZE        64u     // A power of two, as the transform asks
 #define LEVELS      3u
-#define LIMIT       1.0f
+#define LIMIT       1.0f    // In grams, from the noise of the device
 
-static float clean[SIZE];
-static float noisy[SIZE];
+static float truth[SIZE];   // What the scale would read with no shaking
+static float reading[SIZE];
 static float work[SIZE];
 
-// A simple source of numbers that look like noise. It gives the same numbers
-// at each run, thus two runs of the example give the same picture. The values
-// lie between -0.6 and 0.6, which is well below the steps of the signal.
-static float next_noise(uint32_t index)
-{
-    return 0.6f * sinf((float)index * 12.9898f) * cosf((float)index * 78.233f);
-}
-
-int main(void)
+// ---------------------------------------------------------------------------
+// Replace this function with a read from your own scale.
+//
+// It stands for a scale that holds nothing, then takes an item of 50 grams,
+// then a second item of 30 grams.
+// ---------------------------------------------------------------------------
+static void read_load_cell(void)
 {
     for(uint32_t index = 0; index < SIZE; index++)
     {
         if(index < 20)
         {
-            clean[index] = 0.0f;
+            truth[index] = 0.0f;
         }
-        else if(index < 45)
+        else if(index < 44)
         {
-            clean[index] = 5.0f;
+            truth[index] = 50.0f;
         }
         else
         {
-            clean[index] = 2.0f;
+            truth[index] = 80.0f;
         }
 
-        noisy[index] = clean[index] + next_noise(index);
-    }
+        // The table shakes, thus the reading moves about half a gram.
+        float shaking = 0.6f * sinf((float)index * 12.9898f)
+                        * cosf((float)index * 78.233f);
 
-    float before = 0.0f;
+        reading[index] = truth[index] + shaking;
+    }
+}
+
+// Give how far a reading lies from the truth, added over every sample.
+static float distance_from_the_truth(const float* signal)
+{
+    float total = 0.0f;
+
     for(uint32_t index = 0; index < SIZE; index++)
     {
-        before += fabsf(noisy[index] - clean[index]);
+        total += fabsf(signal[index] - truth[index]);
     }
+
+    return total;
+}
+
+int main(void)
+{
+    read_load_cell();
+
+    float before = distance_from_the_truth(reading);
 
     dwt_t dwt = dwt_init(DWT_HAAR);
 
-    // Take the transform, clear the small values of every detail, and take the
-    // inverse transform. The approximation of the last level stays as it is,
-    // because it holds the signal itself and not the noise.
-    dwt_forward_multi(&dwt, noisy, SIZE, LEVELS, work);
+    // 1. Take the transform. After this call the front of the list holds the
+    //    approximation of the last level, and the rest holds the details.
+    dwt_forward_multi(&dwt, reading, SIZE, LEVELS, work);
 
+    // 2. Clear the small values of every detail. Leave the approximation as it
+    //    is: it holds the weight itself and not the shaking.
     uint32_t approximation_size = SIZE >> LEVELS;
-    dwt_threshold(&noisy[approximation_size], SIZE - approximation_size, LIMIT);
+    dwt_threshold(&reading[approximation_size], SIZE - approximation_size, LIMIT);
 
-    dwt_inverse_multi(&dwt, noisy, SIZE, LEVELS, work);
+    // 3. Take the inverse transform.
+    dwt_inverse_multi(&dwt, reading, SIZE, LEVELS, work);
 
-    float after = 0.0f;
-    for(uint32_t index = 0; index < SIZE; index++)
-    {
-        after += fabsf(noisy[index] - clean[index]);
-    }
+    float after = distance_from_the_truth(reading);
 
-    printf("A signal with two steps and a noise, cleaned with the wavelet of Haar\n");
-    printf("%u levels, and every detail below %.1f set to zero\n\n", LEVELS, LIMIT);
+    printf("A scale on a shaking table, %u readings\n", SIZE);
+    printf("Two items arrive: 50 grams at the reading 20, 30 more at 44\n\n");
 
-    printf("%6s %10s %10s\n", "SAMPLE", "CLEAN", "CLEANED");
+    printf("%8s %10s %10s %s\n", "READING", "TRUTH", "CLEANED", "");
     for(uint32_t index = 16; index < 52; index += 2)
     {
-        printf("%6u %10.2f %10.2f%s\n", index, clean[index], noisy[index],
-               ((index == 20) || (index == 44)) ? "   <- an edge" : "");
+        const char* note = "";
+        if(index == 20)
+        {
+            note = "  <- the first item arrives";
+        }
+        if(index == 44)
+        {
+            note = "  <- the second item arrives";
+        }
+        printf("%8u %10.1f %10.1f%s\n", index, truth[index], reading[index], note);
     }
 
-    printf("\nThe distance from the clean signal, added over every sample:\n");
-    printf("  before: %8.2f\n", before);
-    printf("  after:  %8.2f\n", after);
-    printf("\nThe two edges at the samples 20 and 45 are still sharp.\n");
+    printf("\nHow far the reading lies from the truth, added over every sample:\n");
+    printf("  before: %8.1f grams\n", before);
+    printf("  after:  %8.1f grams\n", after);
+    printf("\nBoth steps are still sharp: the weight is right on the very reading\n");
+    printf("where the item arrives, thus the moment of arrival stays clear.\n");
 
     return 0;
 }

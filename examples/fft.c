@@ -1,7 +1,18 @@
-// Find the frequencies that a signal holds.
+// Read a heart rate from a pulse sensor.
 //
-// The signal holds two tones and a little noise. The transform shows both
-// tones as peaks, and it says the frequency of each one in hertz.
+// A pulse sensor, also called a PPG sensor, shines a light into the skin and
+// measures how much comes back. Blood absorbs light, thus the reading rises
+// and falls with each heartbeat. The reading also drifts slowly, because the
+// sensor moves against the skin, and it holds noise from the light of the
+// room.
+//
+// To read the rate, take a block of samples, look at its spectrum, and find
+// the strongest frequency inside the band where a heart rate can lie. That
+// band is about 0.7 to 3.0 hertz, which is 42 to 180 beats in a minute.
+//
+// TO PORT THIS: replace read_sensor_block with a read from your own sensor.
+// Everything else stays as it is. Set SAMPLE_RATE to the rate of your sensor
+// and SIZE to a power of two that covers about ten seconds.
 
 #include <examples/run_example.h>
 
@@ -12,56 +23,109 @@
 #include <math.h>
 #include <stdio.h>
 
+// 25 samples in a second is enough for a heart rate, and 256 samples then
+// cover about 10 seconds. A longer block gives a finer answer but reacts more
+// slowly to a change.
+#define SAMPLE_RATE     25.0f
 #define SIZE            256u
-#define SAMPLE_RATE     1024.0f
+
+// The band where a heart rate can lie, in hertz.
+#define LOWEST_RATE     0.7f
+#define HIGHEST_RATE    3.0f
+
 #define PI              3.14159265358979323846f
+
+static float signal[SIZE];
+static cnum_t spectrum[SIZE];
+static float magnitude[SIZE];
+
+// ---------------------------------------------------------------------------
+// Replace this function with a read from your own sensor.
+//
+// It stands for a sensor that watches a person whose heart beats 72 times in a
+// minute, which is 1.2 hertz. The reading holds three things that a real
+// sensor also holds: the pulse itself, a slow drift, and noise.
+// ---------------------------------------------------------------------------
+static void read_sensor_block(float* block, uint32_t size)
+{
+    const float rate = 1.2f;
+
+    for(uint32_t index = 0; index < size; index++)
+    {
+        float time = (float)index / SAMPLE_RATE;
+
+        // The pulse. The second part gives the shape its sharp rise, which a
+        // real pulse also has.
+        float pulse = sinf(2.0f*PI*rate*time)
+                      + (0.3f*sinf(2.0f*PI*2.0f*rate*time));
+
+        // The sensor moves against the skin, thus the reading drifts.
+        float drift = 0.8f * sinf(2.0f*PI*0.05f*time);
+
+        // The light of the room and the sensor itself bring noise.
+        float noise = 0.15f * sinf((float)index * 12.9898f)
+                      * cosf((float)index * 78.233f);
+
+        block[index] = 2.5f + pulse + drift + noise;
+    }
+}
 
 int main(void)
 {
-    float signal[SIZE];
-    cnum_t spectrum[SIZE];
-    float magnitude[SIZE];
-
-    // Two tones: 64 hertz with the amplitude 1, and 256 hertz with the
-    // amplitude 0.5.
-    //
-    // One bin holds 4 hertz here, and both tones lie on a bin. A tone between
-    // two bins gives its energy to many bins around it, which makes the peak
-    // wide and lower. Choose the size of the window so that the tone that you
-    // look for lies on a bin, or use a window function to make that spreading
-    // smaller.
-    for(uint32_t index = 0; index < SIZE; index++)
-    {
-        float time = (float)index / SAMPLE_RATE;
-        signal[index] = sinf(2.0f*PI*64.0f*time)
-                        + (0.5f*sinf(2.0f*PI*256.0f*time));
-    }
+    read_sensor_block(signal, SIZE);
 
     fft_t fft = fft_alloc(SIZE);
 
     fft_forward_real(&fft, signal, spectrum);
     fft_magnitude(spectrum, magnitude, SIZE);
 
-    printf("The spectrum of a signal with two tones\n");
-    printf("Sample rate %.0f hertz, %u points, thus one bin is %.2f hertz\n\n",
-           SAMPLE_RATE, SIZE, SAMPLE_RATE/(float)SIZE);
-    printf("%12s %12s %s\n", "FREQUENCY", "MAGNITUDE", "");
+    // Walk the bins that lie inside the band of a heart rate and keep the
+    // strongest one. Only the bins below the middle hold new information: the
+    // bins above it mirror them.
+    uint32_t best_bin = 0;
+    float best_magnitude = 0.0f;
 
-    // Only the bins below the middle hold new information. The bins above the
-    // middle mirror them.
-    for(uint32_t index = 0; index < (SIZE/2); index++)
+    for(uint32_t bin = 1; bin < (SIZE/2); bin++)
     {
-        if(magnitude[index] > 5.0f)
+        float frequency = fft_bin_frequency(bin, SIZE, SAMPLE_RATE);
+
+        if((frequency >= LOWEST_RATE) && (frequency <= HIGHEST_RATE))
         {
-            printf("%9.1f Hz %12.2f ", fft_bin_frequency(index, SIZE, SAMPLE_RATE),
-                   magnitude[index]);
-            for(uint32_t bar = 0; bar < (uint32_t)(magnitude[index]/4.0f); bar++)
+            if(magnitude[bin] > best_magnitude)
             {
-                printf("#");
+                best_magnitude = magnitude[bin];
+                best_bin = bin;
             }
-            printf("\n");
         }
     }
+
+    float rate_in_hertz = fft_bin_frequency(best_bin, SIZE, SAMPLE_RATE);
+    float beats_in_a_minute = rate_in_hertz * 60.0f;
+
+    printf("A pulse sensor at %.0f samples in a second, %u samples, %.1f seconds\n\n",
+           SAMPLE_RATE, SIZE, (float)SIZE/SAMPLE_RATE);
+
+    printf("%10s %10s %12s\n", "BIN", "RATE [bpm]", "STRENGTH");
+    for(uint32_t bin = 1; bin < (SIZE/2); bin++)
+    {
+        float frequency = fft_bin_frequency(bin, SIZE, SAMPLE_RATE);
+        if((frequency >= LOWEST_RATE) && (frequency <= HIGHEST_RATE)
+           && (magnitude[bin] > (best_magnitude/10.0f)))
+        {
+            printf("%10u %10.1f %12.1f%s\n", bin, frequency*60.0f, magnitude[bin],
+                   (bin == best_bin) ? "  <- the strongest" : "");
+        }
+    }
+
+    printf("\nThe heart rate is %.0f beats in a minute.\n", beats_in_a_minute);
+
+    // The drift lies below the band and the noise spreads over every bin, thus
+    // neither of them wins. That is why no filter is needed before this step:
+    // the band already leaves both of them out.
+    printf("\nThe slow drift sits at %.2f hertz, which lies below the band.\n", 0.05f);
+    printf("One bin holds %.3f hertz, thus the answer steps by %.1f beats.\n",
+           SAMPLE_RATE/(float)SIZE, (SAMPLE_RATE/(float)SIZE)*60.0f);
+    printf("Use a longer block for a finer answer, or count over several blocks.\n");
 
     fft_free(&fft);
 

@@ -1,20 +1,34 @@
-// Follow a state through a model that is not linear.
+// Sensor fusion: find a tilt angle from a gyroscope and an accelerometer.
 //
-// A radar stands at the point (0, 0). It reads two values: the distance to an
-// object and the angle to it. The object moves along a straight line at a
-// fixed speed.
+// This is the problem that almost every device with a motion sensor must
+// solve. Two sensors both say something about the tilt, and each one is wrong
+// in its own way:
 //
-// Neither reading is a linear function of the state: the distance is the
-// square root of a sum of squares, and the angle is an arc tangent. Thus a
-// plain Kalman filter cannot take them. The extended filter can, because it
-// takes a function.
+// - The GYROSCOPE gives the speed of turning. Add it up through the time and
+//   you get the angle. It is smooth and it reacts at once, but every small
+//   error adds up, thus the angle drifts away over minutes. The gyroscope also
+//   holds a bias: a reading that is not zero while the device lies still.
+// - The ACCELEROMETER feels gravity, thus it says which way is down. It never
+//   drifts, but every knock and every movement of the device disturbs it.
 //
-// The radar must read two values and not one. With the distance alone every
-// point of a circle around the radar fits the reading, thus the filter could
-// never say where on that circle the object is. Two readings together name
-// one point.
+// Together they hold the whole answer: the gyroscope for the short time and
+// the accelerometer for the long time. The filter finds the gyroscope bias
+// while it runs, which no simple mixing of the two can do.
 //
-// The state holds four values: the position and the speed in two directions.
+// The state holds two values:
+//   x[0] the tilt angle in radians
+//   x[1] the bias of the gyroscope in radians for each second
+//
+// The measurement is the raw reading of the accelerometer, which is not a
+// linear function of the angle:
+//   ax = -g * sin(angle)
+//   az =  g * cos(angle)
+// A plain Kalman filter cannot take that. The extended filter can.
+//
+// TO PORT THIS: replace read_gyroscope and read_accelerometer with reads from
+// your own sensors. Set DT to the time between two reads. Set the two noise
+// matrices from the data sheets of your sensors, and then make them larger or
+// smaller until the filter behaves as you want.
 
 #include <examples/run_example.h>
 
@@ -25,106 +39,184 @@
 #include <math.h>
 #include <stdio.h>
 
-#define STEPS       25u
+#define DT              0.01f       // 100 reads in a second
+#define GRAVITY         9.81f       // metres in a second, in a second
+#define STEPS           500u        // 5 seconds
+#define PI              3.14159265358979323846f
 
-// The object keeps its speed, and the position grows with the speed.
-static void move(const matrix_t* state, const matrix_t* input, matrix_t* result)
+// The true bias of the gyroscope. A real device does not know this value; the
+// filter must find it. Here it stands only to make the readings.
+#define TRUE_BIAS       0.02f
+
+// ---------------------------------------------------------------------------
+// The model.
+//
+// f says how the state moves in one step of DT. The angle grows by the turning
+// speed, which is the gyroscope reading less the bias. The bias itself does
+// not change.
+// ---------------------------------------------------------------------------
+static void move_state(const matrix_t* state, const matrix_t* input,
+                       matrix_t* result)
 {
-    (void)input;
+    float angle = matrix_get_element((matrix_t*)state, 0, 0);
+    float bias = matrix_get_element((matrix_t*)state, 1, 0);
+    float gyroscope = matrix_get_element((matrix_t*)input, 0, 0);
 
-    float x = matrix_get_element((matrix_t*)state, 0, 0);
-    float y = matrix_get_element((matrix_t*)state, 1, 0);
-    float speed_x = matrix_get_element((matrix_t*)state, 2, 0);
-    float speed_y = matrix_get_element((matrix_t*)state, 3, 0);
-
-    matrix_add_element(result, 0, 0, x + speed_x);
-    matrix_add_element(result, 1, 0, y + speed_y);
-    matrix_add_element(result, 2, 0, speed_x);
-    matrix_add_element(result, 3, 0, speed_y);
+    matrix_add_element(result, 0, 0, angle + ((gyroscope - bias) * DT));
+    matrix_add_element(result, 1, 0, bias);
 }
 
-// The radar reads the distance to the object and the angle to it.
-static void radar(const matrix_t* state, matrix_t* result)
+// h says what the accelerometer would read for a given state.
+static void expected_accelerometer(const matrix_t* state, matrix_t* result)
 {
-    float x = matrix_get_element((matrix_t*)state, 0, 0);
-    float y = matrix_get_element((matrix_t*)state, 1, 0);
+    float angle = matrix_get_element((matrix_t*)state, 0, 0);
 
-    matrix_add_element(result, 0, 0, sqrtf((x*x) + (y*y)));
-    matrix_add_element(result, 1, 0, atan2f(y, x));
+    matrix_add_element(result, 0, 0, -GRAVITY * sinf(angle));
+    matrix_add_element(result, 1, 0, GRAVITY * cosf(angle));
+}
+
+// ---------------------------------------------------------------------------
+// Replace these two functions with reads from your own sensors.
+//
+// They stand for a device that tilts slowly to and fro. The gyroscope holds
+// the true turning speed plus its bias plus noise. The accelerometer holds
+// gravity through the true angle plus noise.
+// ---------------------------------------------------------------------------
+static float true_angle_at(uint32_t step)
+{
+    return 0.4f * sinf(2.0f*PI*0.2f*(float)step*DT);
+}
+
+static float true_speed_at(uint32_t step)
+{
+    return 0.4f * 2.0f*PI*0.2f * cosf(2.0f*PI*0.2f*(float)step*DT);
+}
+
+static float sensor_noise(uint32_t step, float size)
+{
+    return size * sinf((float)step * 12.9898f) * cosf((float)step * 78.233f);
+}
+
+static float read_gyroscope(uint32_t step)
+{
+    return true_speed_at(step) + TRUE_BIAS + sensor_noise(step, 0.01f);
+}
+
+static void read_accelerometer(uint32_t step, float* ax, float* az)
+{
+    float angle = true_angle_at(step);
+
+    *ax = (-GRAVITY * sinf(angle)) + sensor_noise(step + 7, 0.3f);
+    *az = (GRAVITY * cosf(angle)) + sensor_noise(step + 13, 0.3f);
+}
+
+// ---------------------------------------------------------------------------
+
+static matrix_t make(uint32_t m, uint32_t n, float* values)
+{
+    matrix_t matrix = matrix_alloc(m, n);
+    for(uint32_t i = 0; i < m; i++)
+    {
+        for(uint32_t j = 0; j < n; j++)
+        {
+            matrix_add_element(&matrix, i, j, values[(i*n)+j]);
+        }
+    }
+    return matrix;
 }
 
 int main(void)
 {
-    ekf_t ekf = ekf_alloc(1, 4, 2);
+    // One input, which is the gyroscope. Two state values. Two measurements,
+    // which are the two axes of the accelerometer.
+    ekf_t ekf = ekf_alloc(1, 2, 2);
 
-    ekf_set_state_function(&ekf, move);
-    ekf_set_measurement_function(&ekf, radar);
+    ekf_set_state_function(&ekf, move_state);
+    ekf_set_measurement_function(&ekf, expected_accelerometer);
 
-    // The filter starts with a guess that is not correct, and with a large
-    // doubt in it.
-    matrix_t start = matrix_create_zero_matrix(4, 1);
-    matrix_add_element(&start, 0, 0, 8.0f);
-    matrix_add_element(&start, 1, 0, 8.0f);
-    matrix_add_element(&start, 2, 0, 0.5f);
-    matrix_add_element(&start, 3, 0, 0.5f);
-    ekf_set_state_matrix(&ekf, &start);
+    // The filter starts with an angle of zero and a bias of zero. It knows
+    // neither, thus the doubt in both is large.
+    float start_state[2] = {0.0f, 0.0f};
+    float start_covariance[4] = {1.0f, 0.0f,
+                                 0.0f, 1.0f};
+    matrix_t x = make(2, 1, start_state);
+    matrix_t p = make(2, 2, start_covariance);
+    ekf_set_state_matrix(&ekf, &x);
+    ekf_set_covariance_matrix(&ekf, &p);
 
-    matrix_t covariance = matrix_create_unit_matrix(4);
-    matrix_t product = matrix_multiply_scalar(&covariance, 10.0f);
-    ekf_set_covariance_matrix(&ekf, &product);
+    // Q says how much the model itself is wrong at each step. The angle
+    // follows the gyroscope closely, thus its part is small. The bias moves
+    // very slowly, thus its part is smaller still. Make these larger if the
+    // filter follows the accelerometer too slowly.
+    float process[4] = {0.0001f, 0.0f,
+                        0.0f,    0.000001f};
+    matrix_t q = make(2, 2, process);
+    ekf_set_process_noise_covariance_matrix(&ekf, &q);
 
-    matrix_t process = matrix_create_unit_matrix(4);
-    matrix_t small = matrix_multiply_scalar(&process, 0.01f);
-    ekf_set_process_noise_covariance_matrix(&ekf, &small);
+    // R says how much noise the accelerometer holds. It comes from the data
+    // sheet of the sensor, or from a measurement of the sensor lying still.
+    float measurement_noise[4] = {0.3f, 0.0f,
+                                  0.0f, 0.3f};
+    matrix_t r = make(2, 2, measurement_noise);
+    ekf_set_measurement_covariance_matrix(&ekf, &r);
 
-    // The distance holds a doubt of about one, and the angle a much smaller
-    // one, because an angle is in radians.
-    matrix_t noise = matrix_create_zero_matrix(2, 2);
-    matrix_add_element(&noise, 0, 0, 1.0f);
-    matrix_add_element(&noise, 1, 1, 0.0001f);
-    ekf_set_measurement_covariance_matrix(&ekf, &noise);
+    matrix_t gyroscope = matrix_alloc(1, 1);
+    matrix_t accelerometer = matrix_alloc(2, 1);
 
-    printf("A radar at (0,0) reads the distance and the angle to an object.\n");
-    printf("The object starts at (10,10) and moves by (1,2) at each step.\n");
-    printf("The filter starts at (8,8) with the speed (0.5,0.5), which is wrong.\n\n");
-    printf("%6s %9s %9s %9s %9s %9s\n",
-           "STEP", "TRUE X", "TRUE Y", "FOUND X", "FOUND Y", "ERROR");
+    printf("Sensor fusion of a gyroscope and an accelerometer\n");
+    printf("%.0f reads in a second, %u steps, thus %.1f seconds\n\n",
+           1.0f/DT, STEPS, (float)STEPS*DT);
+    printf("The true bias of the gyroscope is %.3f rad/s. The filter does not\n",
+           TRUE_BIAS);
+    printf("know it and must find it.\n\n");
 
-    matrix_t measurement = matrix_alloc(2, 1);
+    printf("%8s %12s %12s %12s %12s\n",
+           "TIME [s]", "TRUE [deg]", "FOUND [deg]", "ERROR [deg]", "BIAS FOUND");
 
-    for(uint32_t step = 1; step <= STEPS; step++)
+    for(uint32_t step = 0; step < STEPS; step++)
     {
-        float true_x = 10.0f + (1.0f*(float)step);
-        float true_y = 10.0f + (2.0f*(float)step);
+        float ax, az;
 
-        matrix_add_element(&measurement, 0, 0,
-                           sqrtf((true_x*true_x) + (true_y*true_y)));
-        matrix_add_element(&measurement, 1, 0, atan2f(true_y, true_x));
-        ekf_step(&ekf, NULL, &measurement);
+        matrix_add_element(&gyroscope, 0, 0, read_gyroscope(step));
+        read_accelerometer(step, &ax, &az);
+        matrix_add_element(&accelerometer, 0, 0, ax);
+        matrix_add_element(&accelerometer, 1, 0, az);
 
-        if((step % 5) == 0)
+        // One call does the whole step: it takes the input and the
+        // measurement, moves the state forward, and corrects it.
+        if(!ekf_step(&ekf, &gyroscope, &accelerometer))
         {
-            float found_x = matrix_get_element(&ekf.x, 0, 0);
-            float found_y = matrix_get_element(&ekf.x, 1, 0);
-            float error = sqrtf(((found_x - true_x)*(found_x - true_x))
-                                + ((found_y - true_y)*(found_y - true_y)));
+            printf("The filter could not invert its innovation covariance.\n");
+            break;
+        }
 
-            printf("%6u %9.2f %9.2f %9.2f %9.2f %9.3f\n", step,
-                   true_x, true_y, found_x, found_y, error);
+        if((step % 100) == 0)
+        {
+            float found = matrix_get_element(&ekf.x, 0, 0);
+            float truth = true_angle_at(step);
+
+            printf("%8.2f %12.2f %12.2f %12.2f %12.4f\n",
+                   (float)step*DT,
+                   truth * 180.0f/PI,
+                   found * 180.0f/PI,
+                   (found - truth) * 180.0f/PI,
+                   matrix_get_element(&ekf.x, 1, 0));
         }
     }
 
-    printf("\nThe true speed is (1.00, 2.00).\n");
-    printf("The filter found (%.2f, %.2f).\n",
-           matrix_get_element(&ekf.x, 2, 0), matrix_get_element(&ekf.x, 3, 0));
+    printf("\nThe filter found the gyroscope bias %.4f rad/s, and the true one\n",
+           matrix_get_element(&ekf.x, 1, 0));
+    printf("is %.4f rad/s. It found that value from the two sensors alone.\n",
+           TRUE_BIAS);
+    printf("\nWithout the bias in the state the angle would drift by about\n");
+    printf("%.1f degrees in a minute.\n", TRUE_BIAS * 60.0f * 180.0f/PI);
 
-    matrix_free(&start);
-    matrix_free(&covariance);
-    matrix_free(&product);
-    matrix_free(&process);
-    matrix_free(&small);
-    matrix_free(&noise);
-    matrix_free(&measurement);
+    matrix_free(&x);
+    matrix_free(&p);
+    matrix_free(&q);
+    matrix_free(&r);
+    matrix_free(&gyroscope);
+    matrix_free(&accelerometer);
     ekf_free(&ekf);
 
     return 0;

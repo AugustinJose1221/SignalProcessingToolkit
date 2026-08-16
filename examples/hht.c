@@ -1,9 +1,22 @@
-// The Hilbert-Huang transform: which frequency at which time.
+// Watch a motor start up, through the vibration of its housing.
 //
-// The signal gets faster with the time. A Fourier transform would give a wide
-// band of frequencies and would say nothing about the time. This transform
-// takes the signal apart with the empirical mode decomposition and then reads
-// the frequency at each point of time.
+// An accelerometer on the housing of a motor reads the shaking. While the
+// motor runs at a fixed speed, that shaking holds one frequency, which is the
+// speed of turning. While the motor starts up, the frequency rises.
+//
+// This is where a Fourier transform answers badly. It would give a wide band
+// of frequencies, because the signal held every one of them at some moment,
+// and it would say nothing about which moment. To watch a start up, or to find
+// the moment when a bearing begins to fail, you need the frequency through the
+// time.
+//
+// This transform gives that in two steps. The empirical mode decomposition
+// splits the vibration into parts that each hold one frequency at a time. The
+// Hilbert transform then reads the frequency of each part at each moment.
+//
+// TO PORT THIS: replace read_accelerometer with a read from your own sensor,
+// and set SAMPLE_RATE to its rate. The size must be a power of two, because
+// the Hilbert transform uses the fast Fourier transform.
 
 #include <examples/run_example.h>
 
@@ -34,17 +47,28 @@ static cnum_t work[SIZE];
 static float amplitude[SIZE];
 static float frequency[SIZE];
 
+// ---------------------------------------------------------------------------
+// Replace this function with a read from your own sensor.
+//
+// It stands for a motor that turns at 10 turns in a second at the start and
+// reaches about 40 by the end, thus its vibration rises with it.
+// ---------------------------------------------------------------------------
+static void read_accelerometer(void)
+{
+    for(uint32_t index = 0; index < SIZE; index++)
+    {
+        float time = (float)index / SAMPLE_RATE;
+
+        x[index] = (float)index;
+        y[index] = cosf(2.0f*PI*((10.0f*time) + (15.0f*time*time)));
+    }
+}
+
 int main(void)
 {
     imf_t imf[NUMBER_OF_IMF];
 
-    // A signal whose frequency rises from about 10 hertz to about 40 hertz.
-    for(uint32_t index = 0; index < SIZE; index++)
-    {
-        float time = (float)index / SAMPLE_RATE;
-        x[index] = (float)index;
-        y[index] = cosf(2.0f*PI*((10.0f*time) + (15.0f*time*time)));
-    }
+    read_accelerometer();
 
     for(uint32_t which = 0; which < NUMBER_OF_IMF; which++)
     {
@@ -64,8 +88,9 @@ int main(void)
     // part that gets faster.
     hht_transform_imf(&fft, &imf[0], work, amplitude, frequency, SAMPLE_RATE);
 
-    printf("The frequency of the first function through the time:\n\n");
-    printf("%10s %12s %12s\n", "TIME [s]", "FREQ [Hz]", "AMPLITUDE");
+    printf("The speed of the motor through the time, from the fastest part of\n");
+    printf("the vibration:\n\n");
+    printf("%10s %14s %12s\n", "TIME [s]", "SPEED [rev/s]", "STRENGTH");
 
     for(uint32_t index = 32; index < (SIZE - 32); index += 32)
     {
@@ -73,9 +98,13 @@ int main(void)
                frequency[index], amplitude[index]);
     }
 
-    printf("\nThe frequency rises with the time, which is what the signal does.\n");
-    printf("The mean frequency of the whole function is %.1f hertz.\n",
+    printf("\nThe speed rises through the block, which is what a motor does\n");
+    printf("while it starts up. The mean over the whole block is %.1f turns\n",
            hht_mean_frequency(amplitude, frequency, SIZE));
+    printf("in a second, and that single number hides the whole start up.\n");
+    printf("\nThe strength stays almost the same, thus nothing knocks. A bearing\n");
+    printf("that begins to fail would show itself as a rise in the strength of\n");
+    printf("one part while its frequency stays where it is.\n");
 
     fft_free(&fft);
     emd_free(emd);
