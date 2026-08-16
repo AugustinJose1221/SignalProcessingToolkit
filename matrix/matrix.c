@@ -489,8 +489,33 @@ matrix_t matrix_inverse(matrix_t* matrix)
     }
     
     // Perform Gaussian-Jordan elimination
-    for (uint32_t i = 0; i < n; i++) 
+    for (uint32_t i = 0; i < n; i++)
     {
+        // Move the row with the largest element of this column to the pivot
+        // position. This keeps the division stable. It also moves a zero out
+        // of the pivot position, because a zero there does not always show a
+        // singular matrix.
+        uint32_t pivot_row = i;
+        for (uint32_t k = i + 1; k < n; k++)
+        {
+            float candidate = matrix_get_element(&augmented, k, i);
+            float best = matrix_get_element(&augmented, pivot_row, i);
+            if ((candidate < 0 ? -candidate : candidate) > (best < 0 ? -best : best))
+            {
+                pivot_row = k;
+            }
+        }
+
+        if (pivot_row != i)
+        {
+            for (uint32_t j = 0; j < 2 * n; j++)
+            {
+                float swap = matrix_get_element(&augmented, i, j);
+                matrix_add_element(&augmented, i, j, matrix_get_element(&augmented, pivot_row, j));
+                matrix_add_element(&augmented, pivot_row, j, swap);
+            }
+        }
+
         float pivot = matrix_get_element(&augmented, i, i);
         if (pivot == 0) // Matrix is singular
         {
@@ -499,7 +524,7 @@ matrix_t matrix_inverse(matrix_t* matrix)
             matrix_t zero = matrix_create_zero_matrix(matrix->m, matrix->n);
             return zero;
         }
-        
+
         // Normalize the pivot row
         for (uint32_t j = 0; j < 2 * n; j++) 
         {

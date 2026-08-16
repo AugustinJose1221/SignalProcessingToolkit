@@ -595,6 +595,104 @@ void test_matrix_transpose(void)
     matrix_free(&matrix_b);
 }
 
+void test_matrix_inverse(void)
+{
+    // The inverse of [[4,7],[2,6]] is [[0.6,-0.7],[-0.2,0.4]].
+    matrix_t matrix = matrix_alloc(2, 2);
+    matrix_add_element(&matrix, 0, 0, 4);
+    matrix_add_element(&matrix, 0, 1, 7);
+    matrix_add_element(&matrix, 1, 0, 2);
+    matrix_add_element(&matrix, 1, 1, 6);
+    matrix_t inverse = matrix_inverse(&matrix);
+    TEST_ASSERT_EQUAL(2, inverse.m);
+    TEST_ASSERT_EQUAL(2, inverse.n);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.6f, matrix_get_element(&inverse, 0, 0));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.7f, matrix_get_element(&inverse, 0, 1));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.2f, matrix_get_element(&inverse, 1, 0));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.4f, matrix_get_element(&inverse, 1, 1));
+    matrix_free(&matrix);
+    matrix_free(&inverse);
+}
+
+void test_matrix_inverse_of_a_unit_matrix_is_the_unit_matrix(void)
+{
+    matrix_t matrix = matrix_create_unit_matrix(4);
+    matrix_t inverse = matrix_inverse(&matrix);
+    TEST_ASSERT_EQUAL(true, matrix_is_unit(&inverse));
+    matrix_free(&matrix);
+    matrix_free(&inverse);
+}
+
+void test_matrix_multiply_by_the_inverse_gives_the_unit_matrix(void)
+{
+    matrix_t matrix = matrix_alloc(3, 3);
+    matrix_add_element(&matrix, 0, 0, 2);
+    matrix_add_element(&matrix, 0, 1, -1);
+    matrix_add_element(&matrix, 0, 2, 0);
+    matrix_add_element(&matrix, 1, 0, -1);
+    matrix_add_element(&matrix, 1, 1, 2);
+    matrix_add_element(&matrix, 1, 2, -1);
+    matrix_add_element(&matrix, 2, 0, 0);
+    matrix_add_element(&matrix, 2, 1, -1);
+    matrix_add_element(&matrix, 2, 2, 2);
+    matrix_t inverse = matrix_inverse(&matrix);
+    matrix_t product = matrix_multiply(&matrix, &inverse);
+    for(uint32_t i = 0; i < 3; i++)
+    {
+        for(uint32_t j = 0; j < 3; j++)
+        {
+            TEST_ASSERT_FLOAT_WITHIN(0.0001f, (i == j) ? 1.0f : 0.0f,
+                                     matrix_get_element(&product, i, j));
+        }
+    }
+    matrix_free(&matrix);
+    matrix_free(&inverse);
+    matrix_free(&product);
+}
+
+void test_matrix_inverse_with_a_zero_in_the_pivot_position(void)
+{
+    // The determinant of [[0,1],[1,0]] is -1, thus the matrix has an inverse.
+    // But the first element on the diagonal is zero. The elimination must
+    // exchange the two rows.
+    matrix_t matrix = matrix_alloc(2, 2);
+    matrix_add_element(&matrix, 0, 0, 0);
+    matrix_add_element(&matrix, 0, 1, 1);
+    matrix_add_element(&matrix, 1, 0, 1);
+    matrix_add_element(&matrix, 1, 1, 0);
+    matrix_t inverse = matrix_inverse(&matrix);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, matrix_get_element(&inverse, 0, 0));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.0f, matrix_get_element(&inverse, 0, 1));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.0f, matrix_get_element(&inverse, 1, 0));
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, matrix_get_element(&inverse, 1, 1));
+    matrix_free(&matrix);
+    matrix_free(&inverse);
+}
+
+void test_matrix_inverse_of_a_singular_matrix_is_a_zero_matrix(void)
+{
+    // The second row is two times the first row. Thus the matrix is singular.
+    matrix_t matrix = matrix_alloc(2, 2);
+    matrix_add_element(&matrix, 0, 0, 1);
+    matrix_add_element(&matrix, 0, 1, 2);
+    matrix_add_element(&matrix, 1, 0, 2);
+    matrix_add_element(&matrix, 1, 1, 4);
+    matrix_t inverse = matrix_inverse(&matrix);
+    TEST_ASSERT_EQUAL(true, matrix_is_zero(&inverse));
+    matrix_free(&matrix);
+    matrix_free(&inverse);
+}
+
+void test_matrix_inverse_of_a_matrix_with_one_element(void)
+{
+    matrix_t matrix = matrix_alloc(1, 1);
+    matrix_add_element(&matrix, 0, 0, 4);
+    matrix_t inverse = matrix_inverse(&matrix);
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.25f, matrix_get_element(&inverse, 0, 0));
+    matrix_free(&matrix);
+    matrix_free(&inverse);
+}
+
 void test_matrix_copy(void)
 {
     matrix_t matrix_a = matrix_alloc(3, 3);
