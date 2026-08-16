@@ -110,8 +110,10 @@
     - tests/cnum/**
     - tests/cmatrix/**
     - tests/pmatrix/**
+    - tests/fft/**
   :source:
     - cmatrix/**
+    - fft/**
     - pmatrix/**
     - cnum/**
     - cspline/**
@@ -125,6 +127,7 @@
     - vector2d/**
   :include:
     - cmatrix/**
+    - fft/**
     - pmatrix/**
     - cnum/**
     - common/**
