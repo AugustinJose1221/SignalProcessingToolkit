@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(SignalProcessing)
+project(SignalProcessing C)
 
-set(CMAKE_C_COMPILER gcc)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
@@ -19,10 +20,23 @@ set(SIGNALPROC_SOURCES
     matrix/matrix.c
     kalman/kalman.c)
 
-add_executable(signalproc
-    ${SIGNALPROC_SOURCES}
-    examples/emd.c
-    examples/matrix.c)
+# The repository gives a library, thus the first target is a library. A library
+# needs no main function, and it always builds.
+add_library(signalproc STATIC ${SIGNALPROC_SOURCES})
+target_link_libraries(signalproc m)
+
+# The example program. Choose the example in examples/run_example.h. The value
+# RUN_NONE gives no main function, thus the program cannot link. For that
+# reason this target is off by default.
+option(BUILD_EXAMPLE "Build the example program. First choose an example in examples/run_example.h." OFF)
+
+if(BUILD_EXAMPLE)
+    add_executable(signalproc_example
+        examples/emd.c
+        examples/matrix.c)
+
+    target_link_libraries(signalproc_example signalproc m)
+endif()
 
 # The conformation tests compare the results of the library with the results of
 # the GNU Scientific Library. GSL is a test dependency only. The library itself
@@ -33,7 +47,6 @@ if(BUILD_CONFORMATION_TESTS)
     find_package(GSL REQUIRED)
 
     add_executable(conformation
-        ${SIGNALPROC_SOURCES}
         perf/conformation/support.c
         perf/conformation/matrix/matrix.c
         perf/conformation/matrix/support.c
@@ -41,5 +54,5 @@ if(BUILD_CONFORMATION_TESTS)
         perf/conformation/vector/support.c
         perf/conformation/run.c)
 
-    target_link_libraries(conformation GSL::gsl GSL::gslcblas m)
+    target_link_libraries(conformation signalproc GSL::gsl GSL::gslcblas m)
 endif()
