@@ -2,3 +2,8 @@ build
 .vscode
 .embold
 .DS_Store
+
+# Python
+__pycache__
+.venv
+.hypothesis

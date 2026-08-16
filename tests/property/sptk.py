@@ -1,0 +1,255 @@
+"""Bindings that let Python call the library.
+
+The library keeps its rule that it needs no external library. Python is a test
+tool only. This module builds the C sources into a shared object and reads the
+functions from it with ctypes. It changes no source file of the library.
+"""
+
+import ctypes
+import os
+import subprocess
+import sys
+
+REPOSITORY = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+BUILD_DIRECTORY = os.path.join(REPOSITORY, "build", "property")
+LIBRARY_PATH = os.path.join(BUILD_DIRECTORY, "libsptk.so")
+
+# The same list of sources as SIGNALPROC_SOURCES in CMakeLists.txt.
+SOURCES = [
+    "utils/binarysearch/binarysearch.c",
+    "utils/peakdetect/peakdetect.c",
+    "utils/valleydetect/valleydetect.c",
+    "cspline/cspline.c",
+    "vector/vector.c",
+    "vector2d/vector2d.c",
+    "emd/emd.c",
+    "imf/imf.c",
+    "matrix/matrix.c",
+    "kalman/kalman.c",
+]
+
+
+def build_library():
+    """Build the shared object. Give the path to it."""
+    os.makedirs(BUILD_DIRECTORY, exist_ok=True)
+    command = [
+        "gcc", "-shared", "-fPIC", "-std=c99", "-g", "-O1",
+        "-I", REPOSITORY,
+        "-o", LIBRARY_PATH,
+    ] + [os.path.join(REPOSITORY, source) for source in SOURCES] + ["-lm"]
+
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError("the build of the shared object failed:\n" + result.stderr)
+    return LIBRARY_PATH
+
+
+class Matrix(ctypes.Structure):
+    _fields_ = [
+        ("m", ctypes.c_uint32),
+        ("n", ctypes.c_uint32),
+        ("elem", ctypes.POINTER(ctypes.c_float)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Vector(ctypes.Structure):
+    _fields_ = [
+        ("size", ctypes.c_uint32),
+        ("data", ctypes.POINTER(ctypes.c_float)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class CSpline(ctypes.Structure):
+    _fields_ = [
+        ("size", ctypes.c_uint32),
+        ("x", ctypes.POINTER(ctypes.c_float)),
+        ("y", ctypes.POINTER(ctypes.c_float)),
+        ("b", ctypes.POINTER(ctypes.c_float)),
+        ("c", ctypes.POINTER(ctypes.c_float)),
+        ("d", ctypes.POINTER(ctypes.c_float)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class CSplineMempool(ctypes.Structure):
+    _fields_ = [
+        ("dx", ctypes.POINTER(ctypes.c_float)),
+        ("dp", ctypes.POINTER(ctypes.c_float)),
+        ("d", ctypes.POINTER(ctypes.c_float)),
+        ("b", ctypes.POINTER(ctypes.c_float)),
+        ("q", ctypes.POINTER(ctypes.c_float)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class KalmanScratch(ctypes.Structure):
+    _fields_ = [(name, Matrix) for name in (
+        "nxnx_a", "nxnx_b", "nxnx_c",
+        "nxny_a", "nxny_b",
+        "nynx_a",
+        "nyny_a", "nyny_b", "nyny_c",
+        "augmented",
+        "nx1_a", "nx1_b",
+        "ny1_a", "ny1_b",
+    )]
+
+
+class Kalman(ctypes.Structure):
+    _fields_ = [
+        ("ni", ctypes.c_uint32),
+        ("nx", ctypes.c_uint32),
+        ("ny", ctypes.c_uint32),
+    ] + [(name, Matrix) for name in
+         ("_x", "x", "y", "u", "a", "b", "p", "q", "r", "c", "k")] + [
+        ("scratch", KalmanScratch),
+        ("mempool", ctypes.POINTER(ctypes.c_float)),
+        ("singular", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+FLOAT_POINTER = ctypes.POINTER(ctypes.c_float)
+
+
+def load_library():
+    """Load the shared object and give the types of every function."""
+    library = ctypes.CDLL(build_library())
+
+    # matrix
+    library.matrix_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.matrix_alloc.restype = Matrix
+    library.matrix_add_element.argtypes = [ctypes.POINTER(Matrix), ctypes.c_uint32,
+                                           ctypes.c_uint32, ctypes.c_float]
+    library.matrix_add_element.restype = None
+    library.matrix_get_element.argtypes = [ctypes.POINTER(Matrix), ctypes.c_uint32,
+                                           ctypes.c_uint32]
+    library.matrix_get_element.restype = ctypes.c_float
+    for name in ("matrix_add", "matrix_subtract", "matrix_multiply"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Matrix), ctypes.POINTER(Matrix)]
+        function.restype = Matrix
+    library.matrix_multiply_scalar.argtypes = [ctypes.POINTER(Matrix), ctypes.c_float]
+    library.matrix_multiply_scalar.restype = Matrix
+    for name in ("matrix_transpose", "matrix_inverse"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Matrix)]
+        function.restype = Matrix
+    library.matrix_determinant.argtypes = [ctypes.POINTER(Matrix)]
+    library.matrix_determinant.restype = ctypes.c_float
+    library.matrix_trace.argtypes = [ctypes.POINTER(Matrix)]
+    library.matrix_trace.restype = ctypes.c_float
+    for name in ("matrix_is_equal", "matrix_is_multipliable"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Matrix), ctypes.POINTER(Matrix)]
+        function.restype = ctypes.c_bool
+    for name in ("matrix_is_square", "matrix_is_zero", "matrix_is_unit"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Matrix)]
+        function.restype = ctypes.c_bool
+    library.matrix_create_unit_matrix.argtypes = [ctypes.c_uint32]
+    library.matrix_create_unit_matrix.restype = Matrix
+    library.matrix_create_zero_matrix.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.matrix_create_zero_matrix.restype = Matrix
+    library.matrix_get_nth_row.argtypes = [ctypes.POINTER(Matrix), ctypes.c_uint32]
+    library.matrix_get_nth_row.restype = Matrix
+    library.matrix_get_nth_col.argtypes = [ctypes.POINTER(Matrix), ctypes.c_uint32]
+    library.matrix_get_nth_col.restype = Matrix
+    library.matrix_free.argtypes = [ctypes.POINTER(Matrix)]
+    library.matrix_free.restype = None
+
+    # vector
+    library.vector_alloc.argtypes = [ctypes.c_uint32]
+    library.vector_alloc.restype = Vector
+    library.vector_add_point_at_index.argtypes = [ctypes.POINTER(Vector),
+                                                  ctypes.c_uint32, ctypes.c_float]
+    library.vector_add_point_at_index.restype = None
+    library.vector_get.argtypes = [ctypes.POINTER(Vector), ctypes.c_uint32]
+    library.vector_get.restype = ctypes.c_float
+    library.vector_dot_product.argtypes = [ctypes.POINTER(Vector), ctypes.POINTER(Vector)]
+    library.vector_dot_product.restype = ctypes.c_float
+    library.vector_norm.argtypes = [ctypes.POINTER(Vector)]
+    library.vector_norm.restype = ctypes.c_float
+    library.vector_free.argtypes = [ctypes.POINTER(Vector)]
+    library.vector_free.restype = None
+
+    # cspline
+    library.cspline_alloc.argtypes = [ctypes.c_uint32]
+    library.cspline_alloc.restype = CSpline
+    library.cspline_alloc_mempool.argtypes = [ctypes.c_uint32]
+    library.cspline_alloc_mempool.restype = CSplineMempool
+    library.cspline_init.argtypes = [ctypes.POINTER(CSpline), CSplineMempool,
+                                     FLOAT_POINTER, FLOAT_POINTER]
+    library.cspline_init.restype = None
+    library.cspline_get_interpolated_point.argtypes = [ctypes.POINTER(CSpline),
+                                                       ctypes.c_float]
+    library.cspline_get_interpolated_point.restype = ctypes.c_float
+    library.cspline_free.argtypes = [CSpline]
+    library.cspline_free.restype = None
+    library.cspline_free_mempool.argtypes = [CSplineMempool]
+    library.cspline_free_mempool.restype = None
+
+    # kalman
+    library.kalman_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32]
+    library.kalman_alloc.restype = Kalman
+    for name in ("kalman_set_state_matrix", "kalman_set_state_transition_matrix",
+                 "kalman_set_control_matrix", "kalman_set_covariance_matrix",
+                 "kalman_set_process_noise_covariance_matrix",
+                 "kalman_set_measurement_covariance_matrix",
+                 "kalman_set_observation_matrix", "kalman_set_input_matrix",
+                 "kalman_set_measurement_matrix"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Kalman), ctypes.POINTER(Matrix)]
+        function.restype = None
+    library.kalman_predict.argtypes = [ctypes.POINTER(Kalman)]
+    library.kalman_predict.restype = None
+    library.kalman_update.argtypes = [ctypes.POINTER(Kalman)]
+    library.kalman_update.restype = ctypes.c_bool
+    library.kalman_step.argtypes = [ctypes.POINTER(Kalman), ctypes.POINTER(Matrix),
+                                    ctypes.POINTER(Matrix)]
+    library.kalman_step.restype = ctypes.c_bool
+    library.kalman_free.argtypes = [ctypes.POINTER(Kalman)]
+    library.kalman_free.restype = None
+
+    # utils
+    library.binarysearch_get_index.argtypes = [FLOAT_POINTER, ctypes.c_float,
+                                               ctypes.c_uint32]
+    library.binarysearch_get_index.restype = ctypes.c_uint32
+    for name in ("peakdetect_get_peaks", "valleydetect_get_valley"):
+        function = getattr(library, name)
+        function.argtypes = [FLOAT_POINTER, FLOAT_POINTER, FLOAT_POINTER,
+                             ctypes.c_uint32]
+        function.restype = ctypes.c_uint32
+
+    return library
+
+
+def float_array(values):
+    """Give a C array of float that holds the given values."""
+    return (ctypes.c_float * len(values))(*values)
+
+
+def make_matrix(library, rows):
+    """Give a matrix that holds the given rows."""
+    m = len(rows)
+    n = len(rows[0])
+    matrix = library.matrix_alloc(m, n)
+    for i in range(m):
+        for j in range(n):
+            library.matrix_add_element(ctypes.byref(matrix), i, j, rows[i][j])
+    return matrix
+
+
+def matrix_rows(library, matrix):
+    """Give the elements of a matrix as a list of lists."""
+    return [[library.matrix_get_element(ctypes.byref(matrix), i, j)
+             for j in range(matrix.n)]
+            for i in range(matrix.m)]
+
+
+def make_vector(library, values):
+    vector = library.vector_alloc(len(values))
+    for index, value in enumerate(values):
+        library.vector_add_point_at_index(ctypes.byref(vector), index, value)
+    return vector
