@@ -38,6 +38,21 @@ if(BUILD_EXAMPLE)
     target_link_libraries(signalproc_example signalproc m)
 endif()
 
+# The benchmark measures how long each operation of the library takes. It needs
+# no external library, but it takes time to run. Thus this target is off by
+# default.
+option(BUILD_BENCHMARK "Build the benchmark program." OFF)
+
+if(BUILD_BENCHMARK)
+    add_executable(benchmark
+        perf/benchmark/benchmark.c
+        perf/benchmark/matrix.c
+        perf/benchmark/modules.c
+        perf/benchmark/run.c)
+
+    target_link_libraries(benchmark signalproc m)
+endif()
+
 # The conformation tests compare the results of the library with the results of
 # the GNU Scientific Library. GSL is a test dependency only. The library itself
 # does not use GSL. Thus this target is off by default.

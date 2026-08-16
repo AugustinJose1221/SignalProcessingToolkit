@@ -50,6 +50,21 @@ They need GSL, thus they are off by default:
 cmake -S . -B build -DBUILD_CONFORMATION_TESTS=ON && cmake --build build
 ```
 
+## Benchmark
+
+The benchmark measures how long each operation takes, for several sizes of
+input. It needs no external library:
+
+```bash
+cmake -S . -B build -DBUILD_BENCHMARK=ON && cmake --build build && ./build/benchmark
+```
+
+Each line gives the time of the fastest repeat, the mean time of all the
+repeats, and the number of times the operation runs in one second. The fastest
+repeat gives the best picture, because the other work of the system only makes
+a repeat slower. The seed of the random numbers is the same at each run, thus
+two runs compare with each other.
+
 ## Naming
 
 The names follow the scheme of the Linux kernel:
