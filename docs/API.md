@@ -14,6 +14,8 @@ python3 scripts/api_doc.py
 - [`cmatrix`](#cmatrix) &mdash; Matrices of complex numbers
 - [`pmatrix`](#pmatrix) &mdash; Matrices with a parameter
 - [`fft`](#fft) &mdash; The fast Fourier transform
+- [`hilbert`](#hilbert) &mdash; The Hilbert transform
+- [`hht`](#hht) &mdash; The Hilbert-Huang transform
 - [`vector`](#vector) &mdash; Vectors of float values
 - [`vector2d`](#vector2d) &mdash; Vectors with two values
 - [`cspline`](#cspline) &mdash; Cubic splines
@@ -1162,6 +1164,112 @@ void fft_free(fft_t* fft);
 Release the memory of a transform that came from fft_alloc. This function
 does nothing for a transform that came from fft_static_alloc, thus a call
 for either kind is safe. A second call does nothing.
+
+---
+
+## hilbert
+
+The Hilbert transform. Declared in `hilbert/hilbert.h`.
+
+### Functions
+
+#### `hilbert_analytic_signal`
+
+```c
+void hilbert_analytic_signal(fft_t* fft, const float* signal, cnum_t* analytic);
+```
+
+Give the analytic signal of a real signal.
+
+The signal and the work buffer must hold as many values as the size of the
+transform. The function writes the result into the work buffer, thus it gets
+no memory.
+
+#### `hilbert_amplitude`
+
+```c
+void hilbert_amplitude(const cnum_t* analytic, float* amplitude, uint32_t size);
+```
+
+Write the instantaneous amplitude of each point into the amplitude list. The
+amplitude follows the envelope of the signal, and it is never less than
+zero.
+
+#### `hilbert_phase`
+
+```c
+void hilbert_phase(const cnum_t* analytic, float* phase, uint32_t size);
+```
+
+Write the instantaneous phase of each point into the phase list. The phase
+lies between -pi and pi.
+
+#### `hilbert_frequency`
+
+```c
+void hilbert_frequency(const cnum_t* analytic, float* frequency, uint32_t size, float sample_rate);
+```
+
+Write the instantaneous frequency of each point into the frequency list.
+
+The frequency comes from the change of the phase between two samples. The
+function takes the change into the range from -pi to pi before it makes the
+frequency, because the phase itself jumps from pi to -pi.
+
+The list holds one value less than the signal, because a change needs two
+points. The caller gives the sample rate in samples for each second, and the
+result is in hertz.
+
+---
+
+## hht
+
+The Hilbert-Huang transform. Declared in `hht/hht.h`.
+
+### Functions
+
+#### `hht_transform_imf`
+
+```c
+void hht_transform_imf(fft_t* fft, imf_t* imf, cnum_t* work, float* amplitude, float* frequency, float sample_rate);
+```
+
+Give the amplitude and the frequency at each point of time, for one
+intrinsic mode function.
+
+The function writes size values into the amplitude list, and size-1 values
+into the frequency list, because a frequency needs two points of the phase.
+The work buffer must hold size complex numbers. The function gets no memory.
+
+The size must be the same as the size of the transform, and it must be a
+power of two.
+
+#### `hht_transform`
+
+```c
+void hht_transform(fft_t* fft, imf_t* imf, uint32_t count, cnum_t* work, float* amplitude, float* frequency, float sample_rate);
+```
+
+Give the amplitude and the frequency for a list of intrinsic mode
+functions, one after the other.
+
+The lists amplitude and frequency hold the result of each function one after
+the other. Thus the amplitude list must hold count*size values, and the
+frequency list must hold count*(size-1) values. The work buffer must hold
+size complex numbers.
+
+#### `hht_mean_frequency`
+
+```c
+float hht_mean_frequency(const float* amplitude, const float* frequency, uint32_t size);
+```
+
+Give the mean frequency of one intrinsic mode function, where each point
+counts as much as the square of its amplitude.
+
+A point with a small amplitude holds a phase that noise moves easily. This
+mean gives such a point little weight, thus it describes the function better
+than a plain mean does.
 
 ---
 

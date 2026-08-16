@@ -32,6 +32,8 @@ MODULES = [
     ("cmatrix", "cmatrix/cmatrix.h", "Matrices of complex numbers"),
     ("pmatrix", "pmatrix/pmatrix.h", "Matrices with a parameter"),
     ("fft", "fft/fft.h", "The fast Fourier transform"),
+    ("hilbert", "hilbert/hilbert.h", "The Hilbert transform"),
+    ("hht", "hht/hht.h", "The Hilbert-Huang transform"),
     ("vector", "vector/vector.h", "Vectors of float values"),
     ("vector2d", "vector2d/vector2d.h", "Vectors with two values"),
     ("cspline", "cspline/cspline.h", "Cubic splines"),

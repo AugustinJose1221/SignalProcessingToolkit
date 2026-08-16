@@ -32,6 +32,8 @@ MODULE_PREFIX = {
     "cmatrix": "cmatrix_",
     "pmatrix": "pmatrix_",
     "fft": "fft_",
+    "hilbert": "hilbert_",
+    "hht": "hht_",
     "cnum": "cnum_",
     "vector": "vector_",
     "vector2d": "vector2d_",

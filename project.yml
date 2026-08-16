@@ -111,9 +111,13 @@
     - tests/cmatrix/**
     - tests/pmatrix/**
     - tests/fft/**
+    - tests/hilbert/**
+    - tests/hht/**
   :source:
     - cmatrix/**
     - fft/**
+    - hht/**
+    - hilbert/**
     - pmatrix/**
     - cnum/**
     - cspline/**
@@ -128,6 +132,8 @@
   :include:
     - cmatrix/**
     - fft/**
+    - hht/**
+    - hilbert/**
     - pmatrix/**
     - cnum/**
     - common/**
