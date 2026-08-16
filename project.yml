@@ -106,6 +106,7 @@
     - tests/cspline/**
     - tests/imf/**
     - tests/emd/**
+    - tests/kalman/**
   :source:
     - cspline/**
     - emd/**
