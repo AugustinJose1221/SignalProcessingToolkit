@@ -72,7 +72,7 @@ static void run_matrix_addition_dynamic_conformation(void)
 
 static void run_matrix_multiply_scalar_static_conformation(void)
 {
-    matrix_t A0, scalar0, product0, correct_product0;
+    matrix_t A0, scalar0, correct_product0;
     MATRIX_INIT(A0, 2, 3, ((float[]){1, 2, 3, 4, 5, 6}));
     scalar0 = matrix_multiply_scalar(&A0, 2);
     MATRIX_INIT(correct_product0, 2, 3, ((float[]){2, 4, 6, 8, 10, 12}));
@@ -81,7 +81,7 @@ static void run_matrix_multiply_scalar_static_conformation(void)
     MATRIX_FREE(correct_product0);
     MATRIX_FREE(A0);
 
-    matrix_t A1, scalar1, product1, correct_product1;
+    matrix_t A1, scalar1, correct_product1;
     MATRIX_INIT(A1, 3, 2, ((float[]){1.5f, -2.5f, 3.5f, -4.5f, 5.5f, -6.5f}));
     scalar1 = matrix_multiply_scalar(&A1, -2);
     MATRIX_INIT(correct_product1, 3, 2, ((float[]){-3.0f, 5.0f, -7.0f, 9.0f, -11.0f, 13.0f}));
@@ -90,7 +90,7 @@ static void run_matrix_multiply_scalar_static_conformation(void)
     MATRIX_FREE(correct_product1);
     MATRIX_FREE(A1);
 
-    matrix_t A2, scalar2, product2, correct_product2;
+    matrix_t A2, scalar2, correct_product2;
     MATRIX_INIT(A2, 4, 4, ((float[]){1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}));
     scalar2 = matrix_multiply_scalar(&A2, 0.5f);
     MATRIX_INIT(correct_product2, 4, 4, ((float[]){0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 3.5f, 4.0f, 4.5f, 5.0f, 5.5f, 6.0f, 6.5f, 7.0f, 7.5f, 8.0f}));
@@ -99,7 +99,7 @@ static void run_matrix_multiply_scalar_static_conformation(void)
     MATRIX_FREE(correct_product2);
     MATRIX_FREE(A2);
 
-    matrix_t A3, scalar3, product3, correct_product3;
+    matrix_t A3, scalar3, correct_product3;
     MATRIX_INIT(A3, 2, 2, ((float[]){0, -1, -2, 3}));
     scalar3 = matrix_multiply_scalar(&A3, 3);
     MATRIX_INIT(correct_product3, 2, 2, ((float[]){0, -3, -6, 9}));
