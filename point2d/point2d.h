@@ -1,9 +1,10 @@
-#ifndef __POINT2D_H__
-#define __POINT2D_H__
+#ifndef POINT2D_H
+#define POINT2D_H
 
+// A point on a plane.
 typedef struct{
     float x;
     float y;
 }point2d_t;
 
-#endif//__POINT2D_H__
+#endif//POINT2D_H

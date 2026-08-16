@@ -93,6 +93,24 @@ repeat gives the best picture, because the other work of the system only makes
 a repeat slower. The seed of the random numbers is the same at each run, thus
 two runs compare with each other.
 
+## Documentation
+
+[docs/API.md](docs/API.md) describes every module, type, macro and function.
+
+The file comes from the comments in the headers, thus the documentation and the
+code cannot say two different things. After a change to a header, make the file
+again:
+
+```bash
+python3 scripts/api_doc.py
+```
+
+To examine that every function has a comment and that the file is current:
+
+```bash
+python3 scripts/api_doc.py --check
+```
+
 ## Naming
 
 The names follow the scheme of the Linux kernel:
@@ -121,6 +139,7 @@ the name `release/vX.Y.Z` comes from it. Only fixes go into a release branch,
 and that branch then merges into `main`.
 
 Each push runs the workflow in
-[.github/workflows/tests.yml](.github/workflows/tests.yml). It runs the naming
-check, the unit tests, the property based tests, the build, and a build with
-the warnings of the compiler switched on. A warning stops the workflow.
+[.github/workflows/tests.yml](.github/workflows/tests.yml). It runs the
+documentation check, the naming check, the unit tests, the property based
+tests, the build, and a build with the warnings of the compiler switched on. A
+warning stops the workflow.

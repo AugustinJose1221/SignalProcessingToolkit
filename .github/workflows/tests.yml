@@ -21,6 +21,30 @@ permissions:
   contents: read
 
 jobs:
+  documentation:
+    name: Documentation check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the sources
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pytest
+        run: python -m pip install --upgrade pip pytest
+
+      - name: Test the documentation check
+        run: python -m pytest scripts/test_api_doc.py -v
+
+      - name: Examine that every function has a comment and that docs/API.md is current
+        # docs/API.md comes from the comments in the headers. This step gives a
+        # signal when a new function has no comment, or when somebody changed a
+        # header and did not make the file again.
+        run: python scripts/api_doc.py --check
+
   naming:
     name: Naming check
     runs-on: ubuntu-latest

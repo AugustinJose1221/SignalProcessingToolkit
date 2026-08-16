@@ -1,9 +1,16 @@
-#ifndef __BINARY_SEARCH_H__
-#define __BINARY_SEARCH_H__
+#ifndef BINARYSEARCH_H
+#define BINARYSEARCH_H
 
 #include <stdio.h>
 #include <stdint.h>
 
+// Give the index of the first value of the list that is not less than the
+// given value. The values of the list must rise.
+//
+// The result is always an index that the caller can use. If every value of the
+// list is less than the given value, the result is the index of the last
+// value. Thus a caller that reads the list at the result never reads memory
+// after the end of the list.
 uint32_t binarysearch_get_index(float* data, float value, uint32_t size);
 
-#endif//__BINARY_SEARCH_H__
+#endif//BINARYSEARCH_H
