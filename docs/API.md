@@ -9,7 +9,13 @@ python3 scripts/api_doc.py
 
 Each module has its own file. Open the file of the module that you work with.
 
-## Frequency
+Each area also holds a guide that says how its modules work and which one to
+reach for. The guide explains the method; the file of a module gives the exact
+name and shape of every function.
+
+## Transforms
+
+[How the transform modules work](../sptk/transform/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -21,23 +27,43 @@ Each module has its own file. Open the file of the module that you work with.
 
 ## Filters
 
+[How the filter modules work](../sptk/filter/README.md)
+
 | Module | What it holds |
 | --- | --- |
 | [`fir`](api/fir.md) | Filters with a finite impulse response |
 | [`iir`](api/iir.md) | Filters with an infinite impulse response |
 | [`savgol`](api/savgol.md) | The filter of Savitzky and Golay |
+
+## Estimation
+
+[How the estimate modules work](../sptk/estimate/README.md)
+
+| Module | What it holds |
+| --- | --- |
 | [`kalman`](api/kalman.md) | The Kalman filter |
 | [`ekf`](api/ekf.md) | The extended Kalman filter |
 
 ## Decomposition
 
+[How the decompose modules work](../sptk/decompose/README.md)
+
 | Module | What it holds |
 | --- | --- |
 | [`emd`](api/emd.md) | Empirical mode decomposition |
 | [`imf`](api/imf.md) | Intrinsic mode functions |
+
+## Interpolation
+
+[How the interpolate modules work](../sptk/interpolate/README.md)
+
+| Module | What it holds |
+| --- | --- |
 | [`cspline`](api/cspline.md) | Cubic splines |
 
-## Mathematics
+## Linear algebra
+
+[How the linalg modules work](../sptk/linalg/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -50,10 +76,19 @@ Each module has its own file. Open the file of the module that you work with.
 
 ## Utilities
 
+[How the util modules work](../sptk/util/README.md)
+
 | Module | What it holds |
 | --- | --- |
 | [`binarysearch`](api/binarysearch.md) | Binary search |
 | [`peakdetect`](api/peakdetect.md) | Peak detection |
 | [`valleydetect`](api/valleydetect.md) | Valley detection |
+
+## Core
+
+[How the core modules work](../sptk/core/README.md)
+
+| Module | What it holds |
+| --- | --- |
 | [`point2d`](api/point2d.md) | A point on a plane |
 | [`callback`](api/callback.md) | The print callback |

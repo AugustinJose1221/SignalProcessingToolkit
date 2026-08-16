@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Cubic splines. Declared in `sptk/interpolate/cspline.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the interpolate modules work](../../sptk/interpolate/README.md)
 
 ## Types
 

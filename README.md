@@ -32,9 +32,15 @@ Include a module by its area:
 #include <sptk/filter/fir.h>
 ```
 
-[docs/API.md](docs/API.md) describes every module. The directory
-[examples](examples) holds a small program for each area. The tests under
-[tests](tests) follow the same areas as the library.
+Each area holds a guide that says **how** its modules work and which one to
+reach for: [transform](sptk/transform), [filter](sptk/filter),
+[estimate](sptk/estimate), [decompose](sptk/decompose),
+[interpolate](sptk/interpolate), [linalg](sptk/linalg), [util](sptk/util),
+[core](sptk/core).
+
+[docs/API.md](docs/API.md) gives the exact name and shape of every function.
+The directory [examples](examples) holds a small program for each area. The
+tests under [tests](tests) follow the same areas as the library.
 
 ## Three rules that shape the library
 
@@ -146,8 +152,8 @@ again:
 python3 scripts/api_doc.py
 ```
 
-To examine that every function has a comment, that the files are current, and
-that no file belongs to a module that went away:
+To examine that every function has a comment, that the files are current, that
+no file belongs to a module that went away, and that every area holds a guide:
 
 ```bash
 python3 scripts/api_doc.py --check

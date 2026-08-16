@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 The Hilbert transform. Declared in `sptk/transform/hilbert.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
 
 ## Functions
 

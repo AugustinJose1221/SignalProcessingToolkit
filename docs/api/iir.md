@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Filters with an infinite impulse response. Declared in `sptk/filter/iir.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
 
 ## Macros
 

@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 The fast Fourier transform. Declared in `sptk/transform/fft.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
 
 ## Macros
 

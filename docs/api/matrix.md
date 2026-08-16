@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Matrices of float values. Declared in `sptk/linalg/matrix.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
 
 ## Types
 

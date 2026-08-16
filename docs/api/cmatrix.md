@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Matrices of complex numbers. Declared in `sptk/linalg/cmatrix.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
 
 ## Types
 

@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Matrices with a parameter. Declared in `sptk/linalg/pmatrix.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
 
 ## Types
 

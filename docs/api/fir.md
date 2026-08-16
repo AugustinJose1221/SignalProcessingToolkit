@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Filters with a finite impulse response. Declared in `sptk/filter/fir.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
 
 ## Types
 

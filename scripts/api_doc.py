@@ -16,7 +16,8 @@ The check finds three faults:
 
 - a function that a header declares and that has no comment above it;
 - a file under docs/ that does not agree with the headers;
-- a file in docs/api/ that belongs to no module any more.
+- a file in docs/api/ that belongs to no module any more;
+- an area of the library that holds no guide.
 """
 
 import os
@@ -141,18 +142,30 @@ def read_header(path):
     return types, macros, functions
 
 
-# The areas group the modules, so that a reader who looks for one kind of work
-# finds every module of that kind together.
+# The areas of the library. Each one is a directory under sptk/, and each one
+# holds a README.md that says how its modules work.
 AREAS = [
-    ("Frequency", ["fft", "goertzel", "hilbert", "hht", "dwt"]),
-    ("Filters", ["fir", "iir", "savgol", "kalman", "ekf"]),
-    ("Decomposition", ["emd", "imf", "cspline"]),
-    ("Mathematics", ["matrix", "cmatrix", "pmatrix", "cnum", "vector", "vector2d"]),
-    ("Utilities", ["binarysearch", "peakdetect", "valleydetect", "point2d", "callback"]),
+    ("transform", "Transforms", ["fft", "goertzel", "hilbert", "hht", "dwt"]),
+    ("filter", "Filters", ["fir", "iir", "savgol"]),
+    ("estimate", "Estimation", ["kalman", "ekf"]),
+    ("decompose", "Decomposition", ["emd", "imf"]),
+    ("interpolate", "Interpolation", ["cspline"]),
+    ("linalg", "Linear algebra", ["matrix", "cmatrix", "pmatrix", "cnum",
+                                  "vector", "vector2d"]),
+    ("util", "Utilities", ["binarysearch", "peakdetect", "valleydetect"]),
+    ("core", "Core", ["point2d", "callback"]),
 ]
 
 GENERATED_NOTE = ("This file comes from the comments in the headers. Do not change it by "
                   "hand.\nTo make it again, give:\n\n```bash\npython3 scripts/api_doc.py\n```\n")
+
+
+def area_of(module):
+    """Give the area that a module belongs to, or None."""
+    for area, title, names in AREAS:
+        if module in names:
+            return area
+    return None
 
 
 def module_title(name):
@@ -168,9 +181,13 @@ def build_index():
     parts = ["# API reference\n", GENERATED_NOTE]
     parts.append("Each module has its own file. Open the file of the module that you "
                  "work with.\n")
+    parts.append("Each area also holds a guide that says how its modules work and "
+                 "which one to\nreach for. The guide explains the method; the file "
+                 "of a module gives the exact\nname and shape of every function.\n")
 
-    for area, names in AREAS:
-        parts.append("## %s\n" % area)
+    for area, title, names in AREAS:
+        parts.append("## %s\n" % title)
+        parts.append("[How the %s modules work](../sptk/%s/README.md)\n" % (area, area))
         parts.append("| Module | What it holds |")
         parts.append("| --- | --- |")
         for name in names:
@@ -178,7 +195,7 @@ def build_index():
                 parts.append("| [`%s`](api/%s.md) | %s |" % (name, name, module_title(name)))
         parts.append("")
 
-    listed = {name for area, names in AREAS for name in names}
+    listed = {name for area, title, names in AREAS for name in names}
     rest = [name for name, path, title in MODULES if name not in listed]
     if rest:
         parts.append("## Other\n")
@@ -198,7 +215,13 @@ def build_module_document(name, path, title):
 
     parts = ["# %s\n" % name, GENERATED_NOTE]
     parts.append("%s. Declared in `%s`.\n" % (title, path))
-    parts.append("[Back to the index](../API.md)\n")
+    area = area_of(name)
+    if area:
+        parts.append("[Back to the index](../API.md) | "
+                     "[How the %s modules work](../../sptk/%s/README.md)\n"
+                     % (area, area))
+    else:
+        parts.append("[Back to the index](../API.md)\n")
 
     if macros:
         parts.append("## Macros\n")
@@ -240,6 +263,19 @@ def build_documents():
     return documents
 
 
+def find_areas_without_a_guide():
+    """Give the areas whose directory holds no README.md."""
+    missing = []
+
+    for area, title, names in AREAS:
+        guide = os.path.join(REPOSITORY, "sptk", area, "README.md")
+        if not os.path.exists(guide):
+            missing.append("sptk/%s/README.md is not there. Each area needs a "
+                           "guide that says how its modules work." % area)
+
+    return missing
+
+
 def find_files_that_belong_to_no_module(documents):
     """Give the files in docs/api that no module writes any more."""
     if not os.path.isdir(MODULE_DIRECTORY):
@@ -275,6 +311,8 @@ def main(argv):
     documents = build_documents()
 
     faults = find_functions_without_a_comment()
+
+    faults.extend(find_areas_without_a_guide())
 
     for path in find_files_that_belong_to_no_module(documents):
         faults.append("%s belongs to no module any more. Remove it."

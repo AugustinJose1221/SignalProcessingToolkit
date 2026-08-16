@@ -9,4 +9,4 @@ python3 scripts/api_doc.py
 
 The print callback. Declared in `sptk/core/callback.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the core modules work](../../sptk/core/README.md)

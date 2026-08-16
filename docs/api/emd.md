@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Empirical mode decomposition. Declared in `sptk/decompose/emd.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the decompose modules work](../../sptk/decompose/README.md)
 
 ## Macros
 

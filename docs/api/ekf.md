@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 The extended Kalman filter. Declared in `sptk/estimate/ekf.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the estimate modules work](../../sptk/estimate/README.md)
 
 ## Macros
 

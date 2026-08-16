@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Vectors with two values. Declared in `sptk/linalg/vector2d.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
 
 ## Functions
 

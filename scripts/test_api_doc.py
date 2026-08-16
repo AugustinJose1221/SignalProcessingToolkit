@@ -157,3 +157,27 @@ def test_the_check_is_quiet_when_every_file_belongs_to_a_module(tmp_path, monkey
     monkeypatch.setattr(api_doc, "MODULE_DIRECTORY", str(directory))
 
     assert api_doc.find_files_that_belong_to_no_module({str(known): "# matrix\n"}) == []
+
+
+def test_every_area_of_the_library_holds_a_guide():
+    assert api_doc.find_areas_without_a_guide() == []
+
+
+def test_the_check_finds_an_area_with_no_guide(tmp_path, monkeypatch):
+    # Point the program at an empty tree. Every area must then be reported,
+    # thus the check would see a guide that goes away.
+    monkeypatch.setattr(api_doc, "REPOSITORY", str(tmp_path))
+
+    missing = api_doc.find_areas_without_a_guide()
+
+    assert len(missing) == len(api_doc.AREAS)
+    assert "sptk/transform/README.md" in missing[0]
+
+
+def test_every_module_belongs_to_an_area():
+    for name, path, title in api_doc.MODULES:
+        # The three headers of the core area hold no module of their own, thus
+        # two of them stand in the area list and defs stands nowhere.
+        if name == "defs":
+            continue
+        assert api_doc.area_of(name) is not None, "%s belongs to no area" % name

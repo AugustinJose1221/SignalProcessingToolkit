@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Vectors of float values. Declared in `sptk/linalg/vector.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
 
 ## Types
 

@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 Binary search. Declared in `sptk/util/binarysearch.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the util modules work](../../sptk/util/README.md)
 
 ## Functions
 

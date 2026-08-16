@@ -9,7 +9,7 @@ python3 scripts/api_doc.py
 
 The filter of Savitzky and Golay. Declared in `sptk/filter/savgol.h`.
 
-[Back to the index](../API.md)
+[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
 
 ## Types
 
