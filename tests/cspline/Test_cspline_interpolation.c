@@ -4,6 +4,9 @@
 
 #include "unity.h"
 #include "cspline.h"
+// The spline calls the binary search. This include has no mock prefix, thus
+// the build takes the real module and not a mock of it.
+#include "binarysearch.h"
 #include <stdlib.h>
 #include <math.h>
 

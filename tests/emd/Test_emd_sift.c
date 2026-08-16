@@ -6,6 +6,12 @@
 #include "unity.h"
 #include "emd.h"
 #include "imf.h"
+// The sift operation needs these modules. None of these includes has a mock
+// prefix, thus the build takes the real modules and not mocks of them.
+#include "cspline.h"
+#include "peakdetect.h"
+#include "valleydetect.h"
+#include "binarysearch.h"
 #include <stdlib.h>
 #include <math.h>
 

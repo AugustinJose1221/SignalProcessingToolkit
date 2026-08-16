@@ -244,7 +244,12 @@
   :placement: :end
   :flag: "-l${1}"
   :path_flag: "-L ${1}"
-  :system: []    # for example, you might list 'm' to grab the math library
+  # The vector module calls sqrt, and the cubic spline module calls pow. Thus
+  # a test executable that holds one of these modules needs the mathematics
+  # library. The placement above puts the flag at the end of the command, which
+  # is the position that the linker needs.
+  :system:
+    - m
   :test: []
   :release: []
 
