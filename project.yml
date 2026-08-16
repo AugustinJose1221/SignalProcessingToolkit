@@ -97,57 +97,60 @@
 # see documentation for the many options for specifying this.
 :paths:
   :test:
+    - tests/cmatrix/**
+    - tests/cnum/**
+    - tests/cspline/**
+    - tests/ekf/**
+    - tests/emd/**
+    - tests/fft/**
+    - tests/fir/**
+    - tests/hht/**
+    - tests/hilbert/**
+    - tests/iir/**
+    - tests/imf/**
+    - tests/kalman/**
     - tests/matrix/**
-    - tests/vector/**
-    - tests/vector2d/**
+    - tests/pmatrix/**
     - tests/utils/binarysearch/**
     - tests/utils/peakdetect/**
     - tests/utils/valleydetect/**
-    - tests/cspline/**
-    - tests/imf/**
-    - tests/emd/**
-    - tests/kalman/**
-    - tests/cnum/**
-    - tests/cmatrix/**
-    - tests/pmatrix/**
-    - tests/fft/**
-    - tests/hilbert/**
-    - tests/hht/**
-    - tests/fir/**
-    - tests/iir/**
+    - tests/vector/**
+    - tests/vector2d/**
   :source:
     - cmatrix/**
+    - cnum/**
+    - cspline/**
+    - ekf/**
+    - emd/**
     - fft/**
     - fir/**
     - hht/**
     - hilbert/**
     - iir/**
-    - pmatrix/**
-    - cnum/**
-    - cspline/**
-    - emd/**
     - imf/**
     - kalman/**
     - matrix/**
+    - pmatrix/**
     - point2d/**
     - utils/**
     - vector/**
     - vector2d/**
   :include:
     - cmatrix/**
+    - cnum/**
+    - common/**
+    - cspline/**
+    - ekf/**
+    - emd/**
     - fft/**
     - fir/**
     - hht/**
     - hilbert/**
     - iir/**
-    - pmatrix/**
-    - cnum/**
-    - common/**
-    - cspline/**
-    - emd/**
     - imf/**
     - kalman/**
     - matrix/**
+    - pmatrix/**
     - point2d/**
     - utils/**
     - vector/**

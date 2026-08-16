@@ -42,6 +42,7 @@ MODULES = [
     ("imf", "imf/imf.h", "Intrinsic mode functions"),
     ("emd", "emd/emd.h", "Empirical mode decomposition"),
     ("kalman", "kalman/kalman.h", "The Kalman filter"),
+    ("ekf", "ekf/ekf.h", "The extended Kalman filter"),
     ("binarysearch", "utils/binarysearch/binarysearch.h", "Binary search"),
     ("peakdetect", "utils/peakdetect/peakdetect.h", "Peak detection"),
     ("valleydetect", "utils/valleydetect/valleydetect.h", "Valley detection"),

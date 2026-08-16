@@ -36,6 +36,7 @@ MODULE_PREFIX = {
     "hht": "hht_",
     "fir": "fir_",
     "iir": "iir_",
+    "ekf": "ekf_",
     "cnum": "cnum_",
     "vector": "vector_",
     "vector2d": "vector2d_",
