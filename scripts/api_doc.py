@@ -12,7 +12,7 @@ The program writes one file for each module in docs/api/, and an index in
 docs/API.md. One file for each module keeps each file short, and a reader who
 works with one module opens one file only.
 
-The check finds three faults:
+The check finds four faults:
 
 - a function that a header declares and that has no comment above it;
 - a file under docs/ that does not agree with the headers;
