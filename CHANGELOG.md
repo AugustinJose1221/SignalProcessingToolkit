@@ -1,3 +1,31 @@
+## 0.4.0 (2026-08-17)
+
+**Every include path changes.** The modules of the library moved from the root
+of the repository into `sptk/`, grouped by the area of work. An include now
+names that area:
+
+```c
+#include <matrix/matrix.h>          // 0.3.0
+#include <sptk/linalg/matrix.h>     // 0.4.0
+```
+
+The name of every function, type and macro stays as it was. Only the paths
+move. The table at the head of README.md gives the area of each module.
+
+### Fix
+
+- **perf**: Remove the variables that nothing reads, and widen the warnings job
+
+### Refactor
+
+- Group the modules of the library by their area of work
+
+### Docs
+
+- **scripts**: Correct the number of faults that the check finds
+- **examples**: Build each example on a real device and a real question
+- Give each area of the library a guide that says how its modules work
+
 ## 0.3.0 (2026-08-16)
 
 ### Feat
