@@ -1,5 +1,5 @@
-// The benchmarks of the vector, the cubic spline, the Kalman filter and the
-// empirical mode decomposition.
+// The benchmarks of the vector, the cubic spline, the Kalman filter, the
+// empirical mode decomposition and the moving mean.
 
 #include <perf/benchmark/benchmark.h>
 
@@ -8,6 +8,8 @@
 #include <sptk/estimate/kalman.h>
 #include <sptk/decompose/emd.h>
 #include <sptk/decompose/imf.h>
+#include <sptk/filter/movavg.h>
+#include <sptk/filter/fir.h>
 
 #include <stdlib.h>
 
@@ -198,5 +200,43 @@ void run_emd_benchmark(void)
         free(working);
         free(peak_index);
         free(valley_index);
+    }
+}
+
+void run_movavg_benchmark(void)
+{
+    // The window sizes run from very short to very long, because the point of
+    // the measurement is how the cost follows the size. It follows the size
+    // for the fir and it does not for the movavg, and a short window is where
+    // the fir still wins.
+    static const uint32_t WINDOW_SIZES[] = {4, 16, 64, 512, 4096};
+    static const uint32_t WINDOW_SIZE_COUNT =
+        sizeof(WINDOW_SIZES)/sizeof(WINDOW_SIZES[0]);
+
+    for(uint32_t index = 0; index < WINDOW_SIZE_COUNT; index++)
+    {
+        uint32_t size = WINDOW_SIZES[index];
+        uint32_t repeats = 20000;
+        float value = 0.0f;
+
+        movavg_t movavg = movavg_alloc(size);
+        fir_t fir = fir_alloc(size);
+
+        // A fir whose coefficients are all the same gives the mean of its
+        // window, thus the two give the same answer.
+        for(uint32_t position = 0; position < size; position++)
+        {
+            fir_set_coefficient(&fir, position, 1.0f/(float)size);
+        }
+
+        BENCHMARK_MEASURE("movavg", "process_sample", size, repeats,
+                          value = movavg_process_sample(&movavg, random_value()));
+
+        BENCHMARK_MEASURE("fir", "equal_coefficients", size, repeats,
+                          value = fir_process_sample(&fir, random_value()));
+        (void)value;
+
+        movavg_free(&movavg);
+        fir_free(&fir);
     }
 }

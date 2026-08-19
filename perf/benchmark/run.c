@@ -16,6 +16,7 @@ int main(void)
     run_cspline_benchmark();
     run_kalman_benchmark();
     run_emd_benchmark();
+    run_movavg_benchmark();
 
     benchmark_report_footer();
 

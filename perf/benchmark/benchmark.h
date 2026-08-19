@@ -75,4 +75,9 @@ void run_cspline_benchmark(void);
 void run_kalman_benchmark(void);
 void run_emd_benchmark(void);
 
+// The moving mean beside the filter that it replaces. This one measures two
+// modules against each other, because the whole reason movavg exists is that
+// it costs the same for every size of window and a fir does not.
+void run_movavg_benchmark(void);
+
 #endif//BENCHMARK_H

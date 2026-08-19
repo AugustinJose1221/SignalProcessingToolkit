@@ -88,6 +88,51 @@ order of the polynomial must be below the size of the window. A higher order
 follows the signal more closely and takes away less noise.
 
 
+
+## movavg
+
+The mean over a window that slides is the most common smoothing there is, and
+the one most often written badly.
+
+A `fir` whose coefficients are all `1/length` gives the right answer, and many
+callers reach for that. It costs one multiplication and one addition for each
+coefficient, for each sample. A window of 500 samples costs 500 operations a
+sample, and at 32 kHz that is 16 million a second for a mean.
+
+It need not cost that. The mean of the new window differs from the mean of the
+old one by exactly two samples: the one that arrived and the one that fell off
+the end. Measured, in nanoseconds for one sample:
+
+| window | 4 | 8 | 16 | 64 | 500 | 4096 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `movavg` | 13.4 | 13.4 | 12.5 | 12.4 | 14.1 | 17.6 |
+| equal `fir` | 6.0 | 8.2 | 14.1 | 58.9 | 438.7 | 3588.4 |
+
+**Below a window of 16 the plain filter is faster.** The bookkeeping costs more
+than four multiplications do. Take `fir` for a very short window and `movavg`
+from about 16 upwards.
+
+**It is not a good low pass.** Its answer to a single frequency falls to
+nothing at the rate that fits the window and then rises again, thus a tone at
+the wrong frequency comes through nearly untouched. Take `fir` or `iir` where
+the frequencies matter. Take `movavg` where the window itself is the point: an
+energy over the last 200 ms, a level over the last second, the moving mean in
+the middle of a detector.
+
+**Three measures, two costs.** `movavg_get_mean` and `movavg_get_rms` are held
+as running totals, thus they cost nothing to read. `movavg_get_deviation`
+reads the whole window, and it must: a deviation from running totals would be
+the mean of the squares less the square of the mean, and those two numbers are
+nearly equal whenever the signal sits far from zero. A reading at 8 000 000
+that moves by 1 gives two numbers near 64 000 000 000 000 whose difference is
+1, and that difference is lost.
+
+**The totals are built again from time to time.** A running total that is added
+to and taken away from for ever gathers a small error at every step, and the
+error walks rather than cancels. Every `MOVAVG_REFRESH` samples the totals are
+worked out again from the window, which costs about one eighth of an operation
+for each sample and holds the accuracy for ever.
+
 ## What a design cannot do, and how it says so
 
 Every design function gives a `bool`. It is `false` when the filter that was
