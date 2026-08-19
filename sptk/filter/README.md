@@ -212,6 +212,58 @@ not in their difference: a band from 100 to 400 has its middle at 200, because
 200 is twice 100 and 400 is twice 200. `iir_design_band_stop` from 0.04 to 0.06
 therefore nulls at 0.049 and not at 0.05.
 
+
+## dcblock
+
+**Put this first in almost every chain.** It takes the level of a signal away,
+and until it has, every filter after it works with less precision than it
+should.
+
+Almost every reading arrives with a large constant part that carries nothing. A
+converter of 24 bits sitting near the middle of its range gives about eight
+million counts, and the signal on top may be a few thousand. A float holds
+about seven digits, thus six of them are spent on the part that carries
+nothing.
+
+**A high pass makes this worse, not better.** Its poles lie at a radius near
+0.9956 for a low cutoff, and a filter with such poles lifts whatever error
+reaches it by about two hundred times. Measured, on a wave of 1000 counts
+carried on a level, where the answer should not depend on the level at all.
+The figures are what each filter added BEYOND its own shape:
+
+| level | 0 | 1 000 | 100 000 | 8 300 000 |
+| --- | --- | --- | --- | --- |
+| `iir`, one section | 0.0 | 0.0 | 0.2 | 98.9 |
+| `iir`, two sections | 0.0 | 0.0 | 0.1 | 137.8 |
+| `dcblock` | 0.0 | 0.0 | 0.0 | 0.0 |
+
+A hundred counts of false signal against a wave of a thousand is a tenth of the
+answer, and it comes from nothing but the size of the number. It grows with the
+order of the filter, because each section lifts the error of the one before it.
+
+**It follows the level in double.** A double holds about sixteen digits, thus
+the level costs six and ten are left, where a float had one.
+
+**It holds a far lower cutoff.** `IIR_MIN_CUTOFF` is 0.001 of the sample rate
+and under that a section gives a wrong answer without saying so. This module
+holds 0.000001, a thousand times lower, because one pole in double has no
+cancelling sums in it. At 32 kHz that is 0.03 Hz, which no section could reach
+at that rate.
+
+**It primes itself on the first sample.** A filter that starts from zero sees
+the first sample as a step of the whole level, and at eight million counts with
+a cutoff under one hertz the answer to that step is larger than the signal for
+tens of seconds. This module sets its level to the first sample it is given,
+which says: assume the signal stood here for ever before now.
+
+**It is one pole and nothing more.** It falls away at 6 dB for each octave,
+which is gentle, and it is meant to take the level away and not a whole band.
+Where a band must go, put this first to bring the signal near zero and then use
+`iir`, which now has the precision to do its work.
+
+**The level is worth reading on its own.** `dcblock_get_level` gives the slow
+part of the signal, which carries the drift and the wander of a contact.
+
 ## What a design cannot do, and how it says so
 
 Every design function gives a `bool`. It is `false` when the filter that was
