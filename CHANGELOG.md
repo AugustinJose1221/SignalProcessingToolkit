@@ -1,3 +1,47 @@
+## 0.5.0 (2026-08-19)
+
+Six modules join the library, and two faults that gave a wrong answer without
+saying so are put right. Every one of them answers a gap that showed itself
+while a whole chain was built with the library rather than a single module.
+
+**A design now says when it cannot hold what it was asked for.** Both faults
+were of one kind: the library was given a filter it could not build, and it
+built something else and said nothing.
+
+A section of an infinite impulse response holds its poles near the circle when
+the cutoff is low, and a float holds about seven digits. Below a cutoff of
+0.001 of the sample rate those digits run out. The gain that should be 1 at
+zero frequency falls to 0.685 at a cutoff of 0.0001. A filter with a finite
+impulse response turns from passing to stopping over a band about `2/length`
+wide, thus a cutoff nearer to 0 than that has no room for the turn: for 101
+coefficients the gain in the pass band falls to 0.507 at a cutoff of 0.005.
+
+Every design function now gives a `bool`, and gives `false` and leaves the
+filter as it was when it cannot build what was asked. `iir_is_valid_cutoff`,
+`fir_is_valid_cutoff` and `fir_is_valid_band` answer the same question first.
+A caller that ignores the answer builds as it did before.
+
+**The size of a reading matters more than it looks.** A reading that sits at
+eight million counts with a signal of a few thousand on top spends six of the
+seven digits of a float on the part that carries nothing, and a high pass then
+lifts the rounding error by about two hundred times. The new `dcblock` module
+follows the level in double and hands back the difference, which takes that
+error away and holds a cutoff a thousand times lower than a section can.
+
+### Feat
+
+- **dcblock**: Add the tracker that takes the level of a signal away
+- **iir**: Add the band pass, the band stop, the notch and the peak
+- **medfilt**: Add the median of the last samples
+- **movavg**: Add the mean of the last samples in a fixed time
+- **ringbuf**: Add a buffer that holds the last samples
+- **stats**: Add the measures of a list of samples
+- **window**: Add the windows that a transform needs
+
+### Fix
+
+- **filter**: Refuse a cutoff that the design cannot hold
+
 ## 0.4.0 (2026-08-17)
 
 **Every include path changes.** The modules of the library moved from the root
