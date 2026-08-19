@@ -23,7 +23,7 @@ directory there:
 | Interpolation | `sptk/interpolate` | `cspline` | Give a smooth curve through a set of points |
 | Linear algebra | `sptk/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `vector`, `vector2d` | The arithmetic that the areas above need |
 | Utilities | `sptk/util` | `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
-| Core | `sptk/core` | `callback`, `defs`, `point2d` | The types and the macros that every module shares |
+| Core | `sptk/core` | `ringbuf`, `callback`, `defs`, `point2d` | A buffer of the last samples, and the types that every module shares |
 
 Include a module by its area:
 

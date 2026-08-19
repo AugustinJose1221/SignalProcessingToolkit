@@ -11,6 +11,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 # The library sources. These sources use only the C standard library.
 set(SIGNALPROC_SOURCES
+    sptk/core/ringbuf.c
     sptk/linalg/cmatrix.c
     sptk/linalg/cnum.c
     sptk/linalg/matrix.c

@@ -104,6 +104,7 @@
     - tests/estimate/**
     - tests/decompose/**
     - tests/util/**
+    - tests/core/**
   :source:
     - sptk/core/**
     - sptk/linalg/**
