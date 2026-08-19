@@ -81,6 +81,7 @@ name and shape of every function.
 
 | Module | What it holds |
 | --- | --- |
+| [`stats`](api/stats.md) | Measures of a list of samples |
 | [`binarysearch`](api/binarysearch.md) | Binary search |
 | [`peakdetect`](api/peakdetect.md) | Peak detection |
 | [`valleydetect`](api/valleydetect.md) | Valley detection |

@@ -33,3 +33,42 @@ Filter the signal first when that matters, with `sptk/filter`.
 
 The empirical mode decomposition uses both to find the points that its
 envelopes pass through.
+
+
+## stats
+
+Measures of a list of samples. Two kinds stand here, and the difference decides
+which one a piece of work needs.
+
+**The plain measures** are the mean, the variance, the deviation, the root mean
+square, the smallest and the largest. Each reads the list once and changes
+nothing. Each also follows every sample, and that is their weakness: one bad
+sample moves them all, and it moves the deviation most, because the deviation
+squares the distance.
+
+**The robust measures** are the median, the percentile and the median absolute
+deviation. These follow the middle of the list and not its edges. Half of the
+samples may be wrong before the median moves at all. They cost more, and
+`stats_median` and `stats_percentile` reorder the list that the caller gives,
+because they must put it in order and they take no memory of their own.
+`stats_mad` takes a work list instead and leaves the data as it was.
+
+**When the robust ones matter.** Take them to set a threshold from live data.
+A detector that puts its threshold a few deviations above the mean is undone by
+the first spike: the spike raises the threshold that was meant to catch it, and
+the detector then sees nothing. The median absolute deviation answers that. For
+samples that follow a normal spread it estimates the same number as the
+deviation, but a spike does not move it. Multiply by `STATS_MAD_TO_DEVIATION`
+to get a number that stands beside a deviation.
+
+**Why the median is fast.** `stats_median` does not sort the list. It uses the
+select of Hoare, which is the quick sort with one half left out: after each
+split only the half that holds the middle is worked on again. That costs about
+one pass over the list instead of one pass for each level. The pivot is the
+middle sample and not the first one, because a list that is already in order is
+a common input and would be the worst case otherwise.
+
+**Every sum runs in double.** A float holds about seven digits, and a long sum
+of large samples loses the low ones. Five samples that sit at eight million and
+move by one have a variance of exactly 2; adding them in float gives 2.25. The
+double costs nothing worth counting and takes that error away.
