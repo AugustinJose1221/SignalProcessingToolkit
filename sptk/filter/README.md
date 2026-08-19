@@ -133,6 +133,44 @@ error walks rather than cancels. Every `MOVAVG_REFRESH` samples the totals are
 worked out again from the window, which costs about one eighth of an operation
 for each sample and holds the accuracy for ever.
 
+
+## medfilt
+
+The median of the last samples. This answers a fault that no mean and no filter
+of frequency can answer.
+
+A sample can be **wrong** rather than noisy. A knock on an electrode, a sample
+lost on a wire, a spike from a switching supply: each puts one value in the
+signal that has nothing to do with the signal, and such a value does not
+average away.
+
+**A mean spreads it. A median removes it.** One sample a thousand times too
+large, in a window of 50, moves every one of the 50 answers that the window
+touches. The fault goes in as one bad sample and comes out as fifty. The middle
+of a window does not move at all while fewer than half of its samples are
+wrong, thus the same spike has no effect whatever and the signal on both sides
+of it is untouched.
+
+**The trap.** A median also removes any peak narrower than half the window,
+whether that peak is a fault or not. A window long enough to take out a wide
+spike also takes out a real QRS, a real pulse, a real edge. Choose the window
+from the width of the FAULT: long enough to cover the spike, and shorter than
+anything worth keeping.
+
+**It is not a filter of frequency.** It passes no band and stops no band, and
+it has no gain at each frequency, because it is not linear: two signals
+filtered and added do not give the same answer as the two added and filtered.
+
+**The usual chain is a median first, then a filter of frequency.** The other
+order does not work, because a filter of frequency spreads each spike over its
+whole window before the median can reach it.
+
+**What it costs.** One pass over the window for each sample, and no more. The
+filter holds its window in order, thus a new sample is put into its place and
+the old one taken out of its place, and neither needs a sort. An odd window is
+better than an even one: an odd window has a true middle sample, while an even
+one gives the mean of two, and that mean is no longer one of the samples.
+
 ## What a design cannot do, and how it says so
 
 Every design function gives a `bool`. It is `false` when the filter that was

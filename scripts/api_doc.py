@@ -55,6 +55,7 @@ MODULES = [
     ("dwt", "sptk/transform/dwt.h", "The discrete wavelet transform"),
     ("savgol", "sptk/filter/savgol.h", "The filter of Savitzky and Golay"),
     ("movavg", "sptk/filter/movavg.h", "The mean of the last samples"),
+    ("medfilt", "sptk/filter/medfilt.h", "The median of the last samples"),
     ("stats", "sptk/util/stats.h", "Measures of a list of samples"),
     ("binarysearch", "sptk/util/binarysearch.h", "Binary search"),
     ("peakdetect", "sptk/util/peakdetect.h", "Peak detection"),
@@ -151,7 +152,7 @@ def read_header(path):
 AREAS = [
     ("transform", "Transforms", ["fft", "window", "goertzel", "hilbert", "hht",
                                  "dwt"]),
-    ("filter", "Filters", ["fir", "iir", "savgol", "movavg"]),
+    ("filter", "Filters", ["fir", "iir", "savgol", "movavg", "medfilt"]),
     ("estimate", "Estimation", ["kalman", "ekf"]),
     ("decompose", "Decomposition", ["emd", "imf"]),
     ("interpolate", "Interpolation", ["cspline"]),

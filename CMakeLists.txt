@@ -29,6 +29,7 @@ set(SIGNALPROC_SOURCES
     sptk/filter/iir.c
     sptk/filter/savgol.c
     sptk/filter/movavg.c
+    sptk/filter/medfilt.c
     sptk/estimate/ekf.c
     sptk/estimate/kalman.c
     sptk/decompose/emd.c
