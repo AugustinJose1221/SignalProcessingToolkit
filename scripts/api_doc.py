@@ -54,6 +54,7 @@ MODULES = [
     ("goertzel", "sptk/transform/goertzel.h", "Detection of one frequency"),
     ("dwt", "sptk/transform/dwt.h", "The discrete wavelet transform"),
     ("savgol", "sptk/filter/savgol.h", "The filter of Savitzky and Golay"),
+    ("stats", "sptk/util/stats.h", "Measures of a list of samples"),
     ("binarysearch", "sptk/util/binarysearch.h", "Binary search"),
     ("peakdetect", "sptk/util/peakdetect.h", "Peak detection"),
     ("valleydetect", "sptk/util/valleydetect.h", "Valley detection"),
@@ -154,7 +155,8 @@ AREAS = [
     ("interpolate", "Interpolation", ["cspline"]),
     ("linalg", "Linear algebra", ["matrix", "cmatrix", "pmatrix", "cnum",
                                   "vector", "vector2d"]),
-    ("util", "Utilities", ["binarysearch", "peakdetect", "valleydetect"]),
+    ("util", "Utilities", ["stats", "binarysearch", "peakdetect",
+                           "valleydetect"]),
     ("core", "Core", ["point2d", "callback"]),
 ]
 

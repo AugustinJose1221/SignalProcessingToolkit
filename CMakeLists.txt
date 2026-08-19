@@ -32,6 +32,7 @@ set(SIGNALPROC_SOURCES
     sptk/decompose/emd.c
     sptk/decompose/imf.c
     sptk/util/binarysearch.c
+    sptk/util/stats.c
     sptk/util/peakdetect.c
     sptk/util/valleydetect.c)
 

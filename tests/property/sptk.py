@@ -37,6 +37,7 @@ SOURCES = [
     "sptk/decompose/emd.c",
     "sptk/decompose/imf.c",
     "sptk/util/binarysearch.c",
+    "sptk/util/stats.c",
     "sptk/util/peakdetect.c",
     "sptk/util/valleydetect.c",
 ]
@@ -234,6 +235,18 @@ def load_library():
         function.argtypes = [FLOAT_POINTER, FLOAT_POINTER, FLOAT_POINTER,
                              ctypes.c_uint32]
         function.restype = ctypes.c_uint32
+
+    # stats
+    for name in ("stats_sum", "stats_mean", "stats_variance", "stats_deviation",
+                 "stats_rms", "stats_min", "stats_max", "stats_median"):
+        function = getattr(library, name)
+        function.argtypes = [FLOAT_POINTER, ctypes.c_uint32]
+        function.restype = ctypes.c_float
+    library.stats_percentile.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                         ctypes.c_float]
+    library.stats_percentile.restype = ctypes.c_float
+    library.stats_mad.argtypes = [FLOAT_POINTER, ctypes.c_uint32, FLOAT_POINTER]
+    library.stats_mad.restype = ctypes.c_float
 
     return library
 
