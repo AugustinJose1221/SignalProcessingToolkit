@@ -116,13 +116,24 @@ int main(void)
     // Step one: an IIR high pass filter takes the baseline wander away. Two
     // sections give an order of four, which is enough for a cutoff this low.
     iir_t high_pass = iir_alloc(2);
-    iir_design_high_pass(&high_pass, LOW_CUTOFF);
+    // Every design says whether it could hold what was asked of it. A cutoff
+    // that is too low against the sample rate cannot be held, and a design
+    // that is not examined gives back a filter that looks right and is not.
+    if(!iir_design_high_pass(&high_pass, LOW_CUTOFF))
+    {
+        printf("the high pass cannot hold a cutoff of %.4f\n", LOW_CUTOFF);
+        return 1;
+    }
     iir_process_block(&high_pass, raw, without_wander, SIZE);
 
     // Step two: an FIR low pass filter takes the mains hum away and keeps the
     // shape of each beat.
     fir_t low_pass = fir_alloc(101);
-    fir_design_low_pass(&low_pass, HIGH_CUTOFF);
+    if(!fir_design_low_pass(&low_pass, HIGH_CUTOFF))
+    {
+        printf("the low pass is too short for a cutoff of %.4f\n", HIGH_CUTOFF);
+        return 1;
+    }
     fir_process_block(&low_pass, without_wander, clean, SIZE);
 
     uint32_t delay = low_pass.length / 2;

@@ -86,3 +86,43 @@ no memory while it runs.
 The window must hold an odd number of samples, so that it has a middle. The
 order of the polynomial must be below the size of the window. A higher order
 follows the signal more closely and takes away less noise.
+
+
+## What a design cannot do, and how it says so
+
+Every design function gives a `bool`. It is `false` when the filter that was
+asked for cannot be built, and then the filter is left exactly as it was.
+
+There are two ways to ask for a filter that cannot be built, and neither one
+announces itself in the answer of the filter. Both give back something that
+looks like a filter and behaves like a wrong one. This is why the checks exist.
+
+**A cutoff that is too low for an infinite impulse response.** A section holds
+its poles near the circle when the cutoff is low. A float holds about seven
+digits, and below a cutoff of about 0.001 of the sample rate those digits run
+out: the coefficients round to values that describe a different filter. The
+gain that should be 1 at zero frequency, measured:
+
+| cutoff | 0.0100 | 0.0020 | 0.0010 | 0.0005 | 0.0001 |
+| --- | --- | --- | --- | --- | --- |
+| gain | 1.0000 | 1.0014 | 0.9959 | 0.9909 | 0.6849 |
+
+`IIR_MIN_CUTOFF` holds the limit, and `iir_is_valid_cutoff` answers for a
+given cutoff.
+
+**A cutoff that is too low for the length of a finite impulse response.** Such
+a filter turns from passing to stopping over a band about `2/length` wide. A
+cutoff nearer to 0 than that has no room for the turn, thus the pass band never
+reaches 1. For 101 coefficients, where the turn is 0.0198 wide:
+
+| cutoff | 0.0500 | 0.0200 | 0.0100 | 0.0050 | 0.0020 |
+| --- | --- | --- | --- | --- | --- |
+| gain | 1.0024 | 1.0039 | 0.8443 | 0.5065 | 0.2140 |
+
+`fir_is_valid_cutoff` and `fir_is_valid_band` answer for a given length.
+
+**What to do when a design says false.** A cutoff below the limit nearly always
+means the sample rate is too high for the work. A cutoff of 0.5 Hz against
+32 kHz is 0.000016 and no design can hold it; the same cutoff against 500 Hz is
+0.001 and any of them can. Bring the rate down first, then filter. Making the
+filter longer answers the second case as well, at the cost of delay.

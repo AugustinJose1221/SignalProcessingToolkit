@@ -322,3 +322,48 @@ void test_iir_free_releases_a_dynamic_filter(void)
     iir_free(&iir);
     TEST_ASSERT_NULL(iir.coefficient);
 }
+
+void test_iir_is_valid_cutoff(void)
+{
+    TEST_ASSERT_EQUAL(true, iir_is_valid_cutoff(0.1f));
+    TEST_ASSERT_EQUAL(true, iir_is_valid_cutoff(0.01f));
+    TEST_ASSERT_EQUAL(true, iir_is_valid_cutoff(IIR_MIN_CUTOFF));
+
+    // Under the limit a section in single precision loses its accuracy.
+    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(0.0001f));
+    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(0.0f));
+
+    // At and above half the sample rate there is nothing to pass.
+    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(0.5f));
+    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(0.6f));
+}
+
+void test_iir_design_refuses_a_cutoff_that_is_too_low(void)
+{
+    iir_t iir = iir_alloc(2);
+
+    // Build a filter that is good, and hold what it does.
+    TEST_ASSERT_EQUAL(true, iir_design_low_pass(&iir, 0.05f));
+    float before = iir_get_gain(&iir, 0.02f);
+
+    // A design that cannot be held must say so and must change nothing.
+    TEST_ASSERT_EQUAL(false, iir_design_low_pass(&iir, 0.00001f));
+    TEST_ASSERT_EQUAL(false, iir_design_high_pass(&iir, 0.00001f));
+
+    TEST_ASSERT_FLOAT_WITHIN(0.0001f, before, iir_get_gain(&iir, 0.02f));
+
+    iir_free(&iir);
+}
+
+void test_iir_design_takes_a_cutoff_at_the_limit(void)
+{
+    iir_t iir = iir_alloc(2);
+
+    TEST_ASSERT_EQUAL(true, iir_design_low_pass(&iir, IIR_MIN_CUTOFF));
+
+    // At the limit the gain at zero frequency must still be near one. This is
+    // the measurement that sets the limit, thus the test holds it.
+    TEST_ASSERT_FLOAT_WITHIN(0.02f, 1.0f, iir_get_gain(&iir, 0.0f));
+
+    iir_free(&iir);
+}

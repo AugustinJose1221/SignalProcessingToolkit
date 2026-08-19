@@ -305,3 +305,70 @@ void test_fir_free_releases_a_dynamic_filter(void)
     fir_free(&fir);
     TEST_ASSERT_NULL(fir.coefficient);
 }
+
+void test_fir_is_valid_cutoff(void)
+{
+    // The turn of a filter of 101 coefficients is 2/101, which is 0.0198.
+    TEST_ASSERT_EQUAL(true, fir_is_valid_cutoff(101, 0.05f));
+    TEST_ASSERT_EQUAL(true, fir_is_valid_cutoff(101, 0.02f));
+    TEST_ASSERT_EQUAL(false, fir_is_valid_cutoff(101, 0.01f));
+    TEST_ASSERT_EQUAL(false, fir_is_valid_cutoff(101, 0.002f));
+
+    // The same cutoff becomes valid when the filter is long enough.
+    TEST_ASSERT_EQUAL(true, fir_is_valid_cutoff(1001, 0.01f));
+
+    // The turn needs room at the top of the band as well.
+    TEST_ASSERT_EQUAL(false, fir_is_valid_cutoff(101, 0.49f));
+    TEST_ASSERT_EQUAL(false, fir_is_valid_cutoff(0, 0.1f));
+}
+
+void test_fir_is_valid_band(void)
+{
+    TEST_ASSERT_EQUAL(true, fir_is_valid_band(101, 0.05f, 0.15f));
+
+    // A band narrower than the turn leaves no frequency that passes fully.
+    TEST_ASSERT_EQUAL(false, fir_is_valid_band(101, 0.10f, 0.11f));
+
+    // An edge that is itself too low makes the whole band invalid.
+    TEST_ASSERT_EQUAL(false, fir_is_valid_band(101, 0.005f, 0.15f));
+}
+
+void test_fir_design_refuses_a_cutoff_that_is_too_low(void)
+{
+    fir_t fir = fir_alloc(101);
+
+    // Build a filter that is good, and hold its coefficients.
+    TEST_ASSERT_EQUAL(true, fir_design_low_pass(&fir, 0.10f));
+    float before[101];
+    for(uint32_t index = 0; index < 101; index++)
+    {
+        before[index] = fir_get_coefficient(&fir, index);
+    }
+
+    // A design that cannot be held must say so and must change nothing.
+    TEST_ASSERT_EQUAL(false, fir_design_low_pass(&fir, 0.002f));
+    TEST_ASSERT_EQUAL(false, fir_design_high_pass(&fir, 0.002f));
+    TEST_ASSERT_EQUAL(false, fir_design_band_pass(&fir, 0.10f, 0.105f));
+
+    for(uint32_t index = 0; index < 101; index++)
+    {
+        TEST_ASSERT_FLOAT_WITHIN(0.0001f, before[index],
+                                 fir_get_coefficient(&fir, index));
+    }
+
+    fir_free(&fir);
+}
+
+void test_fir_design_holds_its_pass_band_at_the_shortest_valid_cutoff(void)
+{
+    fir_t fir = fir_alloc(101);
+    float turn = FIR_TRANSITION / 101.0f;
+
+    TEST_ASSERT_EQUAL(true, fir_design_low_pass(&fir, turn));
+
+    // This is the measurement that sets the limit: at the turn the pass band
+    // still reaches one, and below it the gain falls away.
+    TEST_ASSERT_FLOAT_WITHIN(0.02f, 1.0f, fir_get_gain(&fir, 0.0f));
+
+    fir_free(&fir);
+}
