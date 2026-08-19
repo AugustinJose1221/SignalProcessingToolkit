@@ -367,3 +367,219 @@ void test_iir_design_takes_a_cutoff_at_the_limit(void)
 
     iir_free(&iir);
 }
+
+void test_iir_design_notch_stops_one_frequency_and_passes_the_rest(void)
+{
+    // The hum of the mains at 50 Hz against a sample rate of 1000 Hz.
+    iir_t iir = iir_alloc(1);
+
+    TEST_ASSERT_EQUAL(true, iir_design_notch(&iir, 0.05f, 30.0f));
+
+    // Nothing passes at the frequency itself.
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, iir_get_gain(&iir, 0.05f));
+
+    // Everything else passes untouched, close by and far away.
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.0f, iir_get_gain(&iir, 0.04f));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.0f, iir_get_gain(&iir, 0.06f));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.0f, iir_get_gain(&iir, 0.001f));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.0f, iir_get_gain(&iir, 0.4f));
+
+    iir_free(&iir);
+}
+
+void test_iir_design_notch_gets_narrower_as_the_quality_rises(void)
+{
+    iir_t wide = iir_alloc(1);
+    iir_t narrow = iir_alloc(1);
+
+    iir_design_notch(&wide, 0.05f, 5.0f);
+    iir_design_notch(&narrow, 0.05f, 50.0f);
+
+    // Both stop the frequency itself.
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, iir_get_gain(&wide, 0.05f));
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, iir_get_gain(&narrow, 0.05f));
+
+    // A little away from it, the narrow one has already let go.
+    TEST_ASSERT_TRUE(iir_get_gain(&narrow, 0.055f) > iir_get_gain(&wide, 0.055f));
+
+    iir_free(&wide);
+    iir_free(&narrow);
+}
+
+void test_iir_design_notch_refuses_what_it_cannot_hold(void)
+{
+    iir_t iir = iir_alloc(1);
+
+    TEST_ASSERT_EQUAL(false, iir_design_notch(&iir, 0.00001f, 30.0f));
+    TEST_ASSERT_EQUAL(false, iir_design_notch(&iir, 0.05f, 0.0f));
+    TEST_ASSERT_EQUAL(false, iir_design_notch(&iir, 0.05f, -1.0f));
+
+    iir_free(&iir);
+}
+
+void test_iir_design_peak_passes_one_frequency_and_stops_the_rest(void)
+{
+    iir_t iir = iir_alloc(1);
+
+    TEST_ASSERT_EQUAL(true, iir_design_peak(&iir, 0.05f, 30.0f));
+
+    // The gain is one at the frequency, however narrow the band is.
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, iir_get_gain(&iir, 0.05f));
+
+    // Everything else falls away on both sides.
+    TEST_ASSERT_TRUE(iir_get_gain(&iir, 0.01f) < 0.05f);
+    TEST_ASSERT_TRUE(iir_get_gain(&iir, 0.1f) < 0.05f);
+    TEST_ASSERT_TRUE(iir_get_gain(&iir, 0.4f) < 0.05f);
+
+    iir_free(&iir);
+}
+
+void test_iir_design_peak_and_notch_are_two_sides_of_the_same_thing(void)
+{
+    // They share their poles and differ in their zeros, thus what one passes
+    // the other stops. Their gains squared must add to about one.
+    iir_t notch = iir_alloc(1);
+    iir_t peak = iir_alloc(1);
+
+    iir_design_notch(&notch, 0.05f, 20.0f);
+    iir_design_peak(&peak, 0.05f, 20.0f);
+
+    float test[4] = {0.02f, 0.045f, 0.05f, 0.09f};
+
+    for(uint32_t index = 0; index < 4u; index++)
+    {
+        float one = iir_get_gain(&notch, test[index]);
+        float other = iir_get_gain(&peak, test[index]);
+        TEST_ASSERT_FLOAT_WITHIN(0.02f, 1.0f, (one * one) + (other * other));
+    }
+
+    iir_free(&notch);
+    iir_free(&peak);
+}
+
+void test_iir_design_band_pass(void)
+{
+    iir_t iir = iir_alloc(4);
+
+    TEST_ASSERT_EQUAL(true, iir_design_band_pass(&iir, 0.05f, 0.20f));
+
+    // The gain is one in the middle of the band.
+    TEST_ASSERT_FLOAT_WITHIN(0.02f, 1.0f, iir_get_gain(&iir, 0.10f));
+
+    // Each cutoff stands where the gain is the root of a half, which is what
+    // a cutoff means.
+    TEST_ASSERT_FLOAT_WITHIN(0.02f, 0.7071f, iir_get_gain(&iir, 0.05f));
+    TEST_ASSERT_FLOAT_WITHIN(0.02f, 0.7071f, iir_get_gain(&iir, 0.20f));
+
+    // Well outside the band, almost nothing passes.
+    TEST_ASSERT_TRUE(iir_get_gain(&iir, 0.005f) < 0.01f);
+    TEST_ASSERT_TRUE(iir_get_gain(&iir, 0.45f) < 0.01f);
+
+    iir_free(&iir);
+}
+
+void test_iir_design_band_pass_needs_an_even_number_of_sections(void)
+{
+    // Half of the sections make each edge, thus an odd number cannot be
+    // shared and the design must say so rather than build something else.
+    iir_t odd = iir_alloc(3);
+    iir_t even = iir_alloc(2);
+
+    TEST_ASSERT_EQUAL(false, iir_design_band_pass(&odd, 0.05f, 0.20f));
+    TEST_ASSERT_EQUAL(true, iir_design_band_pass(&even, 0.05f, 0.20f));
+
+    iir_free(&odd);
+    iir_free(&even);
+}
+
+void test_iir_design_band_pass_refuses_a_band_that_is_not_a_band(void)
+{
+    iir_t iir = iir_alloc(2);
+
+    TEST_ASSERT_EQUAL(false, iir_design_band_pass(&iir, 0.20f, 0.05f));
+    TEST_ASSERT_EQUAL(false, iir_design_band_pass(&iir, 0.05f, 0.05f));
+    TEST_ASSERT_EQUAL(false, iir_design_band_pass(&iir, 0.00001f, 0.20f));
+
+    iir_free(&iir);
+}
+
+void test_iir_design_band_stop(void)
+{
+    iir_t iir = iir_alloc(1);
+
+    TEST_ASSERT_EQUAL(true, iir_design_band_stop(&iir, 0.04f, 0.06f));
+
+    // The middle of the band is the GEOMETRIC mean of the two edges, which is
+    // 0.049 and not 0.05. A filter of this kind is symmetric in the ratio of
+    // the frequencies and not in their difference.
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, iir_get_gain(&iir, 0.049f));
+
+    // Each edge stands where the gain is the root of a half.
+    TEST_ASSERT_FLOAT_WITHIN(0.02f, 0.7071f, iir_get_gain(&iir, 0.04f));
+    TEST_ASSERT_FLOAT_WITHIN(0.02f, 0.7071f, iir_get_gain(&iir, 0.06f));
+
+    // Well away from the band, everything passes.
+    TEST_ASSERT_FLOAT_WITHIN(0.05f, 1.0f, iir_get_gain(&iir, 0.001f));
+    TEST_ASSERT_FLOAT_WITHIN(0.05f, 1.0f, iir_get_gain(&iir, 0.4f));
+
+    iir_free(&iir);
+}
+
+void test_iir_design_band_stop_refuses_a_band_that_is_not_a_band(void)
+{
+    iir_t iir = iir_alloc(1);
+
+    TEST_ASSERT_EQUAL(false, iir_design_band_stop(&iir, 0.06f, 0.04f));
+    TEST_ASSERT_EQUAL(false, iir_design_band_stop(&iir, 0.00001f, 0.06f));
+
+    iir_free(&iir);
+}
+
+void test_iir_notch_takes_a_hum_out_of_a_signal(void)
+{
+    // The whole point, worked through on a signal: a slow wave that must be
+    // kept, with a hum at 50 Hz three times as large that must go.
+    //
+    // The test measures energy and not each sample. A filter shifts the phase
+    // of what it passes, thus the wave comes out a little later than it went
+    // in, and comparing sample against sample would measure that shift and not
+    // the hum.
+    iir_t iir = iir_alloc(1);
+    iir_design_notch(&iir, 0.05f, 30.0f);
+
+    float wanted_energy = 0.0f;
+    float mixed_energy = 0.0f;
+    float result_energy = 0.0f;
+    uint32_t counted = 0;
+
+    for(uint32_t index = 0; index < 4000u; index++)
+    {
+        float time = (float)index;
+        float wanted = sinf(2.0f * PI * 0.005f * time);
+        float mixed = wanted + (3.0f * sinf(2.0f * PI * 0.05f * time));
+
+        float result = iir_process_sample(&iir, mixed);
+
+        // Look only after the filter has settled.
+        if(index > 1000u)
+        {
+            wanted_energy += wanted * wanted;
+            mixed_energy += mixed * mixed;
+            result_energy += result * result;
+            counted++;
+        }
+    }
+
+    float wanted_rms = sqrtf(wanted_energy / (float)counted);
+    float mixed_rms = sqrtf(mixed_energy / (float)counted);
+    float result_rms = sqrtf(result_energy / (float)counted);
+
+    // What went in holds far more energy than the wave alone.
+    TEST_ASSERT_TRUE(mixed_rms > (2.5f * wanted_rms));
+
+    // What comes out holds the energy of the wave and nothing more, thus the
+    // hum is gone and the wave is kept.
+    TEST_ASSERT_FLOAT_WITHIN(0.05f * wanted_rms, wanted_rms, result_rms);
+
+    iir_free(&iir);
+}

@@ -145,6 +145,90 @@ frequencies pass.
 Give false and leave the filter as it was if the cutoff is outside
 IIR_MIN_CUTOFF to 0.5.
 
+### `iir_design_band_pass`
+
+```c
+bool iir_design_band_pass(iir_t* iir, float low_cutoff, float high_cutoff);
+```
+
+Build a filter that passes the band between the two cutoffs.
+
+The design is a high pass at the low edge followed by a low pass at the high
+edge, sharing the sections of the filter between them. Thus the number of
+sections MUST BE EVEN, and half of them go to each edge.
+
+This suits a band that is wide. For a band that is narrow, say where the
+high edge is under about one and a half times the low edge, the two edges
+reach into each other and the gain in the middle of the band falls below
+one. Take iir_design_peak for a narrow band: it holds its gain at 1 at the
+middle however narrow the band is.
+
+Give false if the number of sections is odd, if either cutoff cannot be
+held, or if the high cutoff is not above the low one.
+
+### `iir_design_band_stop`
+
+```c
+bool iir_design_band_stop(iir_t* iir, float low_cutoff, float high_cutoff);
+```
+
+Build a filter that stops the band between the two cutoffs and passes
+everything else.
+
+Each section is a second order stop, standing at the middle of the band with
+a width that the two cutoffs give. Sections beyond the first make the stop
+deeper and narrower, thus ONE SECTION IS USUALLY WHAT IS WANTED.
+
+Give false if either cutoff cannot be held, or if the high cutoff is not
+above the low one.
+
+### `iir_design_notch`
+
+```c
+bool iir_design_notch(iir_t* iir, float centre, float quality);
+```
+
+Build a filter that stops one frequency and passes everything else.
+
+This is the answer to the hum of the mains, which is the most common single
+unwanted frequency there is. Give the frequency of the hum as a part of the
+sample rate, and give how narrow the stop must be as the quality.
+
+The quality is the frequency divided by the width of the stop. A quality of
+30 at a hum of 50 Hz stops a band about 1.7 Hz wide, which takes the hum out
+and leaves the signal on both sides of it. A higher quality is narrower.
+
+A NARROW STOP IS NOT ALWAYS BETTER. A stop that is very narrow rings: it
+answers a step with a tone at its own frequency that dies away slowly, and
+that tone can look like a signal. It also needs the hum to stand still,
+which the mains does not always do. A quality between 10 and 50 suits most
+work.
+
+Sections beyond the first make the stop deeper and narrower. One is usually
+what is wanted.
+
+Give false if the frequency cannot be held or if the quality is not above
+zero.
+
+### `iir_design_peak`
+
+```c
+bool iir_design_peak(iir_t* iir, float centre, float quality);
+```
+
+Build a filter that passes one frequency and stops everything else.
+
+This is the other side of iir_design_notch, and it takes the same two
+numbers. Its gain is 1 at the middle of the band however narrow the band is,
+thus it suits a band that iir_design_band_pass cannot hold.
+
+Take it to follow one tone: the carrier of a signal, one note, the beat of a
+heart inside a band. Where only the SIZE of one frequency is wanted and not
+the signal itself, the goertzel module costs far less.
+
+Give false if the frequency cannot be held or if the quality is not above
+zero.
+
 ### `iir_set_section`
 
 ```c

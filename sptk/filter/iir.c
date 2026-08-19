@@ -121,6 +121,157 @@ bool iir_design_high_pass(iir_t* iir, float cutoff)
     return true;
 }
 
+// The two numbers that every second order design at one frequency needs.
+//
+// The first is the cosine of the turn that the frequency makes in one sample.
+// The second sets how wide the design reaches around that frequency: it falls
+// as the quality rises, thus a high quality gives a narrow design.
+static void iir_resonance(float centre, float quality, float* cosine, float* alpha)
+{
+    float turn = 2.0f * IIR_PI * centre;
+
+    *cosine = cosf(turn);
+    *alpha = sinf(turn) / (2.0f * quality);
+}
+
+// The middle of a band, and how narrow that band is.
+//
+// The middle is the GEOMETRIC mean of the two edges and not the plain mean.
+// A filter of this kind is symmetric about its middle in the ratio of the
+// frequencies and not in their difference: a band from 100 to 400 has its
+// middle at 200, because 200 is twice 100 and 400 is twice 200. The plain mean
+// would put it at 250 and the two edges would then not fall away equally.
+static void iir_band_to_resonance(float low_cutoff, float high_cutoff,
+                                  float* centre, float* quality)
+{
+    *centre = sqrtf(low_cutoff * high_cutoff);
+    *quality = *centre / (high_cutoff - low_cutoff);
+}
+
+bool iir_design_band_pass(iir_t* iir, float low_cutoff, float high_cutoff)
+{
+    ASSERT(iir != NULL);
+
+    if((iir->sections % 2u) != 0u)
+    {
+        return false;
+    }
+    if(!iir_is_valid_cutoff(low_cutoff) || !iir_is_valid_cutoff(high_cutoff))
+    {
+        return false;
+    }
+    if(high_cutoff <= low_cutoff)
+    {
+        return false;
+    }
+
+    // Half of the sections make the high pass at the low edge, and half make
+    // the low pass at the high edge. Each half is designed on its own and then
+    // copied into its place, thus the design of each edge stays the one that
+    // is already tested.
+    uint32_t half = iir->sections / 2u;
+
+    iir_t low_part = iir_alloc(half);
+    iir_t high_part = iir_alloc(half);
+
+    bool built = iir_design_high_pass(&high_part, low_cutoff)
+                 && iir_design_low_pass(&low_part, high_cutoff);
+
+    if(built)
+    {
+        for(uint32_t section = 0; section < half; section++)
+        {
+            const float* from = &high_part.coefficient[section * IIR_COEFFICIENT_COUNT];
+            iir_set_section(iir, section, from[0], from[1], from[2],
+                            1.0f, from[3], from[4]);
+        }
+        for(uint32_t section = 0; section < half; section++)
+        {
+            const float* from = &low_part.coefficient[section * IIR_COEFFICIENT_COUNT];
+            iir_set_section(iir, half + section, from[0], from[1], from[2],
+                            1.0f, from[3], from[4]);
+        }
+    }
+
+    iir_free(&low_part);
+    iir_free(&high_part);
+
+    return built;
+}
+
+bool iir_design_notch(iir_t* iir, float centre, float quality)
+{
+    ASSERT(iir != NULL);
+
+    if(!iir_is_valid_cutoff(centre) || (quality <= 0.0f))
+    {
+        return false;
+    }
+
+    float cosine;
+    float alpha;
+    iir_resonance(centre, quality, &cosine, &alpha);
+
+    // The zeros stand exactly on the circle at the frequency, thus the gain
+    // there is nothing. The poles stand just inside the circle at the same
+    // frequency, thus everywhere else the two nearly cancel and the gain stays
+    // at one.
+    for(uint32_t section = 0; section < iir->sections; section++)
+    {
+        iir_set_section(iir, section,
+                        1.0f, -2.0f * cosine, 1.0f,
+                        1.0f + alpha, -2.0f * cosine, 1.0f - alpha);
+    }
+
+    return true;
+}
+
+bool iir_design_peak(iir_t* iir, float centre, float quality)
+{
+    ASSERT(iir != NULL);
+
+    if(!iir_is_valid_cutoff(centre) || (quality <= 0.0f))
+    {
+        return false;
+    }
+
+    float cosine;
+    float alpha;
+    iir_resonance(centre, quality, &cosine, &alpha);
+
+    // The same poles as the notch, and zeros at nothing and at half the sample
+    // rate instead of on the frequency. Thus the gain is 1 at the frequency
+    // and falls away on both sides of it.
+    for(uint32_t section = 0; section < iir->sections; section++)
+    {
+        iir_set_section(iir, section,
+                        alpha, 0.0f, -alpha,
+                        1.0f + alpha, -2.0f * cosine, 1.0f - alpha);
+    }
+
+    return true;
+}
+
+bool iir_design_band_stop(iir_t* iir, float low_cutoff, float high_cutoff)
+{
+    ASSERT(iir != NULL);
+
+    if(!iir_is_valid_cutoff(low_cutoff) || !iir_is_valid_cutoff(high_cutoff))
+    {
+        return false;
+    }
+    if(high_cutoff <= low_cutoff)
+    {
+        return false;
+    }
+
+    float centre;
+    float quality;
+    iir_band_to_resonance(low_cutoff, high_cutoff, &centre, &quality);
+
+    return iir_design_notch(iir, centre, quality);
+}
+
 void iir_set_section(iir_t* iir, uint32_t section, float b0, float b1, float b2,
                      float a0, float a1, float a2)
 {
