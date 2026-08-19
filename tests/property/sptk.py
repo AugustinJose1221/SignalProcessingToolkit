@@ -16,6 +16,7 @@ LIBRARY_PATH = os.path.join(BUILD_DIRECTORY, "libsptk.so")
 
 # The same list of sources as SIGNALPROC_SOURCES in CMakeLists.txt.
 SOURCES = [
+    "sptk/core/ringbuf.c",
     "sptk/linalg/cmatrix.c",
     "sptk/linalg/cnum.c",
     "sptk/linalg/matrix.c",

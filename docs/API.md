@@ -92,5 +92,6 @@ name and shape of every function.
 
 | Module | What it holds |
 | --- | --- |
+| [`ringbuf`](api/ringbuf.md) | A buffer of the last samples |
 | [`point2d`](api/point2d.md) | A point on a plane |
 | [`callback`](api/callback.md) | The print callback |

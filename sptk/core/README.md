@@ -1,7 +1,41 @@
 # Core
 
-Three headers that hold no module of their own. They give the types and the
-macros that the other areas share, thus they hold no `.c` file and no function.
+One module that every area may reach for, and three headers that hold no module
+of their own. The three give the types and the macros that the other areas
+share, thus they hold no `.c` file and no function.
+
+| Header | What it gives |
+| --- | --- |
+| `ringbuf.h` | A buffer that holds the last samples and forgets the rest |
+| `callback.h` | The type of a function that writes text |
+| `defs.h` | `ASSERT` |
+| `point2d.h` | A point on a plane |
+
+## ringbuf.h
+
+A program that reads a signal as it arrives needs the samples that came before
+the one in hand. A filter needs them, a detector that looks back for a peak
+needs them, and a transform needs a whole block of them. But the signal never
+ends, thus the program cannot keep it all.
+
+This buffer holds a fixed number of the newest samples. When it is full, a new
+sample takes the place of the oldest. Nothing is copied and nothing is moved:
+only one position changes. Thus putting a sample in costs the same whether the
+buffer holds ten samples or ten thousand.
+
+**Three uses.** As a **delay line**, put the sample that arrived and then take
+the sample from a number of steps ago. As a **window**, `ringbuf_copy` writes a
+flat list, oldest first, for a transform or a median or a filter of Savitzky
+and Golay to read. As **history**, a detector that fires on one sample can look
+back to find where the event really stood.
+
+**An age, not a position.** `ringbuf_get` takes an age: 0 is the newest sample,
+1 the one before it. The meaning of a number then does not change as the buffer
+fills, which the meaning of a position would.
+
+**The size is any number above zero.** It need not be a power of two. The head
+turns back to the start with a comparison and not with a remainder, because a
+division costs far more than a comparison on a small processor.
 
 ## callback.h
 
