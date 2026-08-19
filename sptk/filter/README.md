@@ -171,6 +171,47 @@ the old one taken out of its place, and neither needs a sort. An odd window is
 better than an even one: an odd window has a true middle sample, while an even
 one gives the mean of two, and that mean is no longer one of the samples.
 
+
+## Choosing a shape of filter
+
+`fir` and `iir` build five shapes between them. The table says which one
+answers which question.
+
+| Shape | Function | The question it answers |
+| --- | --- | --- |
+| Low pass | `iir_design_low_pass`, `fir_design_low_pass` | Take away everything fast |
+| High pass | `iir_design_high_pass`, `fir_design_high_pass` | Take away the wander |
+| Band pass | `iir_design_band_pass`, `fir_design_band_pass` | Keep one range of frequencies |
+| Band stop, notch | `iir_design_band_stop`, `iir_design_notch` | Take away one frequency |
+| Peak | `iir_design_peak` | Follow one frequency |
+
+**The notch is the answer to the hum of the mains**, which is the most common
+single unwanted frequency there is. Give the frequency as a part of the sample
+rate and give the quality, which is that frequency divided by the width of the
+stop. A quality of 30 at 50 Hz stops a band about 1.7 Hz wide.
+
+A very narrow stop is not always better. It rings: it answers a step with a
+tone at its own frequency that dies away slowly, and that tone can look like a
+signal. It also needs the hum to stand still, which the mains does not always
+do. A quality between 10 and 50 suits most work.
+
+**A band pass shares its sections between its two edges**, half making a high
+pass at the low edge and half a low pass at the high edge. The number of
+sections must therefore be even. This suits a wide band. For a narrow band the
+two edges reach into each other and the gain in the middle falls below one;
+`iir_design_peak` holds its gain at 1 at the middle however narrow the band is.
+
+**The peak and the notch are two sides of one thing.** They share their poles
+and differ only in their zeros, thus what one passes the other stops. Where
+only the SIZE of one frequency is wanted and not the signal itself, the
+`goertzel` module costs far less than either.
+
+**The middle of a band is the geometric mean of its edges** and not the plain
+mean. A filter of this kind is symmetric in the RATIO of the frequencies and
+not in their difference: a band from 100 to 400 has its middle at 200, because
+200 is twice 100 and 400 is twice 200. `iir_design_band_stop` from 0.04 to 0.06
+therefore nulls at 0.049 and not at 0.05.
+
 ## What a design cannot do, and how it says so
 
 Every design function gives a `bool`. It is `false` when the filter that was
