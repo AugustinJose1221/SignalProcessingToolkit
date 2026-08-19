@@ -7,10 +7,56 @@ question decides which one you want.
 | Module | The question it answers | What it costs |
 | --- | --- | --- |
 | `fft` | Which frequencies does this block hold? | Memory for the whole block |
+| `window` | How do I stop one tone smearing over the others? | One multiplication for each sample |
 | `goertzel` | How much of *this one* frequency does it hold? | Three float values |
 | `hilbert` | What is the amplitude and the frequency at each moment? | One transform each way |
 | `hht` | Which frequency at which moment, for a signal that changes? | A decomposition and a transform |
 | `dwt` | Which frequencies, and *where* in the signal? | One pass for each level |
+
+## window
+
+**Read this before `fft`, because a transform without a window is nearly
+always wrong.**
+
+A transform reads a block of samples and takes it to be one period of a signal
+that repeats for ever. Almost no real signal fits a block exactly. The end of
+the block then does not meet its start, and the transform sees a step there. A
+step holds every frequency, thus one tone smears across the whole result and a
+small tone beside a large one disappears under it.
+
+A window is a list of numbers that the block is multiplied by first. It falls
+to nothing at both ends, thus the block always meets itself and there is no
+step.
+
+**Which one to take.** Every window trades two things. A tone that does not sit
+exactly on a bin spreads over the bins beside it, and a wider spread hides a
+tone that stands close. What is left over reaches further out as side lobes,
+and higher ones hide a tone that stands far away but is weak. Measured for a
+window of 64 samples:
+
+| Window | Highest side lobe | Noise bandwidth | Take it when |
+| --- | --- | --- | --- |
+| Rectangular | -13 dB | 1.00 bins | The block already fits |
+| Hann | -32 dB | 1.52 bins | Nothing else is known |
+| Hamming | -42 dB | 1.38 bins | A near tone must be seen |
+| Blackman | -58 dB | 1.75 bins | A weak tone beside a strong one |
+| Blackman-Harris | -92 dB | 2.04 bins | The same, when the gap is very wide |
+| Tukey | follows its parameter | | Only the ends may fall |
+| Kaiser | follows its parameter | | The side lobes must meet a number |
+
+**Do not forget the gain.** A window makes the signal smaller, thus every
+height in the result is too low. `window_coherent_gain` gives the number to
+divide a tone by, and `window_noise_gain` gives the number to divide noise by.
+A Hann window has a coherent gain of 0.5, thus a reading that does not divide
+by it is wrong by a factor of two. This is the usual fault.
+
+**One trap in the rule of Kaiser.** `window_kaiser_beta` takes the stop band
+of a FILTER that the window builds. That is not the level of the side lobes of
+the window itself: the side lobes always lie about 18 to 27 dB higher. A beta
+for a stop band of 60 dB gives a window whose own side lobes stand only 42 dB
+down. The header holds a table of both.
+
+The module gets no memory. It writes into a list that the caller holds.
 
 ## fft
 

@@ -20,6 +20,7 @@ name and shape of every function.
 | Module | What it holds |
 | --- | --- |
 | [`fft`](api/fft.md) | The fast Fourier transform |
+| [`window`](api/window.md) | Windows for a transform |
 | [`goertzel`](api/goertzel.md) | Detection of one frequency |
 | [`hilbert`](api/hilbert.md) | The Hilbert transform |
 | [`hht`](api/hht.md) | The Hilbert-Huang transform |
