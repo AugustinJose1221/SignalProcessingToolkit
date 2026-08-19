@@ -34,6 +34,7 @@ SOURCES = [
     "sptk/filter/iir.c",
     "sptk/filter/savgol.c",
     "sptk/filter/movavg.c",
+    "sptk/filter/medfilt.c",
     "sptk/estimate/ekf.c",
     "sptk/estimate/kalman.c",
     "sptk/decompose/emd.c",
@@ -58,6 +59,24 @@ def build_library():
     if result.returncode != 0:
         raise RuntimeError("the build of the shared object failed:\n" + result.stderr)
     return LIBRARY_PATH
+
+
+class Ringbuf(ctypes.Structure):
+    _fields_ = [
+        ("data", ctypes.POINTER(ctypes.c_float)),
+        ("size", ctypes.c_uint32),
+        ("head", ctypes.c_uint32),
+        ("count", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Medfilt(ctypes.Structure):
+    _fields_ = [
+        ("window", Ringbuf),
+        ("sorted", ctypes.POINTER(ctypes.c_float)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
 
 
 class Matrix(ctypes.Structure):
@@ -237,6 +256,18 @@ def load_library():
         function.argtypes = [FLOAT_POINTER, FLOAT_POINTER, FLOAT_POINTER,
                              ctypes.c_uint32]
         function.restype = ctypes.c_uint32
+
+    # medfilt
+    library.medfilt_alloc.argtypes = [ctypes.c_uint32]
+    library.medfilt_alloc.restype = Medfilt
+    library.medfilt_process_sample.argtypes = [ctypes.POINTER(Medfilt), ctypes.c_float]
+    library.medfilt_process_sample.restype = ctypes.c_float
+    library.medfilt_get_median.argtypes = [ctypes.POINTER(Medfilt)]
+    library.medfilt_get_median.restype = ctypes.c_float
+    library.medfilt_count.argtypes = [ctypes.POINTER(Medfilt)]
+    library.medfilt_count.restype = ctypes.c_uint32
+    library.medfilt_free.argtypes = [ctypes.POINTER(Medfilt)]
+    library.medfilt_free.restype = None
 
     # stats
     for name in ("stats_sum", "stats_mean", "stats_variance", "stats_deviation",

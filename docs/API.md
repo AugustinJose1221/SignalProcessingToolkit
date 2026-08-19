@@ -36,6 +36,7 @@ name and shape of every function.
 | [`iir`](api/iir.md) | Filters with an infinite impulse response |
 | [`savgol`](api/savgol.md) | The filter of Savitzky and Golay |
 | [`movavg`](api/movavg.md) | The mean of the last samples |
+| [`medfilt`](api/medfilt.md) | The median of the last samples |
 
 ## Estimation
 
