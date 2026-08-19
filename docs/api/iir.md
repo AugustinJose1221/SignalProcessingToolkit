@@ -47,6 +47,33 @@ needs for its coefficients.
 The number of float values that a filter with the given number of sections
 needs for its state.
 
+### `IIR_MIN_CUTOFF`
+
+```c
+#define IIR_MIN_CUTOFF      0.001f
+```
+
+The smallest cutoff that a design in single precision can hold.
+
+A section keeps its poles near the circle when the cutoff is low, and how
+near decides how much precision the coefficients need. A float holds about
+seven digits. Below this cutoff those digits run out: the coefficients round
+to values that no longer describe the filter that was asked for, and the
+filter gives a wrong answer WITHOUT SAYING SO.
+
+Measured, at the gain that should be 1.0 at zero frequency:
+
+    cutoff    0.0100   0.0020   0.0010   0.0005   0.0001
+    gain      1.0000   1.0014   0.9959   0.9909   0.6849
+
+Thus 0.002 and above is safe, 0.001 costs about one percent, and below
+0.0005 the answer means nothing. The limit stands at 0.001.
+
+A cutoff below this is nearly always a sign that the sample rate is too high
+for the work. A cutoff of 0.5 Hz against 32 kHz is 0.000016 and cannot be
+held; the same cutoff against 500 Hz is 0.001 and can. Bring the rate down
+first, as the guide of this area says.
+
 ## Types
 
 ### `iir_t`
@@ -61,6 +88,17 @@ typedef struct{
 ```
 
 ## Functions
+
+### `iir_is_valid_cutoff`
+
+```c
+bool iir_is_valid_cutoff(float cutoff);
+```
+
+True if a design can hold the given cutoff, which is a part of the sample
+rate. Ask this before a design when the cutoff comes from a measurement or
+from a setting, because a design that cannot hold its cutoff gives back a
+filter that looks right and is not.
 
 ### `iir_alloc`
 
@@ -87,21 +125,25 @@ no memory from the heap.
 ### `iir_design_low_pass`
 
 ```c
-void iir_design_low_pass(iir_t* iir, float cutoff);
+bool iir_design_low_pass(iir_t* iir, float cutoff);
 ```
 
 Build the coefficients of a filter of Butterworth that lets the low
 frequencies pass. The order of the filter is two times the number of
 sections.
+Give false and leave the filter as it was if the cutoff is outside
+IIR_MIN_CUTOFF to 0.5.
 
 ### `iir_design_high_pass`
 
 ```c
-void iir_design_high_pass(iir_t* iir, float cutoff);
+bool iir_design_high_pass(iir_t* iir, float cutoff);
 ```
 
 Build the coefficients of a filter of Butterworth that lets the high
 frequencies pass.
+Give false and leave the filter as it was if the cutoff is outside
+IIR_MIN_CUTOFF to 0.5.
 
 ### `iir_set_section`
 

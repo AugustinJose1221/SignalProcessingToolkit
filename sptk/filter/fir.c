@@ -58,21 +58,59 @@ fir_t fir_static_alloc(uint32_t length, float* coefficient, float* history)
     return fir;
 }
 
-void fir_design_low_pass(fir_t* fir, float cutoff)
+bool fir_is_valid_cutoff(uint32_t length, float cutoff)
 {
-    ASSERT(fir != NULL);
-    ASSERT(cutoff > 0.0f && cutoff < 0.5f);
+    if(length == 0u)
+    {
+        return false;
+    }
 
-    fir_build_low_pass(fir->coefficient, fir->length, cutoff);
+    float turn = FIR_TRANSITION / (float)length;
+
+    return (cutoff >= turn) && (cutoff <= (0.5f - turn));
 }
 
-void fir_design_high_pass(fir_t* fir, float cutoff)
+bool fir_is_valid_band(uint32_t length, float low_cutoff, float high_cutoff)
+{
+    if(!fir_is_valid_cutoff(length, low_cutoff)
+       || !fir_is_valid_cutoff(length, high_cutoff))
+    {
+        return false;
+    }
+
+    float turn = FIR_TRANSITION / (float)length;
+
+    return (high_cutoff - low_cutoff) >= turn;
+}
+
+bool fir_design_low_pass(fir_t* fir, float cutoff)
 {
     ASSERT(fir != NULL);
-    ASSERT(cutoff > 0.0f && cutoff < 0.5f);
+
+    // The check stands here and not in an assertion, because an assertion goes
+    // away in a release build and a filter that is too short for its cutoff
+    // does not announce itself: it answers, and its answer is wrong.
+    if(!fir_is_valid_cutoff(fir->length, cutoff))
+    {
+        return false;
+    }
+
+    fir_build_low_pass(fir->coefficient, fir->length, cutoff);
+
+    return true;
+}
+
+bool fir_design_high_pass(fir_t* fir, float cutoff)
+{
+    ASSERT(fir != NULL);
     // The change of the sign works with a middle coefficient only, thus the
     // length must be odd.
     ASSERT((fir->length % 2) == 1);
+
+    if(!fir_is_valid_cutoff(fir->length, cutoff))
+    {
+        return false;
+    }
 
     fir_build_low_pass(fir->coefficient, fir->length, cutoff);
 
@@ -84,13 +122,18 @@ void fir_design_high_pass(fir_t* fir, float cutoff)
         fir->coefficient[index] = -fir->coefficient[index];
     }
     fir->coefficient[middle] += 1.0f;
+
+    return true;
 }
 
-void fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff)
+bool fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff)
 {
     ASSERT(fir != NULL);
-    ASSERT(low_cutoff > 0.0f && low_cutoff < 0.5f);
-    ASSERT(high_cutoff > low_cutoff && high_cutoff < 0.5f);
+
+    if(!fir_is_valid_band(fir->length, low_cutoff, high_cutoff))
+    {
+        return false;
+    }
 
     // A band pass filter is the wider low pass filter less the narrower one.
     fir_build_low_pass(fir->coefficient, fir->length, high_cutoff);
@@ -102,6 +145,8 @@ void fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff)
         float lower = 2.0f * low_cutoff * fir_sinc(2.0f * low_cutoff * position);
         fir->coefficient[index] -= lower * fir_hamming(index, fir->length);
     }
+
+    return true;
 }
 
 void fir_set_coefficient(fir_t* fir, uint32_t index, float value)

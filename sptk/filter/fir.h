@@ -25,6 +25,37 @@
 // band that stops. A length of about 4/width gives an edge of that width,
 // where the width is also a part of the sample rate.
 
+// How wide the change from the pass band to the stop band is, as a number
+// divided by the length of the filter.
+//
+// A filter with a finite impulse response cannot turn from passing to stopping
+// at once. The turn takes a band of frequencies, and that band is narrower only
+// when the filter is longer. This is the width of that turn, and it is the
+// reason a low cutoff needs a long filter.
+#define FIR_TRANSITION      2.0f
+
+// True if a filter of the given length can hold the given cutoff.
+//
+// The turn from passing to stopping is FIR_TRANSITION/length wide. A cutoff
+// nearer to 0 than that, or nearer to 0.5 than that, has no room for the turn.
+// The design then gives back a filter whose pass band never reaches 1, and it
+// does so quietly.
+//
+// Measured, for a low pass of 101 coefficients, where the turn is 0.0198 wide,
+// at the gain that should be 1.0 in the pass band:
+//
+//     cutoff    0.0500   0.0200   0.0100   0.0050   0.0020
+//     gain      1.0024   1.0039   0.8443   0.5065   0.2140
+//
+// The gain holds while the cutoff is above the width of the turn, and falls
+// away under it. Thus: make the filter longer, or bring the sample rate down.
+bool fir_is_valid_cutoff(uint32_t length, float cutoff);
+
+// True if a filter of the given length can hold the given band. Both edges
+// must be valid, and the band between them must be at least as wide as the
+// turn, or the two edges run into each other and no frequency passes fully.
+bool fir_is_valid_band(uint32_t length, float low_cutoff, float high_cutoff);
+
 typedef struct{
     uint32_t length;            // The number of coefficients
     float* coefficient;         // The coefficients
@@ -45,15 +76,18 @@ fir_t fir_static_alloc(uint32_t length, float* coefficient, float* history);
 
 // Build the coefficients of a filter that lets the low frequencies pass. The
 // cutoff is a part of the sample rate, and it must lie between 0 and 0.5.
-void fir_design_low_pass(fir_t* fir, float cutoff);
+// Give false and leave the filter as it was if fir_is_valid_cutoff is false.
+bool fir_design_low_pass(fir_t* fir, float cutoff);
 
 // Build the coefficients of a filter that lets the high frequencies pass.
-void fir_design_high_pass(fir_t* fir, float cutoff);
+// Give false and leave the filter as it was if fir_is_valid_cutoff is false.
+bool fir_design_high_pass(fir_t* fir, float cutoff);
 
 // Build the coefficients of a filter that lets a band of frequencies pass. The
 // low cutoff must be smaller than the high cutoff, and both must lie between 0
 // and 0.5.
-void fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff);
+// Give false and leave the filter as it was if fir_is_valid_band is false.
+bool fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff);
 
 // Write one coefficient. Use this function to give the filter a set of
 // coefficients that another program calculated.

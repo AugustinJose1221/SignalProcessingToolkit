@@ -49,10 +49,23 @@ iir_t iir_static_alloc(uint32_t sections, float* coefficient, float* state)
     return iir;
 }
 
-void iir_design_low_pass(iir_t* iir, float cutoff)
+bool iir_is_valid_cutoff(float cutoff)
+{
+    return (cutoff >= IIR_MIN_CUTOFF) && (cutoff < 0.5f);
+}
+
+bool iir_design_low_pass(iir_t* iir, float cutoff)
 {
     ASSERT(iir != NULL);
-    ASSERT(cutoff > 0.0f && cutoff < 0.5f);
+
+    // The check stands here and not in an assertion. An assertion goes away in
+    // a release build, and a cutoff that is too low does not announce itself:
+    // the filter answers, and its answer is wrong. Thus the module holds the
+    // value itself.
+    if(!iir_is_valid_cutoff(cutoff))
+    {
+        return false;
+    }
 
     // The bilinear transform bends the frequency, thus the design first bends
     // the cutoff the other way. Then the filter holds its cutoff at the place
@@ -75,12 +88,18 @@ void iir_design_low_pass(iir_t* iir, float cutoff)
 
         iir_set_section(iir, section, b0, b1, b2, 1.0f, a1, a2);
     }
+
+    return true;
 }
 
-void iir_design_high_pass(iir_t* iir, float cutoff)
+bool iir_design_high_pass(iir_t* iir, float cutoff)
 {
     ASSERT(iir != NULL);
-    ASSERT(cutoff > 0.0f && cutoff < 0.5f);
+
+    if(!iir_is_valid_cutoff(cutoff))
+    {
+        return false;
+    }
 
     float warped = tanf(IIR_PI * cutoff);
     float squared = warped * warped;
@@ -98,6 +117,8 @@ void iir_design_high_pass(iir_t* iir, float cutoff)
 
         iir_set_section(iir, section, b0, b1, b2, 1.0f, a1, a2);
     }
+
+    return true;
 }
 
 void iir_set_section(iir_t* iir, uint32_t section, float b0, float b1, float b2,
