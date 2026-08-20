@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // Find every valley of the signal and give the number of them.
 //
@@ -13,6 +18,6 @@
 // The function writes the index of each valley into index_buffer and the value
 // of each valley into valley_buffer. Both buffers must hold room for as many
 // values as the signal holds.
-uint32_t valleydetect_get_valley(float* input, float* index_buffer, float* valley_buffer, uint32_t size);
+uint32_t valleydetect_get_valley(real_t* input, real_t* index_buffer, real_t* valley_buffer, uint32_t size);
 
 #endif//VALLEYDETECT_H

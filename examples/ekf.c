@@ -34,19 +34,20 @@
 
 #if (RUN_EXAMPLE == RUN_EKF_EXAMPLE)
 
+#include <sptk/core/real.h>
 #include <sptk/estimate/ekf.h>
 #include <sptk/linalg/matrix.h>
 #include <math.h>
 #include <stdio.h>
 
-#define DT              0.01f       // 100 reads in a second
-#define GRAVITY         9.81f       // metres in a second, in a second
+#define DT              REAL_C(0.01)       // 100 reads in a second
+#define GRAVITY         REAL_C(9.81)       // metres in a second, in a second
 #define STEPS           500u        // 5 seconds
-#define PI              3.14159265358979323846f
+#define PI              REAL_C(3.14159265358979323846)
 
 // The true bias of the gyroscope. A real device does not know this value; the
 // filter must find it. Here it stands only to make the readings.
-#define TRUE_BIAS       0.02f
+#define TRUE_BIAS       REAL_C(0.02)
 
 // ---------------------------------------------------------------------------
 // The model.
@@ -58,9 +59,9 @@
 static void move_state(const matrix_t* state, const matrix_t* input,
                        matrix_t* result)
 {
-    float angle = matrix_get_element((matrix_t*)state, 0, 0);
-    float bias = matrix_get_element((matrix_t*)state, 1, 0);
-    float gyroscope = matrix_get_element((matrix_t*)input, 0, 0);
+    real_t angle = matrix_get_element((matrix_t*)state, 0, 0);
+    real_t bias = matrix_get_element((matrix_t*)state, 1, 0);
+    real_t gyroscope = matrix_get_element((matrix_t*)input, 0, 0);
 
     matrix_add_element(result, 0, 0, angle + ((gyroscope - bias) * DT));
     matrix_add_element(result, 1, 0, bias);
@@ -69,10 +70,10 @@ static void move_state(const matrix_t* state, const matrix_t* input,
 // h says what the accelerometer would read for a given state.
 static void expected_accelerometer(const matrix_t* state, matrix_t* result)
 {
-    float angle = matrix_get_element((matrix_t*)state, 0, 0);
+    real_t angle = matrix_get_element((matrix_t*)state, 0, 0);
 
-    matrix_add_element(result, 0, 0, -GRAVITY * sinf(angle));
-    matrix_add_element(result, 1, 0, GRAVITY * cosf(angle));
+    matrix_add_element(result, 0, 0, -GRAVITY * REAL_SIN(angle));
+    matrix_add_element(result, 1, 0, GRAVITY * REAL_COS(angle));
 }
 
 // ---------------------------------------------------------------------------
@@ -82,37 +83,37 @@ static void expected_accelerometer(const matrix_t* state, matrix_t* result)
 // the true turning speed plus its bias plus noise. The accelerometer holds
 // gravity through the true angle plus noise.
 // ---------------------------------------------------------------------------
-static float true_angle_at(uint32_t step)
+static real_t true_angle_at(uint32_t step)
 {
-    return 0.4f * sinf(2.0f*PI*0.2f*(float)step*DT);
+    return REAL_C(0.4) * REAL_SIN(REAL_C(2.0)*PI*REAL_C(0.2)*(real_t)step*DT);
 }
 
-static float true_speed_at(uint32_t step)
+static real_t true_speed_at(uint32_t step)
 {
-    return 0.4f * 2.0f*PI*0.2f * cosf(2.0f*PI*0.2f*(float)step*DT);
+    return REAL_C(0.4) * REAL_C(2.0)*PI*REAL_C(0.2) * REAL_COS(REAL_C(2.0)*PI*REAL_C(0.2)*(real_t)step*DT);
 }
 
-static float sensor_noise(uint32_t step, float size)
+static real_t sensor_noise(uint32_t step, real_t size)
 {
-    return size * sinf((float)step * 12.9898f) * cosf((float)step * 78.233f);
+    return size * REAL_SIN((real_t)step * REAL_C(12.9898)) * REAL_COS((real_t)step * REAL_C(78.233));
 }
 
-static float read_gyroscope(uint32_t step)
+static real_t read_gyroscope(uint32_t step)
 {
-    return true_speed_at(step) + TRUE_BIAS + sensor_noise(step, 0.01f);
+    return true_speed_at(step) + TRUE_BIAS + sensor_noise(step, REAL_C(0.01));
 }
 
-static void read_accelerometer(uint32_t step, float* ax, float* az)
+static void read_accelerometer(uint32_t step, real_t* ax, real_t* az)
 {
-    float angle = true_angle_at(step);
+    real_t angle = true_angle_at(step);
 
-    *ax = (-GRAVITY * sinf(angle)) + sensor_noise(step + 7, 0.3f);
-    *az = (GRAVITY * cosf(angle)) + sensor_noise(step + 13, 0.3f);
+    *ax = (-GRAVITY * REAL_SIN(angle)) + sensor_noise(step + 7, REAL_C(0.3));
+    *az = (GRAVITY * REAL_COS(angle)) + sensor_noise(step + 13, REAL_C(0.3));
 }
 
 // ---------------------------------------------------------------------------
 
-static matrix_t make(uint32_t m, uint32_t n, float* values)
+static matrix_t make(uint32_t m, uint32_t n, real_t* values)
 {
     matrix_t matrix = matrix_alloc(m, n);
     for(uint32_t i = 0; i < m; i++)
@@ -136,9 +137,9 @@ int main(void)
 
     // The filter starts with an angle of zero and a bias of zero. It knows
     // neither, thus the doubt in both is large.
-    float start_state[2] = {0.0f, 0.0f};
-    float start_covariance[4] = {1.0f, 0.0f,
-                                 0.0f, 1.0f};
+    real_t start_state[2] = {REAL_C(0.0), REAL_C(0.0)};
+    real_t start_covariance[4] = {REAL_C(1.0), REAL_C(0.0),
+                                 REAL_C(0.0), REAL_C(1.0)};
     matrix_t x = make(2, 1, start_state);
     matrix_t p = make(2, 2, start_covariance);
     ekf_set_state_matrix(&ekf, &x);
@@ -148,15 +149,15 @@ int main(void)
     // follows the gyroscope closely, thus its part is small. The bias moves
     // very slowly, thus its part is smaller still. Make these larger if the
     // filter follows the accelerometer too slowly.
-    float process[4] = {0.0001f, 0.0f,
-                        0.0f,    0.000001f};
+    real_t process[4] = {REAL_C(0.0001), REAL_C(0.0),
+                        REAL_C(0.0),    REAL_C(0.000001)};
     matrix_t q = make(2, 2, process);
     ekf_set_process_noise_covariance_matrix(&ekf, &q);
 
     // R says how much noise the accelerometer holds. It comes from the data
     // sheet of the sensor, or from a measurement of the sensor lying still.
-    float measurement_noise[4] = {0.3f, 0.0f,
-                                  0.0f, 0.3f};
+    real_t measurement_noise[4] = {REAL_C(0.3), REAL_C(0.0),
+                                  REAL_C(0.0), REAL_C(0.3)};
     matrix_t r = make(2, 2, measurement_noise);
     ekf_set_measurement_covariance_matrix(&ekf, &r);
 
@@ -165,7 +166,7 @@ int main(void)
 
     printf("Sensor fusion of a gyroscope and an accelerometer\n");
     printf("%.0f reads in a second, %u steps, thus %.1f seconds\n\n",
-           1.0f/DT, STEPS, (float)STEPS*DT);
+           REAL_C(1.0)/DT, STEPS, (real_t)STEPS*DT);
     printf("The true bias of the gyroscope is %.3f rad/s. The filter does not\n",
            TRUE_BIAS);
     printf("know it and must find it.\n\n");
@@ -175,7 +176,7 @@ int main(void)
 
     for(uint32_t step = 0; step < STEPS; step++)
     {
-        float ax, az;
+        real_t ax, az;
 
         matrix_add_element(&gyroscope, 0, 0, read_gyroscope(step));
         read_accelerometer(step, &ax, &az);
@@ -192,14 +193,14 @@ int main(void)
 
         if((step % 100) == 0)
         {
-            float found = matrix_get_element(&ekf.x, 0, 0);
-            float truth = true_angle_at(step);
+            real_t found = matrix_get_element(&ekf.x, 0, 0);
+            real_t truth = true_angle_at(step);
 
             printf("%8.2f %12.2f %12.2f %12.2f %12.4f\n",
-                   (float)step*DT,
-                   truth * 180.0f/PI,
-                   found * 180.0f/PI,
-                   (found - truth) * 180.0f/PI,
+                   (real_t)step*DT,
+                   truth * REAL_C(180.0)/PI,
+                   found * REAL_C(180.0)/PI,
+                   (found - truth) * REAL_C(180.0)/PI,
                    matrix_get_element(&ekf.x, 1, 0));
         }
     }
@@ -209,7 +210,7 @@ int main(void)
     printf("is %.4f rad/s. It found that value from the two sensors alone.\n",
            TRUE_BIAS);
     printf("\nWithout the bias in the state the angle would drift by about\n");
-    printf("%.1f degrees in a minute.\n", TRUE_BIAS * 60.0f * 180.0f/PI);
+    printf("%.1f degrees in a minute.\n", TRUE_BIAS * REAL_C(60.0) * REAL_C(180.0)/PI);
 
     matrix_free(&x);
     matrix_free(&p);

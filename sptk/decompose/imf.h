@@ -5,8 +5,10 @@
 #include <stdbool.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/core/callback.h>
 #else
+#include "real.h"
 #include "callback.h"
 #endif
 
@@ -16,8 +18,8 @@
 // Each one holds a part of the signal at one range of frequency. The module
 // emd makes them, and this module holds one of them and writes it out.
 typedef struct{
-    float* x;                   // The position of each point
-    float* y;                   // The value of each point
+    real_t* x;                   // The position of each point
+    real_t* y;                   // The value of each point
     uint32_t size;              // The number of points
     bool dynamic_alloc;         // True if the memory comes from the heap
 }imf_t;
@@ -28,7 +30,7 @@ imf_t imf_alloc(uint32_t size);
 
 // Give a function that uses the memory at x and at y. Both must hold as many
 // float values as the given size. This function takes no memory from the heap.
-imf_t imf_static_alloc(uint32_t size, float* x, float* y);
+imf_t imf_static_alloc(uint32_t size, real_t* x, real_t* y);
 
 // Write the function, one point for each line, as "x, y". Give NULL as the
 // print function to write with printf.

@@ -112,7 +112,7 @@ bool cmatrix_is_equal(cmatrix_t* a, cmatrix_t* b)
     return true;
 }
 
-bool cmatrix_is_near(cmatrix_t* a, cmatrix_t* b, float tolerance)
+bool cmatrix_is_near(cmatrix_t* a, cmatrix_t* b, real_t tolerance)
 {
     ASSERT(a != NULL);
     ASSERT(b != NULL);
@@ -377,7 +377,7 @@ void cmatrix_printf(cmatrix_t* matrix, print_t func)
         for(uint32_t j = 0; j < matrix->n; j++)
         {
             cnum_t value = cmatrix_get_element(matrix, i, j);
-            if(value.im < 0.0f)
+            if(value.im < REAL_C(0.0))
             {
                 print_func("%f - %fi\t", value.re, -value.im);
             }
@@ -546,11 +546,11 @@ void cmatrix_set_zero(cmatrix_t* matrix)
 static uint32_t cmatrix_get_pivot_row(cmatrix_t* matrix, uint32_t column, uint32_t from_row)
 {
     uint32_t pivot_row = from_row;
-    float best = cnum_magnitude_squared(cmatrix_get_element(matrix, from_row, column));
+    real_t best = cnum_magnitude_squared(cmatrix_get_element(matrix, from_row, column));
 
     for(uint32_t k = from_row + 1; k < matrix->m; k++)
     {
-        float candidate = cnum_magnitude_squared(cmatrix_get_element(matrix, k, column));
+        real_t candidate = cnum_magnitude_squared(cmatrix_get_element(matrix, k, column));
         if(candidate > best)
         {
             best = candidate;

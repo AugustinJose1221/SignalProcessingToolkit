@@ -8,7 +8,7 @@
 
 #include <math.h>
 
-#define FFT_PI      3.14159265358979323846f
+#define FFT_PI      REAL_C(3.14159265358979323846)
 
 static void fft_build_tables(fft_t* fft);
 static uint32_t fft_reverse_bits(uint32_t value, uint32_t bits);
@@ -79,14 +79,14 @@ void fft_inverse(fft_t* fft, cnum_t* data)
 
     fft_transform(fft, data);
 
-    float scale = 1.0f / (float)fft->size;
+    real_t scale = REAL_C(1.0) / (real_t)fft->size;
     for(uint32_t index = 0; index < fft->size; index++)
     {
         data[index] = cnum_scale(cnum_conjugate(data[index]), scale);
     }
 }
 
-void fft_forward_real(fft_t* fft, const float* input, cnum_t* output)
+void fft_forward_real(fft_t* fft, const real_t* input, cnum_t* output)
 {
     ASSERT(fft != NULL);
     ASSERT(input != NULL);
@@ -94,13 +94,13 @@ void fft_forward_real(fft_t* fft, const float* input, cnum_t* output)
 
     for(uint32_t index = 0; index < fft->size; index++)
     {
-        output[index] = cnum_make(input[index], 0.0f);
+        output[index] = cnum_make(input[index], REAL_C(0.0));
     }
 
     fft_transform(fft, output);
 }
 
-void fft_magnitude(const cnum_t* data, float* magnitude, uint32_t size)
+void fft_magnitude(const cnum_t* data, real_t* magnitude, uint32_t size)
 {
     ASSERT(data != NULL);
     ASSERT(magnitude != NULL);
@@ -111,7 +111,7 @@ void fft_magnitude(const cnum_t* data, float* magnitude, uint32_t size)
     }
 }
 
-void fft_power(const cnum_t* data, float* power, uint32_t size)
+void fft_power(const cnum_t* data, real_t* power, uint32_t size)
 {
     ASSERT(data != NULL);
     ASSERT(power != NULL);
@@ -122,19 +122,19 @@ void fft_power(const cnum_t* data, float* power, uint32_t size)
     }
 }
 
-float fft_bin_frequency(uint32_t index, uint32_t size, float sample_rate)
+real_t fft_bin_frequency(uint32_t index, uint32_t size, real_t sample_rate)
 {
     ASSERT(size > 0);
     ASSERT(index < size);
 
     if(index <= (size/2))
     {
-        return ((float)index * sample_rate) / (float)size;
+        return ((real_t)index * sample_rate) / (real_t)size;
     }
 
     // A bin above the middle mirrors a lower bin. Give the negative frequency
     // that it holds.
-    return (((float)index - (float)size) * sample_rate) / (float)size;
+    return (((real_t)index - (real_t)size) * sample_rate) / (real_t)size;
 }
 
 void fft_free(fft_t* fft)
@@ -192,8 +192,8 @@ static void fft_build_tables(fft_t* fft)
     // -2*pi*k/size.
     for(uint32_t index = 0; index < FFT_TWIDDLE_COUNT(fft->size); index++)
     {
-        float angle = (-2.0f * FFT_PI * (float)index) / (float)fft->size;
-        fft->twiddle[index] = cnum_make(cosf(angle), sinf(angle));
+        real_t angle = (-REAL_C(2.0) * FFT_PI * (real_t)index) / (real_t)fft->size;
+        fft->twiddle[index] = cnum_make(REAL_COS(angle), REAL_SIN(angle));
     }
 }
 

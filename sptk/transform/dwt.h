@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // The discrete wavelet transform.
 //
@@ -44,8 +49,8 @@ typedef enum{
 typedef struct{
     dwt_wavelet_t wavelet;      // Which wavelet the transform uses
     uint32_t length;            // The number of coefficients of that wavelet
-    float low[DWT_MAX_COEFFICIENT_COUNT];   // The filter of the approximation
-    float high[DWT_MAX_COEFFICIENT_COUNT];  // The filter of the detail
+    real_t low[DWT_MAX_COEFFICIENT_COUNT];   // The filter of the approximation
+    real_t high[DWT_MAX_COEFFICIENT_COUNT];  // The filter of the detail
 }dwt_t;
 
 // Give a transform that uses the given wavelet. This function takes no memory.
@@ -63,15 +68,15 @@ bool dwt_is_valid_size(uint32_t size, uint32_t levels);
 // The signal holds size values. The function writes size/2 values into the
 // approximation and size/2 values into the detail. The size must be even, and
 // the three lists must not be the same memory.
-void dwt_forward(dwt_t* dwt, const float* signal, uint32_t size,
-                 float* approximation, float* detail);
+void dwt_forward(dwt_t* dwt, const real_t* signal, uint32_t size,
+                 real_t* approximation, real_t* detail);
 
 // Take one level of the inverse transform.
 //
 // The approximation and the detail hold size/2 values each, and the function
 // writes size values into the signal. The size must be even.
-void dwt_inverse(dwt_t* dwt, const float* approximation, const float* detail,
-                 uint32_t size, float* signal);
+void dwt_inverse(dwt_t* dwt, const real_t* approximation, const real_t* detail,
+                 uint32_t size, real_t* signal);
 
 // Take several levels of the transform, one after the other.
 //
@@ -83,20 +88,20 @@ void dwt_inverse(dwt_t* dwt, const float* approximation, const float* detail,
 //
 // The work buffer must hold as many values as the signal. The function gets no
 // memory.
-void dwt_forward_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels,
-                       float* work);
+void dwt_forward_multi(dwt_t* dwt, real_t* signal, uint32_t size, uint32_t levels,
+                       real_t* work);
 
 // Take several levels of the inverse transform. The list holds the result of
 // dwt_forward_multi, and the function writes the signal over it. The work
 // buffer must hold as many values as the signal.
-void dwt_inverse_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels,
-                       float* work);
+void dwt_inverse_multi(dwt_t* dwt, real_t* signal, uint32_t size, uint32_t levels,
+                       real_t* work);
 
 // Set every value of the list whose size is below the limit to zero.
 //
 // Use this function on the detail values of a transform to take noise out of a
 // signal. Give it the part of the list that holds the details, and not the
 // approximation.
-void dwt_threshold(float* data, uint32_t size, float limit);
+void dwt_threshold(real_t* data, uint32_t size, real_t limit);
 
 #endif//DWT_H

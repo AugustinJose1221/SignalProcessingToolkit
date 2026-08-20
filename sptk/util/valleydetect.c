@@ -6,7 +6,7 @@
 #include "defs.h"
 #endif//TEST
 
-uint32_t valleydetect_get_valley(float* input, float* index_buffer, float* valley_buffer, uint32_t size)
+uint32_t valleydetect_get_valley(real_t* input, real_t* index_buffer, real_t* valley_buffer, uint32_t size)
 {
     ASSERT(input != NULL);
     ASSERT(index_buffer != NULL);
@@ -21,7 +21,7 @@ uint32_t valleydetect_get_valley(float* input, float* index_buffer, float* valle
             if(input[index] < input[index-1] && input[index] < input[index+1])
             {
                 valley_buffer[valleycount] = input[index];
-                index_buffer[valleycount++] = (float)index;
+                index_buffer[valleycount++] = (real_t)index;
             }
         }
     }

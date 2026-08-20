@@ -1,6 +1,7 @@
 #ifndef BENCHMARK_H
 #define BENCHMARK_H
 
+#include <sptk/core/real.h>
 #include <stdint.h>
 
 // The benchmark measures how long an operation of the library takes. It uses
@@ -14,12 +15,12 @@ typedef struct{
     const char* operation;      // The operation, for example multiply
     uint32_t size;              // The size of the input
     uint32_t repeats;           // The number of times the operation ran
-    double total_seconds;       // The time of all the repeats together
-    double best_seconds;        // The time of the fastest repeat
+    real_t total_seconds;       // The time of all the repeats together
+    real_t best_seconds;        // The time of the fastest repeat
 }benchmark_result_t;
 
 // Give the reading of the monotonic clock in seconds.
-double benchmark_now(void);
+real_t benchmark_now(void);
 
 // Write the head of the table.
 void benchmark_report_header(void);
@@ -41,8 +42,8 @@ void benchmark_report_footer(void);
     do                                                                                    \
     {                                                                                     \
         benchmark_result_t benchmark_measurement;                                         \
-        double benchmark_start;                                                           \
-        double benchmark_elapsed;                                                         \
+        real_t benchmark_start;                                                           \
+        real_t benchmark_elapsed;                                                         \
                                                                                           \
         benchmark_measurement.group = (group_name);                                       \
         benchmark_measurement.operation = (operation_name);                               \

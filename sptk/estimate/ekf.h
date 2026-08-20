@@ -5,8 +5,10 @@
 #include <stdbool.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/linalg/matrix.h>
 #else
+#include "real.h"
 #include "matrix.h"
 #endif
 
@@ -62,7 +64,7 @@ typedef void (*ekf_measurement_function_t)(const matrix_t* state, matrix_t* resu
 
 // The step of the central difference that the filter uses when the caller sets
 // no other one.
-#define EKF_DEFAULT_DERIVATIVE_STEP     0.001f
+#define EKF_DEFAULT_DERIVATIVE_STEP     REAL_C(0.001)
 
 // Scratch matrices. The filter holds its intermediate results here, thus it
 // gets no memory while it runs.
@@ -103,10 +105,10 @@ typedef struct{
 
         ekf_state_function_t state_function;
         ekf_measurement_function_t measurement_function;
-        float derivative_step;
+        real_t derivative_step;
 
         ekf_scratch_t scratch;
-        float* mempool;
+        real_t* mempool;
         bool singular;              // The last update found a singular matrix
         bool dynamic_alloc;
 }ekf_t;
@@ -118,7 +120,7 @@ ekf_t ekf_alloc(uint32_t ni, uint32_t nx, uint32_t ny);
 // Give a filter that uses the memory at mempool. That memory must hold as many
 // float values as EKF_MEMPOOL_SIZE gives for the same three sizes. This
 // function takes no memory from the heap.
-ekf_t ekf_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, float* mempool);
+ekf_t ekf_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, real_t* mempool);
 
 // Set the function that gives the next state. The filter needs this function
 // before the first predict step.
@@ -130,7 +132,7 @@ void ekf_set_measurement_function(ekf_t* ekf, ekf_measurement_function_t functio
 
 // Set the step of the central difference. A larger value suits a state whose
 // values are large.
-void ekf_set_derivative_step(ekf_t* ekf, float step);
+void ekf_set_derivative_step(ekf_t* ekf, real_t step);
 
 // Set the state of the filter.
 void ekf_set_state_matrix(ekf_t* ekf, matrix_t* state_matrix);

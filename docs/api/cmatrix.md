@@ -92,7 +92,7 @@ every place.
 ### `cmatrix_is_near`
 
 ```c
-bool cmatrix_is_near(cmatrix_t* a, cmatrix_t* b, float tolerance);
+bool cmatrix_is_near(cmatrix_t* a, cmatrix_t* b, real_t tolerance);
 ```
 
 True if the two matrices have the same order and no pair of values differs

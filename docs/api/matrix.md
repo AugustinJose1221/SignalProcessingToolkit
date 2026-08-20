@@ -33,7 +33,7 @@ into a matrix that the caller holds.
 typedef struct{
     uint32_t m;                 // The number of rows
     uint32_t n;                 // The number of columns
-    float *elem;                // The elements, one row after the other
+    real_t *elem;                // The elements, one row after the other
     bool dynamic_alloc;         // True if the memory comes from the heap
 }matrix_t;
 ```
@@ -53,7 +53,7 @@ longer need it.
 ### `matrix_static_alloc`
 
 ```c
-matrix_t matrix_static_alloc(uint32_t m, uint32_t n, float* elem);
+matrix_t matrix_static_alloc(uint32_t m, uint32_t n, real_t* elem);
 ```
 
 Give a matrix with m rows and n columns that uses the memory at elem. That
@@ -63,7 +63,7 @@ use. This function takes no memory from the heap.
 ### `matrix_add_element`
 
 ```c
-void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, float value);
+void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, real_t value);
 ```
 
 Write a value into the matrix at the row i and the column j.
@@ -71,7 +71,7 @@ Write a value into the matrix at the row i and the column j.
 ### `matrix_get_element`
 
 ```c
-float matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j);
+real_t matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j);
 ```
 
 Give the value of the matrix at the row i and the column j.
@@ -107,7 +107,7 @@ columns. Give the result to matrix_free.
 ### `matrix_trace`
 
 ```c
-float matrix_trace(matrix_t* matrix);
+real_t matrix_trace(matrix_t* matrix);
 ```
 
 Give the sum of the elements on the diagonal. The matrix must be square.
@@ -115,7 +115,7 @@ Give the sum of the elements on the diagonal. The matrix must be square.
 ### `matrix_determinant`
 
 ```c
-float matrix_determinant(matrix_t* matrix);
+real_t matrix_determinant(matrix_t* matrix);
 ```
 
 Give the determinant of the matrix. The matrix must be square.
@@ -206,7 +206,7 @@ matrices must have the same order. Give the result to matrix_free.
 ### `matrix_multiply_scalar`
 
 ```c
-matrix_t matrix_multiply_scalar(matrix_t* matrix, float scalar);
+matrix_t matrix_multiply_scalar(matrix_t* matrix, real_t scalar);
 ```
 
 Give a new matrix where each element is the element of the given matrix
@@ -305,7 +305,7 @@ one.
 ### `matrix_multiply_scalar_into`
 
 ```c
-void matrix_multiply_scalar_into(matrix_t* matrix, float scalar, matrix_t* dest);
+void matrix_multiply_scalar_into(matrix_t* matrix, real_t scalar, matrix_t* dest);
 ```
 
 Write each element of the matrix multiplied by the scalar into the

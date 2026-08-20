@@ -6,8 +6,8 @@
 #include "defs.h"
 #endif
 
-static matrix_t ekf_take_from_pool(float** pool, uint32_t m, uint32_t n);
-static void ekf_build_matrices(ekf_t* ekf, float* mempool);
+static matrix_t ekf_take_from_pool(real_t** pool, uint32_t m, uint32_t n);
+static void ekf_build_matrices(ekf_t* ekf, real_t* mempool);
 
 // Allocation
 
@@ -18,9 +18,9 @@ ekf_t ekf_alloc(uint32_t ni, uint32_t nx, uint32_t ny)
     ASSERT(ny > 0);
 
     ekf_t ekf;
-    float* mempool;
+    real_t* mempool;
 
-    mempool = (float*)malloc(sizeof(float)*EKF_MEMPOOL_SIZE(ni, nx, ny));
+    mempool = (real_t*)malloc(sizeof(real_t)*EKF_MEMPOOL_SIZE(ni, nx, ny));
 
     ekf.ni = ni;
     ekf.nx = nx;
@@ -37,7 +37,7 @@ ekf_t ekf_alloc(uint32_t ni, uint32_t nx, uint32_t ny)
     return ekf;
 }
 
-ekf_t ekf_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, float* mempool)
+ekf_t ekf_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, real_t* mempool)
 {
     ASSERT(ni > 0);
     ASSERT(nx > 0);
@@ -62,12 +62,12 @@ ekf_t ekf_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, float* mempool)
 }
 
 // The two allocation functions share this layout.
-static void ekf_build_matrices(ekf_t* ekf, float* mempool)
+static void ekf_build_matrices(ekf_t* ekf, real_t* mempool)
 {
     uint32_t ni = ekf->ni;
     uint32_t nx = ekf->nx;
     uint32_t ny = ekf->ny;
-    float* pool = mempool;
+    real_t* pool = mempool;
 
     ekf->x = ekf_take_from_pool(&pool, nx, 1);
     ekf->y = ekf_take_from_pool(&pool, ny, 1);
@@ -99,11 +99,11 @@ static void ekf_build_matrices(ekf_t* ekf, float* mempool)
 
     for(uint32_t index = 0; index < EKF_MEMPOOL_SIZE(ni, nx, ny); index++)
     {
-        mempool[index] = 0.0f;
+        mempool[index] = REAL_C(0.0);
     }
 }
 
-static matrix_t ekf_take_from_pool(float** pool, uint32_t m, uint32_t n)
+static matrix_t ekf_take_from_pool(real_t** pool, uint32_t m, uint32_t n)
 {
     matrix_t matrix = matrix_static_alloc(m, n, *pool);
     *pool += m*n;
@@ -128,10 +128,10 @@ void ekf_set_measurement_function(ekf_t* ekf, ekf_measurement_function_t functio
     ekf->measurement_function = function;
 }
 
-void ekf_set_derivative_step(ekf_t* ekf, float step)
+void ekf_set_derivative_step(ekf_t* ekf, real_t step)
 {
     ASSERT(ekf != NULL);
-    ASSERT(step > 0.0f);
+    ASSERT(step > REAL_C(0.0));
 
     ekf->derivative_step = step;
 }
@@ -196,7 +196,7 @@ void ekf_state_jacobian_into(ekf_t* ekf, matrix_t* dest)
     matrix_t* moved = &ekf->scratch.nx1_a;
     matrix_t* higher = &ekf->scratch.nx1_b;
     matrix_t* lower = &ekf->scratch.nx1_c;
-    float step = ekf->derivative_step;
+    real_t step = ekf->derivative_step;
 
     for(uint32_t column = 0; column < ekf->nx; column++)
     {
@@ -216,8 +216,8 @@ void ekf_state_jacobian_into(ekf_t* ekf, matrix_t* dest)
 
         for(uint32_t row = 0; row < ekf->nx; row++)
         {
-            float slope = (matrix_get_element(higher, row, 0)
-                           - matrix_get_element(lower, row, 0)) / (2.0f * step);
+            real_t slope = (matrix_get_element(higher, row, 0)
+                           - matrix_get_element(lower, row, 0)) / (REAL_C(2.0) * step);
             matrix_add_element(dest, row, column, slope);
         }
     }
@@ -233,7 +233,7 @@ void ekf_measurement_jacobian_into(ekf_t* ekf, matrix_t* dest)
     matrix_t* moved = &ekf->scratch.nx1_a;
     matrix_t* higher = &ekf->scratch.ny1_a;
     matrix_t* lower = &ekf->scratch.ny1_b;
-    float step = ekf->derivative_step;
+    real_t step = ekf->derivative_step;
 
     for(uint32_t column = 0; column < ekf->nx; column++)
     {
@@ -249,8 +249,8 @@ void ekf_measurement_jacobian_into(ekf_t* ekf, matrix_t* dest)
 
         for(uint32_t row = 0; row < ekf->ny; row++)
         {
-            float slope = (matrix_get_element(higher, row, 0)
-                           - matrix_get_element(lower, row, 0)) / (2.0f * step);
+            real_t slope = (matrix_get_element(higher, row, 0)
+                           - matrix_get_element(lower, row, 0)) / (REAL_C(2.0) * step);
             matrix_add_element(dest, row, column, slope);
         }
     }

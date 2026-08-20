@@ -61,6 +61,7 @@ MODULES = [
     ("binarysearch", "sptk/util/binarysearch.h", "Binary search"),
     ("peakdetect", "sptk/util/peakdetect.h", "Peak detection"),
     ("valleydetect", "sptk/util/valleydetect.h", "Valley detection"),
+    ("real", "sptk/core/real.h", "The one type that holds every number"),
     ("ringbuf", "sptk/core/ringbuf.h", "A buffer of the last samples"),
     ("point2d", "sptk/core/point2d.h", "A point on a plane"),
     ("callback", "sptk/core/callback.h", "The print callback"),
@@ -162,7 +163,7 @@ AREAS = [
                                   "vector", "vector2d"]),
     ("util", "Utilities", ["stats", "binarysearch", "peakdetect",
                            "valleydetect"]),
-    ("core", "Core", ["ringbuf", "point2d", "callback"]),
+    ("core", "Core", ["real", "ringbuf", "point2d", "callback"]),
 ]
 
 GENERATED_NOTE = ("This file comes from the comments in the headers. Do not change it by "

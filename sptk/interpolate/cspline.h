@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // A cubic spline through a set of points.
 //
@@ -15,11 +20,11 @@
 // less than the number of points.
 typedef struct{
     uint32_t size;
-    float* x;
-    float* y;
-    float* b;
-    float* c;
-    float* d;
+    real_t* x;
+    real_t* y;
+    real_t* b;
+    real_t* c;
+    real_t* d;
     bool dynamic_alloc;
 }cspline_t;
 
@@ -29,11 +34,11 @@ typedef struct{
 // one memory pool, one after the other. The pool holds nothing that the spline
 // needs after cspline_init gives back.
 typedef struct{
-    float* dx;
-    float* dp;
-    float* d;
-    float* b;
-    float* q;
+    real_t* dx;
+    real_t* dp;
+    real_t* d;
+    real_t* b;
+    real_t* q;
     bool dynamic_alloc;
 }cspline_mempool_t;
 
@@ -44,7 +49,7 @@ cspline_t cspline_alloc(uint32_t size);
 // Give a spline that uses the memory that the caller holds. The parameter
 // membank is a list of five pointers. Each of them must hold room for as many
 // float values as the given size. This function takes no memory from the heap.
-cspline_t cspline_static_alloc(uint32_t size, float** membank);
+cspline_t cspline_static_alloc(uint32_t size, real_t** membank);
 
 // Give a memory pool for a spline of the given number of points. The memory
 // comes from the heap. Give the pool to cspline_free_mempool.
@@ -53,14 +58,14 @@ cspline_mempool_t cspline_alloc_mempool(uint32_t size);
 // Give a memory pool that uses the memory that the caller holds. The parameter
 // membank is a list of five pointers. This function takes no memory from the
 // heap.
-cspline_mempool_t cspline_static_alloc_mempool(float** membank);
+cspline_mempool_t cspline_static_alloc_mempool(real_t** membank);
 
 // Calculate the coefficients of the spline for the given points.
 //
 // The values of x must rise, and no two of them may be the same. The lists x
 // and y must hold as many values as the size of the spline. The memory pool
 // must be as large as the spline. The pool holds nothing after the call.
-void cspline_init(cspline_t* cspline, cspline_mempool_t mempool, float* x, float* y);
+void cspline_init(cspline_t* cspline, cspline_mempool_t mempool, real_t* x, real_t* y);
 
 // Change the number of points that the spline uses. The new size must not be
 // larger than the size that the allocation gave. Call cspline_init after this
@@ -73,7 +78,7 @@ void cspline_update_size(cspline_t* cspline, uint32_t size);
 // curve. A position outside that range gives the polynomial of the nearest
 // interval, which moves away from the points quickly. Call cspline_init before
 // this function.
-float cspline_get_interpolated_point(cspline_t* cspline, float x);
+real_t cspline_get_interpolated_point(cspline_t* cspline, real_t x);
 
 // Release the memory of a spline that came from cspline_alloc. This function
 // does nothing for a spline that came from cspline_static_alloc.

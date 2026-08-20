@@ -20,7 +20,7 @@ typedef struct{
     uint32_t window;            // The number of samples of the window, odd
     uint32_t order;             // The order of the polynomial
     uint32_t derivative;        // Which derivative the filter gives
-    float* coefficient;         // One coefficient for each sample of the window
+    real_t* coefficient;         // One coefficient for each sample of the window
     bool dynamic_alloc;         // True if the memory comes from the heap
 }savgol_t;
 ```
@@ -39,7 +39,7 @@ filter to savgol_free when you no longer need it.
 ### `savgol_static_alloc`
 
 ```c
-savgol_t savgol_static_alloc(uint32_t window, float* coefficient);
+savgol_t savgol_static_alloc(uint32_t window, real_t* coefficient);
 ```
 
 Give a filter that uses the memory at coefficient, which must hold as many
@@ -76,7 +76,7 @@ matrix of the least squares has no inverse.
 ### `savgol_get_coefficient`
 
 ```c
-float savgol_get_coefficient(savgol_t* savgol, uint32_t index);
+real_t savgol_get_coefficient(savgol_t* savgol, uint32_t index);
 ```
 
 Give one coefficient of the filter.
@@ -84,7 +84,7 @@ Give one coefficient of the filter.
 ### `savgol_apply`
 
 ```c
-float savgol_apply(savgol_t* savgol, const float* window);
+real_t savgol_apply(savgol_t* savgol, const real_t* window);
 ```
 
 Give the filtered value at the middle of the given window of samples. The
@@ -93,7 +93,7 @@ list must hold as many samples as the window of the filter.
 ### `savgol_process_block`
 
 ```c
-void savgol_process_block(savgol_t* savgol, const float* input, float* output, uint32_t size);
+void savgol_process_block(savgol_t* savgol, const real_t* input, real_t* output, uint32_t size);
 ```
 
 Filter a whole signal.

@@ -68,7 +68,16 @@ one pass over the list instead of one pass for each level. The pivot is the
 middle sample and not the first one, because a list that is already in order is
 a common input and would be the worst case otherwise.
 
-**Every sum runs in double.** A float holds about seven digits, and a long sum
-of large samples loses the low ones. Five samples that sit at eight million and
-move by one have a variance of exactly 2; adding them in float gives 2.25. The
-double costs nothing worth counting and takes that error away.
+**What the width of `real_t` costs here.** Every sum runs at the width of the
+build, and a sum is where the digits run out first. Five samples that sit at
+eight million and move by one have a variance of exactly 2:
+
+| build | answer | |
+| --- | --- | --- |
+| 32 bits | 2.25 | out by an eighth |
+| 64 bits | 2.00 | right |
+
+The fault is in the sum and not in the squaring: five samples near eight
+million give a total near forty million, where one step of a float is 4. A
+caller whose readings sit far from zero should build in 64 bits, or take the
+level away first with `dcblock`. The tests hold both numbers.

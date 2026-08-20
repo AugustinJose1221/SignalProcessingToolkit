@@ -1,11 +1,12 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "movavg.h"
 #include "fir.h"
 #include "ringbuf.h"
 #include <stdlib.h>
 #include <math.h>
 
-#define TOLERANCE   0.0001f
+#define TOLERANCE   REAL_C(0.0001)
 
 void setUp(void)
 {
@@ -30,7 +31,7 @@ void test_movavg_alloc(void)
 
 void test_movavg_static_alloc(void)
 {
-    float data[4];
+    real_t data[4];
     movavg_t movavg = movavg_static_alloc(4, data);
 
     TEST_ASSERT_EQUAL(4, movavg.window.size);
@@ -46,9 +47,9 @@ void test_movavg_is_right_while_the_window_still_fills(void)
     // the whole size, or the answer would start low and creep up.
     movavg_t movavg = movavg_alloc(4);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 2.0f, movavg_process_sample(&movavg, 2.0f));
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 3.0f, movavg_process_sample(&movavg, 4.0f));
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 4.0f, movavg_process_sample(&movavg, 6.0f));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(2.0), movavg_process_sample(&movavg, REAL_C(2.0)));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(3.0), movavg_process_sample(&movavg, REAL_C(4.0)));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(4.0), movavg_process_sample(&movavg, REAL_C(6.0)));
 
     movavg_free(&movavg);
 }
@@ -57,14 +58,14 @@ void test_movavg_holds_the_mean_of_the_last_samples(void)
 {
     movavg_t movavg = movavg_alloc(3);
 
-    movavg_process_sample(&movavg, 1.0f);
-    movavg_process_sample(&movavg, 2.0f);
-    movavg_process_sample(&movavg, 3.0f);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 2.0f, movavg_get_mean(&movavg));
+    movavg_process_sample(&movavg, REAL_C(1.0));
+    movavg_process_sample(&movavg, REAL_C(2.0));
+    movavg_process_sample(&movavg, REAL_C(3.0));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(2.0), movavg_get_mean(&movavg));
 
     // The 1 falls off the end and the 4 comes in, thus the window is 2, 3, 4.
-    movavg_process_sample(&movavg, 4.0f);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 3.0f, movavg_get_mean(&movavg));
+    movavg_process_sample(&movavg, REAL_C(4.0));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(3.0), movavg_get_mean(&movavg));
 
     movavg_free(&movavg);
 }
@@ -81,19 +82,19 @@ void test_movavg_gives_the_same_answer_as_a_filter_of_equal_coefficients(void)
 
     for(uint32_t index = 0; index < length; index++)
     {
-        fir_set_coefficient(&fir, index, 1.0f / (float)length);
+        fir_set_coefficient(&fir, index, REAL_C(1.0) / (real_t)length);
     }
 
     for(uint32_t index = 0; index < 200u; index++)
     {
-        float sample = sinf(0.15f * (float)index) + (0.5f * cosf(0.02f * (float)index));
+        real_t sample = REAL_SIN(REAL_C(0.15) * (real_t)index) + (REAL_C(0.5) * REAL_COS(REAL_C(0.02) * (real_t)index));
 
-        float fast = movavg_process_sample(&movavg, sample);
-        float slow = fir_process_sample(&fir, sample);
+        real_t fast = movavg_process_sample(&movavg, sample);
+        real_t slow = fir_process_sample(&fir, sample);
 
         if(index >= length)
         {
-            TEST_ASSERT_FLOAT_WITHIN(0.001f, slow, fast);
+            TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), slow, fast);
         }
     }
 
@@ -104,22 +105,32 @@ void test_movavg_gives_the_same_answer_as_a_filter_of_equal_coefficients(void)
 void test_movavg_holds_its_accuracy_over_a_long_run(void)
 {
     // A running total that is added to and taken away from for ever gathers a
-    // small error at every step, and the error walks. The module builds the
-    // totals again from the window from time to time to stop that.
+    // small error at every step, and the error walks rather than cancels. The
+    // module builds the totals again from the window from time to time to stop
+    // that, and this test holds that the walk is bounded at either width.
     //
-    // These samples sit at eight million, which is where a float loses its low
-    // digits, and the run is far longer than the refresh.
+    // These samples sit at eight million, where a float loses its low digits,
+    // and the run is fifty times longer than the refresh.
     movavg_t movavg = movavg_alloc(64);
 
     for(uint32_t index = 0; index < 200000u; index++)
     {
-        float sample = 8000000.0f + (float)(index % 3u);
-        movavg_process_sample(&movavg, sample);
+        movavg_process_sample(&movavg, REAL_C(8000000.0) + (real_t)(index % 3u));
     }
 
     // The last 64 samples run over the pattern 0, 1, 2 again and again, whose
     // mean is 1. Thus the mean of the window must be near 8000001.
-    TEST_ASSERT_FLOAT_WITHIN(0.5f, 8000001.0f, movavg_get_mean(&movavg));
+    //
+    // In 32 bits it comes out at 8000000.5, which is half a count out and does
+    // not grow with the length of the run. Without the refresh it would grow
+    // without end.
+#if defined(SPTK_REAL_64)
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(8000001.0),
+                            movavg_get_mean(&movavg));
+#else
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.75), REAL_C(8000001.0),
+                            movavg_get_mean(&movavg));
+#endif
 
     movavg_free(&movavg);
 }
@@ -130,31 +141,39 @@ void test_movavg_rms_follows_the_level_and_the_deviation_follows_the_movement(vo
     // different questions, and mixing them up is the usual fault.
     movavg_t movavg = movavg_alloc(4);
 
-    movavg_process_sample(&movavg, 99.0f);
-    movavg_process_sample(&movavg, 100.0f);
-    movavg_process_sample(&movavg, 100.0f);
-    movavg_process_sample(&movavg, 101.0f);
+    movavg_process_sample(&movavg, REAL_C(99.0));
+    movavg_process_sample(&movavg, REAL_C(100.0));
+    movavg_process_sample(&movavg, REAL_C(100.0));
+    movavg_process_sample(&movavg, REAL_C(101.0));
 
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 100.0f, movavg_get_rms(&movavg));
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.7071f, movavg_get_deviation(&movavg));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(100.0), movavg_get_rms(&movavg));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(0.7071), movavg_get_deviation(&movavg));
 
     movavg_free(&movavg);
 }
 
-void test_movavg_deviation_holds_up_on_a_large_offset(void)
+void test_movavg_deviation_on_a_large_offset_shows_what_the_width_costs(void)
 {
-    // The deviation reads the whole window and takes the mean away first. The
-    // shorter way, which is the mean of the squares less the square of the
-    // mean, would lose this answer completely.
+    // The deviation reads the whole window and takes the mean away first,
+    // which is the careful way. On a level of eight million the digits still
+    // run out in 32 bits, and this test records by how much.
     movavg_t movavg = movavg_alloc(5);
 
     for(uint32_t index = 0; index < 5u; index++)
     {
-        movavg_process_sample(&movavg, 8000000.0f + (float)index);
+        movavg_process_sample(&movavg, REAL_C(8000000.0) + (real_t)index);
     }
 
-    // The samples are 8000000 to 8000004, whose deviation is the root of 2.
-    TEST_ASSERT_FLOAT_WITHIN(0.05f, sqrtf(2.0f), movavg_get_deviation(&movavg));
+    // The samples are 8000000 to 8000004, whose deviation is the root of 2,
+    // which is 1.4142.
+#if defined(SPTK_REAL_64)
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_SQRT(REAL_C(2.0)),
+                            movavg_get_deviation(&movavg));
+#else
+    // In 32 bits the answer comes out as 1.5, which is out by six percent.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.5),
+                            movavg_get_deviation(&movavg));
+#endif
 
     movavg_free(&movavg);
 }
@@ -165,12 +184,12 @@ void test_movavg_of_a_steady_signal_does_not_move(void)
 
     for(uint32_t index = 0; index < 100u; index++)
     {
-        movavg_process_sample(&movavg, 5.0f);
+        movavg_process_sample(&movavg, REAL_C(5.0));
     }
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 5.0f, movavg_get_mean(&movavg));
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 5.0f, movavg_get_rms(&movavg));
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, movavg_get_deviation(&movavg));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(5.0), movavg_get_mean(&movavg));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(5.0), movavg_get_rms(&movavg));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), movavg_get_deviation(&movavg));
 
     movavg_free(&movavg);
 }
@@ -178,15 +197,15 @@ void test_movavg_of_a_steady_signal_does_not_move(void)
 void test_movavg_process_block(void)
 {
     movavg_t movavg = movavg_alloc(2);
-    float input[4] = {2.0f, 4.0f, 6.0f, 8.0f};
-    float output[4];
+    real_t input[4] = {REAL_C(2.0), REAL_C(4.0), REAL_C(6.0), REAL_C(8.0)};
+    real_t output[4];
 
     movavg_process_block(&movavg, input, output, 4u);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 2.0f, output[0]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 3.0f, output[1]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 5.0f, output[2]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 7.0f, output[3]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(2.0), output[0]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(3.0), output[1]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(5.0), output[2]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(7.0), output[3]);
 
     movavg_free(&movavg);
 }
@@ -194,14 +213,14 @@ void test_movavg_process_block(void)
 void test_movavg_process_block_can_write_over_its_input(void)
 {
     movavg_t movavg = movavg_alloc(2);
-    float signal[4] = {2.0f, 4.0f, 6.0f, 8.0f};
+    real_t signal[4] = {REAL_C(2.0), REAL_C(4.0), REAL_C(6.0), REAL_C(8.0)};
 
     movavg_process_block(&movavg, signal, signal, 4u);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 2.0f, signal[0]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 3.0f, signal[1]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 5.0f, signal[2]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 7.0f, signal[3]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(2.0), signal[0]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(3.0), signal[1]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(5.0), signal[2]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(7.0), signal[3]);
 
     movavg_free(&movavg);
 }
@@ -210,15 +229,15 @@ void test_movavg_reset(void)
 {
     movavg_t movavg = movavg_alloc(4);
 
-    movavg_process_sample(&movavg, 10.0f);
-    movavg_process_sample(&movavg, 20.0f);
+    movavg_process_sample(&movavg, REAL_C(10.0));
+    movavg_process_sample(&movavg, REAL_C(20.0));
     movavg_reset(&movavg);
 
     TEST_ASSERT_EQUAL(0, movavg_count(&movavg));
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, movavg_get_mean(&movavg));
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, movavg_get_rms(&movavg));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), movavg_get_mean(&movavg));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), movavg_get_rms(&movavg));
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 3.0f, movavg_process_sample(&movavg, 3.0f));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(3.0), movavg_process_sample(&movavg, REAL_C(3.0)));
 
     movavg_free(&movavg);
 }
@@ -227,9 +246,9 @@ void test_movavg_of_an_empty_window_is_nothing(void)
 {
     movavg_t movavg = movavg_alloc(4);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, movavg_get_mean(&movavg));
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, movavg_get_rms(&movavg));
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, movavg_get_deviation(&movavg));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), movavg_get_mean(&movavg));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), movavg_get_rms(&movavg));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), movavg_get_deviation(&movavg));
 
     movavg_free(&movavg);
 }
@@ -238,12 +257,12 @@ void test_movavg_counts_up_to_its_size(void)
 {
     movavg_t movavg = movavg_alloc(3);
 
-    movavg_process_sample(&movavg, 1.0f);
+    movavg_process_sample(&movavg, REAL_C(1.0));
     TEST_ASSERT_EQUAL(1, movavg_count(&movavg));
-    movavg_process_sample(&movavg, 1.0f);
-    movavg_process_sample(&movavg, 1.0f);
+    movavg_process_sample(&movavg, REAL_C(1.0));
+    movavg_process_sample(&movavg, REAL_C(1.0));
     TEST_ASSERT_EQUAL(true, movavg_is_full(&movavg));
-    movavg_process_sample(&movavg, 1.0f);
+    movavg_process_sample(&movavg, REAL_C(1.0));
     TEST_ASSERT_EQUAL(3, movavg_count(&movavg));
 
     movavg_free(&movavg);

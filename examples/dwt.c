@@ -21,17 +21,18 @@
 
 #if (RUN_EXAMPLE == RUN_DWT_EXAMPLE)
 
+#include <sptk/core/real.h>
 #include <sptk/transform/dwt.h>
 #include <math.h>
 #include <stdio.h>
 
 #define SIZE        64u     // A power of two, as the transform asks
 #define LEVELS      3u
-#define LIMIT       1.0f    // In grams, from the noise of the device
+#define LIMIT       REAL_C(1.0)    // In grams, from the noise of the device
 
-static float truth[SIZE];   // What the scale would read with no shaking
-static float reading[SIZE];
-static float work[SIZE];
+static real_t truth[SIZE];   // What the scale would read with no shaking
+static real_t reading[SIZE];
+static real_t work[SIZE];
 
 // ---------------------------------------------------------------------------
 // Replace this function with a read from your own scale.
@@ -45,33 +46,33 @@ static void read_load_cell(void)
     {
         if(index < 20)
         {
-            truth[index] = 0.0f;
+            truth[index] = REAL_C(0.0);
         }
         else if(index < 44)
         {
-            truth[index] = 50.0f;
+            truth[index] = REAL_C(50.0);
         }
         else
         {
-            truth[index] = 80.0f;
+            truth[index] = REAL_C(80.0);
         }
 
         // The table shakes, thus the reading moves about half a gram.
-        float shaking = 0.6f * sinf((float)index * 12.9898f)
-                        * cosf((float)index * 78.233f);
+        real_t shaking = REAL_C(0.6) * REAL_SIN((real_t)index * REAL_C(12.9898))
+                        * REAL_COS((real_t)index * REAL_C(78.233));
 
         reading[index] = truth[index] + shaking;
     }
 }
 
 // Give how far a reading lies from the truth, added over every sample.
-static float distance_from_the_truth(const float* signal)
+static real_t distance_from_the_truth(const real_t* signal)
 {
-    float total = 0.0f;
+    real_t total = REAL_C(0.0);
 
     for(uint32_t index = 0; index < SIZE; index++)
     {
-        total += fabsf(signal[index] - truth[index]);
+        total += REAL_ABS(signal[index] - truth[index]);
     }
 
     return total;
@@ -81,7 +82,7 @@ int main(void)
 {
     read_load_cell();
 
-    float before = distance_from_the_truth(reading);
+    real_t before = distance_from_the_truth(reading);
 
     dwt_t dwt = dwt_init(DWT_HAAR);
 
@@ -97,7 +98,7 @@ int main(void)
     // 3. Take the inverse transform.
     dwt_inverse_multi(&dwt, reading, SIZE, LEVELS, work);
 
-    float after = distance_from_the_truth(reading);
+    real_t after = distance_from_the_truth(reading);
 
     printf("A scale on a shaking table, %u readings\n", SIZE);
     printf("Two items arrive: 50 grams at the reading 20, 30 more at 44\n\n");

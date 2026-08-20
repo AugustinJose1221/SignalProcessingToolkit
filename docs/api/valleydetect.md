@@ -16,7 +16,7 @@ Valley detection. Declared in `sptk/util/valleydetect.h`.
 ### `valleydetect_get_valley`
 
 ```c
-uint32_t valleydetect_get_valley(float* input, float* index_buffer, float* valley_buffer, uint32_t size);
+uint32_t valleydetect_get_valley(real_t* input, real_t* index_buffer, real_t* valley_buffer, uint32_t size);
 ```
 
 Find every valley of the signal and give the number of them.

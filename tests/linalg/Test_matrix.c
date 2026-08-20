@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "matrix.h"
 #include <stdlib.h>
 
@@ -23,7 +24,7 @@ void test_matrix_alloc(void)
 
 void test_matrix_static_alloc(void)
 {
-    float elem[9];
+    real_t elem[9];
     matrix_t matrix = matrix_static_alloc(3, 3, elem);
     TEST_ASSERT_EQUAL(3, matrix.m);
     TEST_ASSERT_EQUAL(3, matrix.n);
@@ -481,11 +482,11 @@ void test_matrix_subtract(void)
 void test_matrix_subtract_gives_zero_for_equal_matrices(void)
 {
     matrix_t matrix_a = matrix_alloc(2, 3);
-    matrix_add_element(&matrix_a, 0, 0, -1.5f);
+    matrix_add_element(&matrix_a, 0, 0, -REAL_C(1.5));
     matrix_add_element(&matrix_a, 0, 1, 0);
-    matrix_add_element(&matrix_a, 0, 2, 2.5f);
-    matrix_add_element(&matrix_a, 1, 0, 3.25f);
-    matrix_add_element(&matrix_a, 1, 1, -4.75f);
+    matrix_add_element(&matrix_a, 0, 2, REAL_C(2.5));
+    matrix_add_element(&matrix_a, 1, 0, REAL_C(3.25));
+    matrix_add_element(&matrix_a, 1, 1, -REAL_C(4.75));
     matrix_add_element(&matrix_a, 1, 2, 6);
     matrix_t matrix_b = matrix_alloc(2, 3);
     matrix_copy(&matrix_a, &matrix_b);
@@ -606,10 +607,10 @@ void test_matrix_inverse(void)
     matrix_t inverse = matrix_inverse(&matrix);
     TEST_ASSERT_EQUAL(2, inverse.m);
     TEST_ASSERT_EQUAL(2, inverse.n);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.6f, matrix_get_element(&inverse, 0, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.7f, matrix_get_element(&inverse, 0, 1));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.2f, matrix_get_element(&inverse, 1, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.4f, matrix_get_element(&inverse, 1, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.6), matrix_get_element(&inverse, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), -REAL_C(0.7), matrix_get_element(&inverse, 0, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), -REAL_C(0.2), matrix_get_element(&inverse, 1, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.4), matrix_get_element(&inverse, 1, 1));
     matrix_free(&matrix);
     matrix_free(&inverse);
 }
@@ -641,7 +642,7 @@ void test_matrix_multiply_by_the_inverse_gives_the_unit_matrix(void)
     {
         for(uint32_t j = 0; j < 3; j++)
         {
-            TEST_ASSERT_FLOAT_WITHIN(0.0001f, (i == j) ? 1.0f : 0.0f,
+            TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), (i == j) ? REAL_C(1.0) : REAL_C(0.0),
                                      matrix_get_element(&product, i, j));
         }
     }
@@ -661,10 +662,10 @@ void test_matrix_inverse_with_a_zero_in_the_pivot_position(void)
     matrix_add_element(&matrix, 1, 0, 1);
     matrix_add_element(&matrix, 1, 1, 0);
     matrix_t inverse = matrix_inverse(&matrix);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, matrix_get_element(&inverse, 0, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.0f, matrix_get_element(&inverse, 0, 1));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 1.0f, matrix_get_element(&inverse, 1, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.0f, matrix_get_element(&inverse, 1, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0), matrix_get_element(&inverse, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(1.0), matrix_get_element(&inverse, 0, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(1.0), matrix_get_element(&inverse, 1, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0), matrix_get_element(&inverse, 1, 1));
     matrix_free(&matrix);
     matrix_free(&inverse);
 }
@@ -688,7 +689,7 @@ void test_matrix_inverse_of_a_matrix_with_one_element(void)
     matrix_t matrix = matrix_alloc(1, 1);
     matrix_add_element(&matrix, 0, 0, 4);
     matrix_t inverse = matrix_inverse(&matrix);
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.25f, matrix_get_element(&inverse, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.25), matrix_get_element(&inverse, 0, 0));
     matrix_free(&matrix);
     matrix_free(&inverse);
 }
@@ -805,7 +806,7 @@ void test_matrix_multiply_into(void)
     {
         for(uint32_t j = 0; j < 3; j++)
         {
-            matrix_add_element(&a, i, j, (float)((i*3)+j+1));
+            matrix_add_element(&a, i, j, (real_t)((i*3)+j+1));
         }
     }
     matrix_t b = matrix_alloc(3, 2);
@@ -813,7 +814,7 @@ void test_matrix_multiply_into(void)
     {
         for(uint32_t j = 0; j < 2; j++)
         {
-            matrix_add_element(&b, i, j, (float)((i*2)+j+1));
+            matrix_add_element(&b, i, j, (real_t)((i*2)+j+1));
         }
     }
     matrix_t dest = matrix_alloc(2, 2);
@@ -839,12 +840,12 @@ void test_matrix_multiply_scalar_into(void)
     matrix_add_element(&matrix, 1, 1, -4);
     matrix_t dest = matrix_alloc(2, 2);
 
-    matrix_multiply_scalar_into(&matrix, 2.5f, &dest);
+    matrix_multiply_scalar_into(&matrix, REAL_C(2.5), &dest);
 
-    TEST_ASSERT_EQUAL_FLOAT(2.5f, matrix_get_element(&dest, 0, 0));
-    TEST_ASSERT_EQUAL_FLOAT(-5.0f, matrix_get_element(&dest, 0, 1));
-    TEST_ASSERT_EQUAL_FLOAT(7.5f, matrix_get_element(&dest, 1, 0));
-    TEST_ASSERT_EQUAL_FLOAT(-10.0f, matrix_get_element(&dest, 1, 1));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(2.5), matrix_get_element(&dest, 0, 0));
+    TEST_ASSERT_EQUAL_REAL(-REAL_C(5.0), matrix_get_element(&dest, 0, 1));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.5), matrix_get_element(&dest, 1, 0));
+    TEST_ASSERT_EQUAL_REAL(-REAL_C(10.0), matrix_get_element(&dest, 1, 1));
 
     matrix_free(&matrix);
     matrix_free(&dest);
@@ -912,10 +913,10 @@ void test_matrix_inverse_into(void)
 
     TEST_ASSERT_EQUAL(true, matrix_inverse_into(&matrix, &dest, &scratch));
 
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.6f, matrix_get_element(&dest, 0, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.7f, matrix_get_element(&dest, 0, 1));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -0.2f, matrix_get_element(&dest, 1, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, 0.4f, matrix_get_element(&dest, 1, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.6), matrix_get_element(&dest, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), -REAL_C(0.7), matrix_get_element(&dest, 0, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), -REAL_C(0.2), matrix_get_element(&dest, 1, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.4), matrix_get_element(&dest, 1, 1));
 
     matrix_free(&matrix);
     matrix_free(&dest);
@@ -943,10 +944,10 @@ void test_the_operations_that_write_into_a_matrix_need_no_heap(void)
 {
     // Every matrix here holds memory that the caller gives. Thus this test
     // shows that a program with no heap can do the operations.
-    float elements_a[4] = {1, 2, 3, 4};
-    float elements_b[4] = {5, 6, 7, 8};
-    float elements_dest[4];
-    float elements_scratch[8];
+    real_t elements_a[4] = {1, 2, 3, 4};
+    real_t elements_b[4] = {5, 6, 7, 8};
+    real_t elements_dest[4];
+    real_t elements_scratch[8];
 
     matrix_t a = matrix_static_alloc(2, 2, elements_a);
     matrix_t b = matrix_static_alloc(2, 2, elements_b);
@@ -970,7 +971,7 @@ void test_the_operations_that_write_into_a_matrix_need_no_heap(void)
     TEST_ASSERT_EQUAL(true, matrix_is_unit(&dest));
 
     TEST_ASSERT_EQUAL(true, matrix_inverse_into(&a, &dest, &scratch));
-    TEST_ASSERT_FLOAT_WITHIN(0.0001f, -2.0f, matrix_get_element(&dest, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), -REAL_C(2.0), matrix_get_element(&dest, 0, 0));
 
     matrix_free(&a);
     matrix_free(&b);

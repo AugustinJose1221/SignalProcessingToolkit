@@ -26,6 +26,7 @@
 
 #if (RUN_EXAMPLE == RUN_SAVGOL_EXAMPLE)
 
+#include <sptk/core/real.h>
 #include <sptk/filter/savgol.h>
 #include <math.h>
 #include <stdio.h>
@@ -35,14 +36,14 @@
 #define ORDER       3u      // A polynomial of the third power
 
 // The wavelength of the first point, and the step between two points.
-#define FIRST_NM    400.0f
-#define STEP_NM     5.0f
+#define FIRST_NM    REAL_C(400.0)
+#define STEP_NM     REAL_C(5.0)
 
-static float truth[POINTS];         // The peak with no noise
-static float reading[POINTS];
-static float smoothed[POINTS];
-static float slope[POINTS];
-static float plain_mean[POINTS];
+static real_t truth[POINTS];         // The peak with no noise
+static real_t reading[POINTS];
+static real_t smoothed[POINTS];
+static real_t slope[POINTS];
+static real_t plain_mean[POINTS];
 
 // ---------------------------------------------------------------------------
 // Replace this function with a read from your own device.
@@ -52,27 +53,27 @@ static float plain_mean[POINTS];
 // ---------------------------------------------------------------------------
 static void read_spectrometer(void)
 {
-    const float peak_at = 550.0f;
-    const float peak_height = 0.85f;
-    const float peak_width = 22.0f;
+    const real_t peak_at = REAL_C(550.0);
+    const real_t peak_height = REAL_C(0.85);
+    const real_t peak_width = REAL_C(22.0);
 
     for(uint32_t index = 0; index < POINTS; index++)
     {
-        float wavelength = FIRST_NM + ((float)index * STEP_NM);
-        float distance = (wavelength - peak_at) / peak_width;
+        real_t wavelength = FIRST_NM + ((real_t)index * STEP_NM);
+        real_t distance = (wavelength - peak_at) / peak_width;
 
-        truth[index] = peak_height * expf(-distance*distance);
+        truth[index] = peak_height * REAL_EXP(-distance*distance);
 
-        float noise = 0.025f * sinf((float)index * 12.9898f)
-                      * cosf((float)index * 78.233f);
+        real_t noise = REAL_C(0.025) * REAL_SIN((real_t)index * REAL_C(12.9898))
+                      * REAL_COS((real_t)index * REAL_C(78.233));
 
         reading[index] = truth[index] + noise;
     }
 }
 
-static float wavelength_of(uint32_t index)
+static real_t wavelength_of(uint32_t index)
 {
-    return FIRST_NM + ((float)index * STEP_NM);
+    return FIRST_NM + ((real_t)index * STEP_NM);
 }
 
 int main(void)
@@ -96,7 +97,7 @@ int main(void)
     // A plain mean of the same window, for the comparison.
     for(uint32_t index = 0; index < POINTS; index++)
     {
-        float sum = 0.0f;
+        real_t sum = REAL_C(0.0);
         for(uint32_t tap = 0; tap < WINDOW; tap++)
         {
             int32_t position = (int32_t)index + (int32_t)tap - (int32_t)(WINDOW/2);
@@ -110,7 +111,7 @@ int main(void)
             }
             sum += reading[position];
         }
-        plain_mean[index] = sum / (float)WINDOW;
+        plain_mean[index] = sum / (real_t)WINDOW;
     }
 
     // Find the top of the peak in two steps.
@@ -131,16 +132,16 @@ int main(void)
     // lies between two points. Draw a straight line between the slope on each
     // side of the top and find where that line crosses zero. This gives a
     // place finer than the step between two readings.
-    float fine_top = wavelength_of(top);
+    real_t fine_top = wavelength_of(top);
     if((top > 0) && (top < (POINTS - 1)))
     {
-        float before = slope[top - 1];
-        float after = slope[top + 1];
+        real_t before = slope[top - 1];
+        real_t after = slope[top + 1];
 
-        if((before - after) != 0.0f)
+        if((before - after) != REAL_C(0.0))
         {
-            float part = before / (before - after);
-            fine_top = wavelength_of(top - 1) + (part * 2.0f * STEP_NM);
+            real_t part = before / (before - after);
+            fine_top = wavelength_of(top - 1) + (part * REAL_C(2.0) * STEP_NM);
         }
     }
 
@@ -161,9 +162,9 @@ int main(void)
     printf("\nThe height of the peak:\n");
     printf("  the true height:     %6.3f\n", truth[30]);
     printf("  the filter:          %6.3f  (%+.1f%%)\n", smoothed[30],
-           100.0f*(smoothed[30]-truth[30])/truth[30]);
+           REAL_C(100.0)*(smoothed[30]-truth[30])/truth[30]);
     printf("  a plain mean:        %6.3f  (%+.1f%%)\n", plain_mean[30],
-           100.0f*(plain_mean[30]-truth[30])/truth[30]);
+           REAL_C(100.0)*(plain_mean[30]-truth[30])/truth[30]);
 
     printf("\nThe place of the peak:\n");
     printf("  the largest reading: %.0f nm  (a step of %.0f nm)\n",

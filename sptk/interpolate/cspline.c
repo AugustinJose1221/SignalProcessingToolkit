@@ -10,7 +10,7 @@
 #include <math.h>
 #endif
 
-static void load_coordinates(cspline_t* cspline, float* x, float* y);
+static void load_coordinates(cspline_t* cspline, real_t* x, real_t* y);
 static void calculate_derivatives(cspline_t* cspline, cspline_mempool_t mempool);
 static void initialize_state_buffers(cspline_t* cspline, cspline_mempool_t mempool);
 static void update_state_buffers(cspline_t* cspline, cspline_mempool_t mempool);
@@ -23,17 +23,17 @@ cspline_t cspline_alloc(uint32_t size)
     cspline_t cspline;
     
     cspline.size = size;
-    cspline.x = (float*)malloc(size*sizeof(float));
-    cspline.y = (float*)malloc(size*sizeof(float));
-    cspline.b = (float*)malloc(size*sizeof(float));
-    cspline.c = (float*)malloc((size-1)*sizeof(float));
-    cspline.d = (float*)malloc((size-1)*sizeof(float));
+    cspline.x = (real_t*)malloc(size*sizeof(real_t));
+    cspline.y = (real_t*)malloc(size*sizeof(real_t));
+    cspline.b = (real_t*)malloc(size*sizeof(real_t));
+    cspline.c = (real_t*)malloc((size-1)*sizeof(real_t));
+    cspline.d = (real_t*)malloc((size-1)*sizeof(real_t));
     cspline.dynamic_alloc = true;
     
     return cspline;
 }
 
-cspline_t cspline_static_alloc(uint32_t size, float** membank)
+cspline_t cspline_static_alloc(uint32_t size, real_t** membank)
 {
     ASSERT(size != 0);
     ASSERT(membank != NULL);
@@ -41,11 +41,11 @@ cspline_t cspline_static_alloc(uint32_t size, float** membank)
     cspline_t cspline;
 
     cspline.size = size;
-    cspline.x = (float*)membank[0]; // Buffer of size N
-    cspline.y = (float*)membank[1]; // Buffer of size N
-    cspline.b = (float*)membank[2]; // Buffer of size N
-    cspline.c = (float*)membank[3]; // Buffer of size N-1
-    cspline.d = (float*)membank[4]; // Buffer of size N-1
+    cspline.x = (real_t*)membank[0]; // Buffer of size N
+    cspline.y = (real_t*)membank[1]; // Buffer of size N
+    cspline.b = (real_t*)membank[2]; // Buffer of size N
+    cspline.c = (real_t*)membank[3]; // Buffer of size N-1
+    cspline.d = (real_t*)membank[4]; // Buffer of size N-1
     cspline.dynamic_alloc = false;
 
     return cspline;
@@ -57,33 +57,33 @@ cspline_mempool_t cspline_alloc_mempool(uint32_t size)
 
     cspline_mempool_t mempool;
 
-    mempool.d = (float*)malloc(size*sizeof(float));
-    mempool.b = (float*)malloc(size*sizeof(float));
-    mempool.q = (float*)malloc((size-1)*sizeof(float));
-    mempool.dp = (float*)malloc((size-1)*sizeof(float));
-    mempool.dx = (float*)malloc((size-1)*sizeof(float));
+    mempool.d = (real_t*)malloc(size*sizeof(real_t));
+    mempool.b = (real_t*)malloc(size*sizeof(real_t));
+    mempool.q = (real_t*)malloc((size-1)*sizeof(real_t));
+    mempool.dp = (real_t*)malloc((size-1)*sizeof(real_t));
+    mempool.dx = (real_t*)malloc((size-1)*sizeof(real_t));
     mempool.dynamic_alloc = true;
 
     return mempool;
 }
 
-cspline_mempool_t cspline_static_alloc_mempool(float** membank)
+cspline_mempool_t cspline_static_alloc_mempool(real_t** membank)
 {
     ASSERT(membank != NULL);
 
     cspline_mempool_t mempool;
 
-    mempool.d = (float*)membank[0];     // Buffer of size N
-    mempool.b = (float*)membank[1];     // Buffer of size N
-    mempool.q = (float*)membank[2];     // Buffer of size N-1
-    mempool.dp = (float*)membank[3];    // Buffer of size N-1
-    mempool.dx = (float*)membank[4];    // Buffer of size N-1
+    mempool.d = (real_t*)membank[0];     // Buffer of size N
+    mempool.b = (real_t*)membank[1];     // Buffer of size N
+    mempool.q = (real_t*)membank[2];     // Buffer of size N-1
+    mempool.dp = (real_t*)membank[3];    // Buffer of size N-1
+    mempool.dx = (real_t*)membank[4];    // Buffer of size N-1
     mempool.dynamic_alloc = false;
 
     return mempool;
 }
 
-void cspline_init(cspline_t* cspline, cspline_mempool_t mempool, float* x, float* y)
+void cspline_init(cspline_t* cspline, cspline_mempool_t mempool, real_t* x, real_t* y)
 {
     ASSERT(cspline != NULL);
     ASSERT(x != NULL);
@@ -106,7 +106,7 @@ void cspline_update_size(cspline_t* cspline, uint32_t size)
     cspline->size = size;
 }
 
-float cspline_get_interpolated_point(cspline_t* cspline, float x)
+real_t cspline_get_interpolated_point(cspline_t* cspline, real_t x)
 {
     // The binary search gives the first knot that is not less than x. The
     // coefficients b, c and d belong to the interval that starts at the knot
@@ -124,8 +124,8 @@ float cspline_get_interpolated_point(cspline_t* cspline, float x)
         i = cspline->size - 2;
     }
 
-    float dx = x - cspline->x[i];
-    float y = cspline->y[i] + (cspline->b[i]*dx) + (cspline->c[i]*pow(dx,2)) + (cspline->d[i]*pow(dx,3));
+    real_t dx = x - cspline->x[i];
+    real_t y = cspline->y[i] + (cspline->b[i]*dx) + (cspline->c[i]*REAL_POW(dx,2)) + (cspline->d[i]*REAL_POW(dx,3));
     return y;
 }
 
@@ -153,7 +153,7 @@ void cspline_free_mempool(cspline_mempool_t mempool)
     }
 }
 
-static void load_coordinates(cspline_t* cspline, float* x, float* y)
+static void load_coordinates(cspline_t* cspline, real_t* x, real_t* y)
 {
     ASSERT(cspline != NULL);
     ASSERT(x != NULL);

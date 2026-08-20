@@ -13,14 +13,14 @@ imf_t imf_alloc(uint32_t size)
     imf_t imf;
 
     imf.size = size;
-    imf.x = (float*)malloc(sizeof(float)*size);
-    imf.y = (float*)malloc(sizeof(float)*size);
+    imf.x = (real_t*)malloc(sizeof(real_t)*size);
+    imf.y = (real_t*)malloc(sizeof(real_t)*size);
     imf.dynamic_alloc = true;
 
     return imf;
 }
 
-imf_t imf_static_alloc(uint32_t size, float* x, float* y)
+imf_t imf_static_alloc(uint32_t size, real_t* x, real_t* y)
 {
     ASSERT(size > 0);
     ASSERT(x != NULL);

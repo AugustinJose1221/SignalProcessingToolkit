@@ -73,7 +73,7 @@ void pmatrix_set_zero(pmatrix_t* matrix)
     }
 }
 
-float pmatrix_evaluate_element(pmatrix_t* matrix, uint32_t i, uint32_t j, float x)
+real_t pmatrix_evaluate_element(pmatrix_t* matrix, uint32_t i, uint32_t j, real_t x)
 {
     ASSERT(matrix != NULL);
     ASSERT(i < matrix->m);
@@ -83,13 +83,13 @@ float pmatrix_evaluate_element(pmatrix_t* matrix, uint32_t i, uint32_t j, float 
 
     if(function == NULL)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
     return function(x);
 }
 
-matrix_t pmatrix_evaluate(pmatrix_t* matrix, float x)
+matrix_t pmatrix_evaluate(pmatrix_t* matrix, real_t x)
 {
     ASSERT(matrix != NULL);
 
@@ -101,7 +101,7 @@ matrix_t pmatrix_evaluate(pmatrix_t* matrix, float x)
     return values;
 }
 
-void pmatrix_evaluate_into(pmatrix_t* matrix, float x, matrix_t* dest)
+void pmatrix_evaluate_into(pmatrix_t* matrix, real_t x, matrix_t* dest)
 {
     ASSERT(matrix != NULL);
     ASSERT(dest != NULL);
@@ -117,18 +117,18 @@ void pmatrix_evaluate_into(pmatrix_t* matrix, float x, matrix_t* dest)
     }
 }
 
-float pmatrix_zero(float x)
+real_t pmatrix_zero(real_t x)
 {
     (void)x;
 
-    return 0.0f;
+    return REAL_C(0.0);
 }
 
-float pmatrix_one(float x)
+real_t pmatrix_one(real_t x)
 {
     (void)x;
 
-    return 1.0f;
+    return REAL_C(1.0);
 }
 
 void pmatrix_free(pmatrix_t* matrix)

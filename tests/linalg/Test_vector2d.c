@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "Mock_vector.h"
 #include "vector2d.h"
 
@@ -23,7 +24,7 @@ void test_vector2d_alloc(void)
 
 void test_vector2d_static_alloc(void)
 {
-    float mempool[2];
+    real_t mempool[2];
     vector_t vector = {2, mempool, false};
     vector_static_alloc_ExpectAndReturn(2, mempool, vector);
     vector_t vector2d = vector2d_static_alloc(mempool);
@@ -33,7 +34,7 @@ void test_vector2d_static_alloc(void)
 
 void test_vector2d_add_point_at_index(void)
 {
-    float mempool[2];
+    real_t mempool[2];
     vector_t vector = {2, &mempool, true};
     vector_t* vector_ptr = &vector;
     vector_add_point_at_index_Expect(vector_ptr, 0, 1);
@@ -42,17 +43,17 @@ void test_vector2d_add_point_at_index(void)
 
 void test_vector2d_add_from_array(void)
 {
-    float mempool[2];
+    real_t mempool[2];
     vector_t vector = {2, &mempool, true};
     vector_t* vector_ptr = &vector;
-    float data[2] = {1, 2};
+    real_t data[2] = {1, 2};
     vector_add_from_array_Expect(vector_ptr, 2, data);
     vector2d_add_from_array(vector_ptr, data);
 }
 
 void test_vector2d_printf(void)
 {
-    float mempool[2];
+    real_t mempool[2];
     vector_t vector = {2, &mempool, true};
     vector_t* vector_ptr = &vector;
     vector_printf_Expect(vector_ptr, printf);
@@ -61,7 +62,7 @@ void test_vector2d_printf(void)
 
 void test_vector2d_get(void)
 {
-    float mempool[2] = {1, 2};
+    real_t mempool[2] = {1, 2};
     vector_t vector = {2, &mempool, true};
     vector_t* vector_ptr = &vector;
     vector_get_ExpectAndReturn(vector_ptr, 0, 1);
@@ -70,10 +71,10 @@ void test_vector2d_get(void)
 
 void test_vector2d_dot_product(void)
 {
-    float mempool_x[2] = {1, 2};
+    real_t mempool_x[2] = {1, 2};
     vector_t x = {2, &mempool_x, true};
     vector_t* x_ptr = &x;
-    float mempool_y[2] = {3, 4};
+    real_t mempool_y[2] = {3, 4};
     vector_t y = {2, &mempool_y, true};
     vector_t* y_ptr = &y;
     vector_dot_product_ExpectAndReturn(x_ptr, y_ptr, 11);
@@ -82,7 +83,7 @@ void test_vector2d_dot_product(void)
 
 void test_vector2d_norm(void)
 {
-    float mempool[2] = {3, 4};
+    real_t mempool[2] = {3, 4};
     vector_t vector = {2, &mempool, true};
     vector_t* vector_ptr = &vector;
     vector_norm_ExpectAndReturn(vector_ptr, 5);

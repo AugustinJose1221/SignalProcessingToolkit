@@ -17,13 +17,13 @@ matrix_t matrix_alloc(uint32_t m, uint32_t n)
 
     matrix.m = m;
     matrix.n = n;
-    matrix.elem = (float*)malloc(sizeof(float)*m*n);
+    matrix.elem = (real_t*)malloc(sizeof(real_t)*m*n);
     matrix.dynamic_alloc = true;
 
     return matrix;
 }
 
-matrix_t matrix_static_alloc(uint32_t m, uint32_t n, float* elem)
+matrix_t matrix_static_alloc(uint32_t m, uint32_t n, real_t* elem)
 {
     ASSERT(m > 0);
     ASSERT(n > 0);
@@ -41,7 +41,7 @@ matrix_t matrix_static_alloc(uint32_t m, uint32_t n, float* elem)
 
 // Operations
 
-void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, float value)
+void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, real_t value)
 {
     ASSERT(matrix != NULL);
     ASSERT(i < matrix->m);
@@ -49,7 +49,7 @@ void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, float value)
     matrix->elem[(i*matrix->n)+j] = value;
 }
 
-float matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j)
+real_t matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j)
 {
     ASSERT(matrix != NULL);
     ASSERT(i < matrix->m);
@@ -105,12 +105,12 @@ matrix_t matrix_get_order(matrix_t* matrix)
     return order;
 }
 
-float matrix_trace(matrix_t* matrix)
+real_t matrix_trace(matrix_t* matrix)
 {
     ASSERT(matrix != NULL);
     ASSERT(matrix_is_square(matrix));
 
-    float trace = 0;
+    real_t trace = 0;
 
     for(uint32_t i = 0; i < matrix->m; i++)
     {
@@ -120,14 +120,14 @@ float matrix_trace(matrix_t* matrix)
     return trace;
 }
 
-float matrix_determinant(matrix_t* matrix)
+real_t matrix_determinant(matrix_t* matrix)
 {
     ASSERT(matrix != NULL);
     ASSERT(matrix_is_square(matrix));
 
-    float determinant = 0;
-    float intermediate = 0;
-    float sign = -1;
+    real_t determinant = 0;
+    real_t intermediate = 0;
+    real_t sign = -1;
     int row_index;
     int col_index;
     matrix_t inner_matrix;
@@ -347,7 +347,7 @@ matrix_t matrix_subtract(matrix_t* a, matrix_t* b)
     return difference;
 }
 
-matrix_t matrix_multiply_scalar(matrix_t* matrix, float scalar)
+matrix_t matrix_multiply_scalar(matrix_t* matrix, real_t scalar)
 {
     ASSERT(matrix != NULL);
 
@@ -503,13 +503,13 @@ void matrix_multiply_into(matrix_t* a, matrix_t* b, matrix_t* dest)
     ASSERT(a->n == b->m);
     ASSERT(dest->m == a->m && dest->n == b->n);
 
-    float sum;
+    real_t sum;
 
     for(uint32_t i = 0; i < a->m; i++)
     {
         for(uint32_t j = 0; j < b->n; j++)
         {
-            sum = 0.0f;
+            sum = REAL_C(0.0);
             for(uint32_t k = 0; k < a->n; k++)
             {
                 sum += matrix_get_element(a, i, k) * matrix_get_element(b, k, j);
@@ -519,7 +519,7 @@ void matrix_multiply_into(matrix_t* a, matrix_t* b, matrix_t* dest)
     }
 }
 
-void matrix_multiply_scalar_into(matrix_t* matrix, float scalar, matrix_t* dest)
+void matrix_multiply_scalar_into(matrix_t* matrix, real_t scalar, matrix_t* dest)
 {
     ASSERT(matrix != NULL);
     ASSERT(dest != NULL);
@@ -559,7 +559,7 @@ void matrix_set_unit(matrix_t* matrix)
     {
         for(uint32_t j = 0; j < matrix->n; j++)
         {
-            matrix_add_element(matrix, i, j, (i == j) ? 1.0f : 0.0f);
+            matrix_add_element(matrix, i, j, (i == j) ? REAL_C(1.0) : REAL_C(0.0));
         }
     }
 }
@@ -572,7 +572,7 @@ void matrix_set_zero(matrix_t* matrix)
     {
         for(uint32_t j = 0; j < matrix->n; j++)
         {
-            matrix_add_element(matrix, i, j, 0.0f);
+            matrix_add_element(matrix, i, j, REAL_C(0.0));
         }
     }
 }
@@ -588,16 +588,16 @@ bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch)
 
     uint32_t n = matrix->m;
     uint32_t pivot_row;
-    float pivot;
-    float factor;
-    float swap;
+    real_t pivot;
+    real_t factor;
+    real_t swap;
 
     for(uint32_t i = 0; i < n; i++)
     {
         for(uint32_t j = 0; j < n; j++)
         {
             matrix_add_element(scratch, i, j, matrix_get_element(matrix, i, j));
-            matrix_add_element(scratch, i, j + n, (i == j) ? 1.0f : 0.0f);
+            matrix_add_element(scratch, i, j + n, (i == j) ? REAL_C(1.0) : REAL_C(0.0));
         }
     }
 
@@ -610,8 +610,8 @@ bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch)
         pivot_row = i;
         for(uint32_t k = i + 1; k < n; k++)
         {
-            float candidate = matrix_get_element(scratch, k, i);
-            float best = matrix_get_element(scratch, pivot_row, i);
+            real_t candidate = matrix_get_element(scratch, k, i);
+            real_t best = matrix_get_element(scratch, pivot_row, i);
             if((candidate < 0 ? -candidate : candidate) > (best < 0 ? -best : best))
             {
                 pivot_row = k;
@@ -629,7 +629,7 @@ bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch)
         }
 
         pivot = matrix_get_element(scratch, i, i);
-        if(pivot == 0.0f)
+        if(pivot == REAL_C(0.0))
         {
             return false;
         }

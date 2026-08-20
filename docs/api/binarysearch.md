@@ -16,7 +16,7 @@ Binary search. Declared in `sptk/util/binarysearch.h`.
 ### `binarysearch_get_index`
 
 ```c
-uint32_t binarysearch_get_index(float* data, float value, uint32_t size);
+uint32_t binarysearch_get_index(real_t* data, real_t value, uint32_t size);
 ```
 
 Give the index of the first value of the list that is not less than the

@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // A matrix of float values.
 //
@@ -20,7 +25,7 @@
 typedef struct{
     uint32_t m;                 // The number of rows
     uint32_t n;                 // The number of columns
-    float *elem;                // The elements, one row after the other
+    real_t *elem;                // The elements, one row after the other
     bool dynamic_alloc;         // True if the memory comes from the heap
 }matrix_t;
 
@@ -32,13 +37,13 @@ matrix_t matrix_alloc(uint32_t m, uint32_t n);
 // Give a matrix with m rows and n columns that uses the memory at elem. That
 // memory must hold m*n float values, and it must stay while the matrix is in
 // use. This function takes no memory from the heap.
-matrix_t matrix_static_alloc(uint32_t m, uint32_t n, float* elem);
+matrix_t matrix_static_alloc(uint32_t m, uint32_t n, real_t* elem);
 
 // Write a value into the matrix at the row i and the column j.
-void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, float value);
+void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, real_t value);
 
 // Give the value of the matrix at the row i and the column j.
-float matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j);
+real_t matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j);
 
 // Give a new matrix with one row that holds the given row of the matrix. Give
 // the result to matrix_free.
@@ -54,14 +59,14 @@ matrix_t matrix_get_nth_col(matrix_t* matrix, uint32_t col_index);
 matrix_t matrix_get_order(matrix_t* matrix);
 
 // Give the sum of the elements on the diagonal. The matrix must be square.
-float matrix_trace(matrix_t* matrix);
+real_t matrix_trace(matrix_t* matrix);
 
 // Give the determinant of the matrix. The matrix must be square.
 //
 // The calculation uses the rule of the cofactors. The cost of that rule grows
 // with the factorial of the order, thus a matrix of a large order takes a long
 // time. Keep the order below 10.
-float matrix_determinant(matrix_t* matrix);
+real_t matrix_determinant(matrix_t* matrix);
 
 // Give a new square matrix that holds 1 on the diagonal and 0 at every other
 // place. Give the result to matrix_free.
@@ -99,7 +104,7 @@ matrix_t matrix_subtract(matrix_t* a, matrix_t* b);
 
 // Give a new matrix where each element is the element of the given matrix
 // multiplied by the scalar. Give the result to matrix_free.
-matrix_t matrix_multiply_scalar(matrix_t* matrix, float scalar);
+matrix_t matrix_multiply_scalar(matrix_t* matrix, real_t scalar);
 
 // Give a new matrix that holds the product of the two matrices. The first
 // matrix must have as many columns as the second one has rows. The result has
@@ -157,7 +162,7 @@ void matrix_multiply_into(matrix_t* a, matrix_t* b, matrix_t* dest);
 
 // Write each element of the matrix multiplied by the scalar into the
 // destination. Both matrices must have the same order.
-void matrix_multiply_scalar_into(matrix_t* matrix, float scalar, matrix_t* dest);
+void matrix_multiply_scalar_into(matrix_t* matrix, real_t scalar, matrix_t* dest);
 
 // Write the transpose of the matrix into the destination. The destination must
 // have as many rows as the matrix has columns, and as many columns as the

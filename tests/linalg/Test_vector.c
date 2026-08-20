@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "vector.h"
 #include <stdlib.h>
 #include <stdbool.h>
@@ -23,7 +24,7 @@ void test_vector_alloc(void)
 
 void test_vector_static_alloc(void)
 {
-    float elem[3];
+    real_t elem[3];
     vector_t vector = vector_static_alloc(3, elem);
     TEST_ASSERT_EQUAL(3, vector.size);
     TEST_ASSERT_EQUAL(elem, vector.data);
@@ -45,7 +46,7 @@ void test_vector_add_point_at_index(void)
 void test_vector_add_from_array(void)
 {
     vector_t vector = vector_alloc(3);
-    float data[3] = {1, 2, 3};
+    real_t data[3] = {1, 2, 3};
     vector_add_from_array(&vector, 3, data);
     TEST_ASSERT_EQUAL(1, vector_get(&vector, 0));
     TEST_ASSERT_EQUAL(2, vector_get(&vector, 1));

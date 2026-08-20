@@ -8,7 +8,7 @@
 #include "defs.h"
 #endif
 
-static float savgol_factorial_ratio(uint32_t derivative);
+static real_t savgol_factorial_ratio(uint32_t derivative);
 
 savgol_t savgol_alloc(uint32_t window)
 {
@@ -20,18 +20,18 @@ savgol_t savgol_alloc(uint32_t window)
     savgol.window = window;
     savgol.order = 0;
     savgol.derivative = 0;
-    savgol.coefficient = (float*)malloc(sizeof(float)*window);
+    savgol.coefficient = (real_t*)malloc(sizeof(real_t)*window);
     savgol.dynamic_alloc = true;
 
     for(uint32_t index = 0; index < window; index++)
     {
-        savgol.coefficient[index] = 0.0f;
+        savgol.coefficient[index] = REAL_C(0.0);
     }
 
     return savgol;
 }
 
-savgol_t savgol_static_alloc(uint32_t window, float* coefficient)
+savgol_t savgol_static_alloc(uint32_t window, real_t* coefficient)
 {
     ASSERT(window > 0);
     ASSERT((window % 2) == 1);
@@ -47,7 +47,7 @@ savgol_t savgol_static_alloc(uint32_t window, float* coefficient)
 
     for(uint32_t index = 0; index < window; index++)
     {
-        savgol.coefficient[index] = 0.0f;
+        savgol.coefficient[index] = REAL_C(0.0);
     }
 
     return savgol;
@@ -89,8 +89,8 @@ bool savgol_design(savgol_t* savgol, uint32_t order, uint32_t derivative)
     matrix_t powers = matrix_alloc(window, terms);
     for(uint32_t row = 0; row < window; row++)
     {
-        float position = (float)((int32_t)row - half);
-        float value = 1.0f;
+        real_t position = (real_t)((int32_t)row - half);
+        real_t value = REAL_C(1.0);
 
         for(uint32_t column = 0; column < terms; column++)
         {
@@ -115,11 +115,11 @@ bool savgol_design(savgol_t* savgol, uint32_t order, uint32_t derivative)
         // The value of the polynomial at the middle is its first coefficient,
         // the first derivative is its second coefficient, and so on. The
         // derivative of the power d also brings the factor d factorial.
-        float factor = savgol_factorial_ratio(derivative);
+        real_t factor = savgol_factorial_ratio(derivative);
 
         for(uint32_t index = 0; index < window; index++)
         {
-            float sum = 0.0f;
+            real_t sum = REAL_C(0.0);
 
             for(uint32_t term = 0; term < terms; term++)
             {
@@ -143,7 +143,7 @@ bool savgol_design(savgol_t* savgol, uint32_t order, uint32_t derivative)
     return ok;
 }
 
-float savgol_get_coefficient(savgol_t* savgol, uint32_t index)
+real_t savgol_get_coefficient(savgol_t* savgol, uint32_t index)
 {
     ASSERT(savgol != NULL);
     ASSERT(index < savgol->window);
@@ -151,12 +151,12 @@ float savgol_get_coefficient(savgol_t* savgol, uint32_t index)
     return savgol->coefficient[index];
 }
 
-float savgol_apply(savgol_t* savgol, const float* window)
+real_t savgol_apply(savgol_t* savgol, const real_t* window)
 {
     ASSERT(savgol != NULL);
     ASSERT(window != NULL);
 
-    float result = 0.0f;
+    real_t result = REAL_C(0.0);
 
     for(uint32_t index = 0; index < savgol->window; index++)
     {
@@ -166,7 +166,7 @@ float savgol_apply(savgol_t* savgol, const float* window)
     return result;
 }
 
-void savgol_process_block(savgol_t* savgol, const float* input, float* output,
+void savgol_process_block(savgol_t* savgol, const real_t* input, real_t* output,
                           uint32_t size)
 {
     ASSERT(savgol != NULL);
@@ -178,7 +178,7 @@ void savgol_process_block(savgol_t* savgol, const float* input, float* output,
 
     for(uint32_t index = 0; index < size; index++)
     {
-        float result = 0.0f;
+        real_t result = REAL_C(0.0);
 
         for(uint32_t tap = 0; tap < savgol->window; tap++)
         {
@@ -216,13 +216,13 @@ void savgol_free(savgol_t* savgol)
 
 // Give the factor that the derivative brings. The derivative of the power d
 // gives d factorial.
-static float savgol_factorial_ratio(uint32_t derivative)
+static real_t savgol_factorial_ratio(uint32_t derivative)
 {
-    float result = 1.0f;
+    real_t result = REAL_C(1.0);
 
     for(uint32_t index = 2; index <= derivative; index++)
     {
-        result *= (float)index;
+        result *= (real_t)index;
     }
 
     return result;

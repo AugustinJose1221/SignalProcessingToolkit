@@ -9,7 +9,7 @@
 #endif
 
 void hht_transform_imf(fft_t* fft, imf_t* imf, cnum_t* work,
-                       float* amplitude, float* frequency, float sample_rate)
+                       real_t* amplitude, real_t* frequency, real_t sample_rate)
 {
     ASSERT(fft != NULL);
     ASSERT(imf != NULL);
@@ -24,7 +24,7 @@ void hht_transform_imf(fft_t* fft, imf_t* imf, cnum_t* work,
 }
 
 void hht_transform(fft_t* fft, imf_t* imf, uint32_t count, cnum_t* work,
-                   float* amplitude, float* frequency, float sample_rate)
+                   real_t* amplitude, real_t* frequency, real_t sample_rate)
 {
     ASSERT(fft != NULL);
     ASSERT(imf != NULL);
@@ -41,27 +41,27 @@ void hht_transform(fft_t* fft, imf_t* imf, uint32_t count, cnum_t* work,
     }
 }
 
-float hht_mean_frequency(const float* amplitude, const float* frequency,
+real_t hht_mean_frequency(const real_t* amplitude, const real_t* frequency,
                          uint32_t size)
 {
     ASSERT(amplitude != NULL);
     ASSERT(frequency != NULL);
     ASSERT(size > 1);
 
-    float total_weight = 0.0f;
-    float total = 0.0f;
+    real_t total_weight = REAL_C(0.0);
+    real_t total = REAL_C(0.0);
 
     // The frequency list holds one value less than the amplitude list.
     for(uint32_t index = 0; index < (size - 1); index++)
     {
-        float weight = amplitude[index] * amplitude[index];
+        real_t weight = amplitude[index] * amplitude[index];
         total += weight * frequency[index];
         total_weight += weight;
     }
 
-    if(total_weight == 0.0f)
+    if(total_weight == REAL_C(0.0))
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
     return total / total_weight;

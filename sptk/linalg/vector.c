@@ -15,13 +15,13 @@ vector_t vector_alloc(uint32_t size)
     vector_t vector;
 
     vector.size = size;
-    vector.data = (float*)malloc(sizeof(float)*size);
+    vector.data = (real_t*)malloc(sizeof(real_t)*size);
     vector.dynamic_alloc = true;
 
     return vector;
 }
 
-vector_t vector_static_alloc(uint32_t size, float* mempool)
+vector_t vector_static_alloc(uint32_t size, real_t* mempool)
 {
     ASSERT(size > 0);
     ASSERT(mempool != NULL);
@@ -34,7 +34,7 @@ vector_t vector_static_alloc(uint32_t size, float* mempool)
     return vector;
 }
 
-void vector_add_point_at_index(vector_t* vector, uint32_t index, float data)
+void vector_add_point_at_index(vector_t* vector, uint32_t index, real_t data)
 {
     ASSERT(vector != NULL);
     ASSERT(index < vector->size);
@@ -42,13 +42,13 @@ void vector_add_point_at_index(vector_t* vector, uint32_t index, float data)
     vector->data[index] = data;
 }
 
-void vector_add_from_array(vector_t* vector, uint32_t size, float* data)
+void vector_add_from_array(vector_t* vector, uint32_t size, real_t* data)
 {
     ASSERT(vector != NULL);
     ASSERT(size == vector->size);
     ASSERT(data != NULL);
 
-    memcpy(vector->data, data, sizeof(float)*size);
+    memcpy(vector->data, data, sizeof(real_t)*size);
 }
 
 void vector_printf(vector_t* vector, print_t func)
@@ -58,16 +58,16 @@ void vector_printf(vector_t* vector, print_t func)
     {
         if(func != NULL)
         {
-            func("%f\n", (float)vector->data[index]);
+            func("%f\n", (real_t)vector->data[index]);
         }
         else
         {
-            printf("%f\n", (float)vector->data[index]);
+            printf("%f\n", (real_t)vector->data[index]);
         }
     }
 }
 
-float vector_get(vector_t* vector, uint32_t index)
+real_t vector_get(vector_t* vector, uint32_t index)
 {
     ASSERT(vector != NULL);
     ASSERT(index < vector->size);
@@ -75,13 +75,13 @@ float vector_get(vector_t* vector, uint32_t index)
     return vector->data[index];
 }
 
-float vector_dot_product(vector_t* x, vector_t* y)
+real_t vector_dot_product(vector_t* x, vector_t* y)
 {
     ASSERT(x != NULL);
     ASSERT(y != NULL);
     ASSERT(x->size == y->size);
 
-    float product = 0;
+    real_t product = 0;
     for(uint32_t index = 0; index < x->size; index++)
     {
         product += x->data[index]*y->data[index];
@@ -90,9 +90,9 @@ float vector_dot_product(vector_t* x, vector_t* y)
     return product;
 }
 
-float vector_norm(vector_t* x)
+real_t vector_norm(vector_t* x)
 {
-    return (float)sqrt(vector_dot_product(x, x));
+    return (real_t)REAL_SQRT(vector_dot_product(x, x));
 }
 
 void vector_free(vector_t* vector)

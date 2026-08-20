@@ -8,10 +8,10 @@
 
 #include <math.h>
 
-#define IIR_PI      3.14159265358979323846f
+#define IIR_PI      REAL_C(3.14159265358979323846)
 
 static void iir_set_pass_through(iir_t* iir);
-static float iir_section_angle(uint32_t section, uint32_t sections);
+static real_t iir_section_angle(uint32_t section, uint32_t sections);
 
 iir_t iir_alloc(uint32_t sections)
 {
@@ -20,8 +20,8 @@ iir_t iir_alloc(uint32_t sections)
     iir_t iir;
 
     iir.sections = sections;
-    iir.coefficient = (float*)malloc(sizeof(float)*IIR_COEFFICIENT_SIZE(sections));
-    iir.state = (float*)malloc(sizeof(float)*IIR_STATE_SIZE(sections));
+    iir.coefficient = (real_t*)malloc(sizeof(real_t)*IIR_COEFFICIENT_SIZE(sections));
+    iir.state = (real_t*)malloc(sizeof(real_t)*IIR_STATE_SIZE(sections));
     iir.dynamic_alloc = true;
 
     iir_set_pass_through(&iir);
@@ -30,7 +30,7 @@ iir_t iir_alloc(uint32_t sections)
     return iir;
 }
 
-iir_t iir_static_alloc(uint32_t sections, float* coefficient, float* state)
+iir_t iir_static_alloc(uint32_t sections, real_t* coefficient, real_t* state)
 {
     ASSERT(sections > 0);
     ASSERT(coefficient != NULL);
@@ -49,12 +49,12 @@ iir_t iir_static_alloc(uint32_t sections, float* coefficient, float* state)
     return iir;
 }
 
-bool iir_is_valid_cutoff(float cutoff)
+bool iir_is_valid_cutoff(real_t cutoff)
 {
-    return (cutoff >= IIR_MIN_CUTOFF) && (cutoff < 0.5f);
+    return (cutoff >= IIR_MIN_CUTOFF) && (cutoff < REAL_C(0.5));
 }
 
-bool iir_design_low_pass(iir_t* iir, float cutoff)
+bool iir_design_low_pass(iir_t* iir, real_t cutoff)
 {
     ASSERT(iir != NULL);
 
@@ -70,29 +70,29 @@ bool iir_design_low_pass(iir_t* iir, float cutoff)
     // The bilinear transform bends the frequency, thus the design first bends
     // the cutoff the other way. Then the filter holds its cutoff at the place
     // that the caller asked for.
-    float warped = tanf(IIR_PI * cutoff);
-    float squared = warped * warped;
+    real_t warped = REAL_TAN(IIR_PI * cutoff);
+    real_t squared = warped * warped;
 
     for(uint32_t section = 0; section < iir->sections; section++)
     {
         // Each section of a filter of Butterworth holds a pair of poles at its
         // own angle on the circle.
-        float damping = 2.0f * cosf(iir_section_angle(section, iir->sections));
-        float divisor = 1.0f + (damping * warped) + squared;
+        real_t damping = REAL_C(2.0) * REAL_COS(iir_section_angle(section, iir->sections));
+        real_t divisor = REAL_C(1.0) + (damping * warped) + squared;
 
-        float b0 = squared / divisor;
-        float b1 = 2.0f * b0;
-        float b2 = b0;
-        float a1 = (2.0f * (squared - 1.0f)) / divisor;
-        float a2 = (1.0f - (damping * warped) + squared) / divisor;
+        real_t b0 = squared / divisor;
+        real_t b1 = REAL_C(2.0) * b0;
+        real_t b2 = b0;
+        real_t a1 = (REAL_C(2.0) * (squared - REAL_C(1.0))) / divisor;
+        real_t a2 = (REAL_C(1.0) - (damping * warped) + squared) / divisor;
 
-        iir_set_section(iir, section, b0, b1, b2, 1.0f, a1, a2);
+        iir_set_section(iir, section, b0, b1, b2, REAL_C(1.0), a1, a2);
     }
 
     return true;
 }
 
-bool iir_design_high_pass(iir_t* iir, float cutoff)
+bool iir_design_high_pass(iir_t* iir, real_t cutoff)
 {
     ASSERT(iir != NULL);
 
@@ -101,21 +101,21 @@ bool iir_design_high_pass(iir_t* iir, float cutoff)
         return false;
     }
 
-    float warped = tanf(IIR_PI * cutoff);
-    float squared = warped * warped;
+    real_t warped = REAL_TAN(IIR_PI * cutoff);
+    real_t squared = warped * warped;
 
     for(uint32_t section = 0; section < iir->sections; section++)
     {
-        float damping = 2.0f * cosf(iir_section_angle(section, iir->sections));
-        float divisor = 1.0f + (damping * warped) + squared;
+        real_t damping = REAL_C(2.0) * REAL_COS(iir_section_angle(section, iir->sections));
+        real_t divisor = REAL_C(1.0) + (damping * warped) + squared;
 
-        float b0 = 1.0f / divisor;
-        float b1 = -2.0f * b0;
-        float b2 = b0;
-        float a1 = (2.0f * (squared - 1.0f)) / divisor;
-        float a2 = (1.0f - (damping * warped) + squared) / divisor;
+        real_t b0 = REAL_C(1.0) / divisor;
+        real_t b1 = -REAL_C(2.0) * b0;
+        real_t b2 = b0;
+        real_t a1 = (REAL_C(2.0) * (squared - REAL_C(1.0))) / divisor;
+        real_t a2 = (REAL_C(1.0) - (damping * warped) + squared) / divisor;
 
-        iir_set_section(iir, section, b0, b1, b2, 1.0f, a1, a2);
+        iir_set_section(iir, section, b0, b1, b2, REAL_C(1.0), a1, a2);
     }
 
     return true;
@@ -126,12 +126,12 @@ bool iir_design_high_pass(iir_t* iir, float cutoff)
 // The first is the cosine of the turn that the frequency makes in one sample.
 // The second sets how wide the design reaches around that frequency: it falls
 // as the quality rises, thus a high quality gives a narrow design.
-static void iir_resonance(float centre, float quality, float* cosine, float* alpha)
+static void iir_resonance(real_t centre, real_t quality, real_t* cosine, real_t* alpha)
 {
-    float turn = 2.0f * IIR_PI * centre;
+    real_t turn = REAL_C(2.0) * IIR_PI * centre;
 
-    *cosine = cosf(turn);
-    *alpha = sinf(turn) / (2.0f * quality);
+    *cosine = REAL_COS(turn);
+    *alpha = REAL_SIN(turn) / (REAL_C(2.0) * quality);
 }
 
 // The middle of a band, and how narrow that band is.
@@ -141,14 +141,14 @@ static void iir_resonance(float centre, float quality, float* cosine, float* alp
 // frequencies and not in their difference: a band from 100 to 400 has its
 // middle at 200, because 200 is twice 100 and 400 is twice 200. The plain mean
 // would put it at 250 and the two edges would then not fall away equally.
-static void iir_band_to_resonance(float low_cutoff, float high_cutoff,
-                                  float* centre, float* quality)
+static void iir_band_to_resonance(real_t low_cutoff, real_t high_cutoff,
+                                  real_t* centre, real_t* quality)
 {
-    *centre = sqrtf(low_cutoff * high_cutoff);
+    *centre = REAL_SQRT(low_cutoff * high_cutoff);
     *quality = *centre / (high_cutoff - low_cutoff);
 }
 
-bool iir_design_band_pass(iir_t* iir, float low_cutoff, float high_cutoff)
+bool iir_design_band_pass(iir_t* iir, real_t low_cutoff, real_t high_cutoff)
 {
     ASSERT(iir != NULL);
 
@@ -181,15 +181,15 @@ bool iir_design_band_pass(iir_t* iir, float low_cutoff, float high_cutoff)
     {
         for(uint32_t section = 0; section < half; section++)
         {
-            const float* from = &high_part.coefficient[section * IIR_COEFFICIENT_COUNT];
+            const real_t* from = &high_part.coefficient[section * IIR_COEFFICIENT_COUNT];
             iir_set_section(iir, section, from[0], from[1], from[2],
-                            1.0f, from[3], from[4]);
+                            REAL_C(1.0), from[3], from[4]);
         }
         for(uint32_t section = 0; section < half; section++)
         {
-            const float* from = &low_part.coefficient[section * IIR_COEFFICIENT_COUNT];
+            const real_t* from = &low_part.coefficient[section * IIR_COEFFICIENT_COUNT];
             iir_set_section(iir, half + section, from[0], from[1], from[2],
-                            1.0f, from[3], from[4]);
+                            REAL_C(1.0), from[3], from[4]);
         }
     }
 
@@ -199,17 +199,17 @@ bool iir_design_band_pass(iir_t* iir, float low_cutoff, float high_cutoff)
     return built;
 }
 
-bool iir_design_notch(iir_t* iir, float centre, float quality)
+bool iir_design_notch(iir_t* iir, real_t centre, real_t quality)
 {
     ASSERT(iir != NULL);
 
-    if(!iir_is_valid_cutoff(centre) || (quality <= 0.0f))
+    if(!iir_is_valid_cutoff(centre) || (quality <= REAL_C(0.0)))
     {
         return false;
     }
 
-    float cosine;
-    float alpha;
+    real_t cosine;
+    real_t alpha;
     iir_resonance(centre, quality, &cosine, &alpha);
 
     // The zeros stand exactly on the circle at the frequency, thus the gain
@@ -219,24 +219,24 @@ bool iir_design_notch(iir_t* iir, float centre, float quality)
     for(uint32_t section = 0; section < iir->sections; section++)
     {
         iir_set_section(iir, section,
-                        1.0f, -2.0f * cosine, 1.0f,
-                        1.0f + alpha, -2.0f * cosine, 1.0f - alpha);
+                        REAL_C(1.0), -REAL_C(2.0) * cosine, REAL_C(1.0),
+                        REAL_C(1.0) + alpha, -REAL_C(2.0) * cosine, REAL_C(1.0) - alpha);
     }
 
     return true;
 }
 
-bool iir_design_peak(iir_t* iir, float centre, float quality)
+bool iir_design_peak(iir_t* iir, real_t centre, real_t quality)
 {
     ASSERT(iir != NULL);
 
-    if(!iir_is_valid_cutoff(centre) || (quality <= 0.0f))
+    if(!iir_is_valid_cutoff(centre) || (quality <= REAL_C(0.0)))
     {
         return false;
     }
 
-    float cosine;
-    float alpha;
+    real_t cosine;
+    real_t alpha;
     iir_resonance(centre, quality, &cosine, &alpha);
 
     // The same poles as the notch, and zeros at nothing and at half the sample
@@ -245,14 +245,14 @@ bool iir_design_peak(iir_t* iir, float centre, float quality)
     for(uint32_t section = 0; section < iir->sections; section++)
     {
         iir_set_section(iir, section,
-                        alpha, 0.0f, -alpha,
-                        1.0f + alpha, -2.0f * cosine, 1.0f - alpha);
+                        alpha, REAL_C(0.0), -alpha,
+                        REAL_C(1.0) + alpha, -REAL_C(2.0) * cosine, REAL_C(1.0) - alpha);
     }
 
     return true;
 }
 
-bool iir_design_band_stop(iir_t* iir, float low_cutoff, float high_cutoff)
+bool iir_design_band_stop(iir_t* iir, real_t low_cutoff, real_t high_cutoff)
 {
     ASSERT(iir != NULL);
 
@@ -265,21 +265,21 @@ bool iir_design_band_stop(iir_t* iir, float low_cutoff, float high_cutoff)
         return false;
     }
 
-    float centre;
-    float quality;
+    real_t centre;
+    real_t quality;
     iir_band_to_resonance(low_cutoff, high_cutoff, &centre, &quality);
 
     return iir_design_notch(iir, centre, quality);
 }
 
-void iir_set_section(iir_t* iir, uint32_t section, float b0, float b1, float b2,
-                     float a0, float a1, float a2)
+void iir_set_section(iir_t* iir, uint32_t section, real_t b0, real_t b1, real_t b2,
+                     real_t a0, real_t a1, real_t a2)
 {
     ASSERT(iir != NULL);
     ASSERT(section < iir->sections);
-    ASSERT(a0 != 0.0f);
+    ASSERT(a0 != REAL_C(0.0));
 
-    float* coefficient = &iir->coefficient[section * IIR_COEFFICIENT_COUNT];
+    real_t* coefficient = &iir->coefficient[section * IIR_COEFFICIENT_COUNT];
 
     coefficient[0] = b0 / a0;
     coefficient[1] = b1 / a0;
@@ -288,19 +288,19 @@ void iir_set_section(iir_t* iir, uint32_t section, float b0, float b1, float b2,
     coefficient[4] = a2 / a0;
 }
 
-float iir_process_sample(iir_t* iir, float sample)
+real_t iir_process_sample(iir_t* iir, real_t sample)
 {
     ASSERT(iir != NULL);
 
-    float value = sample;
+    real_t value = sample;
 
     for(uint32_t section = 0; section < iir->sections; section++)
     {
-        float* coefficient = &iir->coefficient[section * IIR_COEFFICIENT_COUNT];
-        float* state = &iir->state[section * IIR_STATE_COUNT];
+        real_t* coefficient = &iir->coefficient[section * IIR_COEFFICIENT_COUNT];
+        real_t* state = &iir->state[section * IIR_STATE_COUNT];
 
         // Direct Form II transposed.
-        float result = (coefficient[0] * value) + state[0];
+        real_t result = (coefficient[0] * value) + state[0];
         state[0] = (coefficient[1] * value) - (coefficient[3] * result) + state[1];
         state[1] = (coefficient[2] * value) - (coefficient[4] * result);
 
@@ -310,7 +310,7 @@ float iir_process_sample(iir_t* iir, float sample)
     return value;
 }
 
-void iir_process_block(iir_t* iir, const float* input, float* output, uint32_t size)
+void iir_process_block(iir_t* iir, const real_t* input, real_t* output, uint32_t size)
 {
     ASSERT(iir != NULL);
     ASSERT(input != NULL);
@@ -328,41 +328,41 @@ void iir_reset(iir_t* iir)
 
     for(uint32_t index = 0; index < IIR_STATE_SIZE(iir->sections); index++)
     {
-        iir->state[index] = 0.0f;
+        iir->state[index] = REAL_C(0.0);
     }
 }
 
-float iir_get_gain(iir_t* iir, float frequency)
+real_t iir_get_gain(iir_t* iir, real_t frequency)
 {
     ASSERT(iir != NULL);
 
-    float angle = 2.0f * IIR_PI * frequency;
-    float total = 1.0f;
+    real_t angle = REAL_C(2.0) * IIR_PI * frequency;
+    real_t total = REAL_C(1.0);
 
     for(uint32_t section = 0; section < iir->sections; section++)
     {
-        float* coefficient = &iir->coefficient[section * IIR_COEFFICIENT_COUNT];
+        real_t* coefficient = &iir->coefficient[section * IIR_COEFFICIENT_COUNT];
 
         // The answer of one section is the value of its polynomial of the
         // input divided by the value of its polynomial of the feedback, both
         // at the point on the circle at this angle.
-        float top_real = coefficient[0] + (coefficient[1] * cosf(-angle))
-                         + (coefficient[2] * cosf(-2.0f*angle));
-        float top_imaginary = (coefficient[1] * sinf(-angle))
-                              + (coefficient[2] * sinf(-2.0f*angle));
+        real_t top_real = coefficient[0] + (coefficient[1] * REAL_COS(-angle))
+                         + (coefficient[2] * REAL_COS(-REAL_C(2.0)*angle));
+        real_t top_imaginary = (coefficient[1] * REAL_SIN(-angle))
+                              + (coefficient[2] * REAL_SIN(-REAL_C(2.0)*angle));
 
-        float bottom_real = 1.0f + (coefficient[3] * cosf(-angle))
-                            + (coefficient[4] * cosf(-2.0f*angle));
-        float bottom_imaginary = (coefficient[3] * sinf(-angle))
-                                 + (coefficient[4] * sinf(-2.0f*angle));
+        real_t bottom_real = REAL_C(1.0) + (coefficient[3] * REAL_COS(-angle))
+                            + (coefficient[4] * REAL_COS(-REAL_C(2.0)*angle));
+        real_t bottom_imaginary = (coefficient[3] * REAL_SIN(-angle))
+                                 + (coefficient[4] * REAL_SIN(-REAL_C(2.0)*angle));
 
-        float top = sqrtf((top_real*top_real) + (top_imaginary*top_imaginary));
-        float bottom = sqrtf((bottom_real*bottom_real)
+        real_t top = REAL_SQRT((top_real*top_real) + (top_imaginary*top_imaginary));
+        real_t bottom = REAL_SQRT((bottom_real*bottom_real)
                              + (bottom_imaginary*bottom_imaginary));
 
-        if(bottom == 0.0f)
+        if(bottom == REAL_C(0.0))
         {
-            return 0.0f;
+            return REAL_C(0.0);
         }
 
         total *= top / bottom;
@@ -388,11 +388,11 @@ void iir_free(iir_t* iir)
 // Give the angle of the pair of poles of one section of a filter of
 // Butterworth. The poles of such a filter lie at even distances on a half
 // circle.
-static float iir_section_angle(uint32_t section, uint32_t sections)
+static real_t iir_section_angle(uint32_t section, uint32_t sections)
 {
-    float order = 2.0f * (float)sections;
+    real_t order = REAL_C(2.0) * (real_t)sections;
 
-    return (IIR_PI * (((2.0f * (float)section) + 1.0f) / (2.0f * order)));
+    return (IIR_PI * (((REAL_C(2.0) * (real_t)section) + REAL_C(1.0)) / (REAL_C(2.0) * order)));
 }
 
 // Give every section the coefficients that let the signal pass unchanged.
@@ -400,6 +400,6 @@ static void iir_set_pass_through(iir_t* iir)
 {
     for(uint32_t section = 0; section < iir->sections; section++)
     {
-        iir_set_section(iir, section, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
+        iir_set_section(iir, section, REAL_C(1.0), REAL_C(0.0), REAL_C(0.0), REAL_C(1.0), REAL_C(0.0), REAL_C(0.0));
     }
 }

@@ -1,17 +1,18 @@
 #define _POSIX_C_SOURCE 199309L
 
+#include <sptk/core/real.h>
 #include <perf/benchmark/benchmark.h>
 
 #include <stdio.h>
 #include <time.h>
 
-double benchmark_now(void)
+real_t benchmark_now(void)
 {
     struct timespec now;
 
     clock_gettime(CLOCK_MONOTONIC, &now);
 
-    return (double)now.tv_sec + ((double)now.tv_nsec / 1000000000.0);
+    return (real_t)now.tv_sec + ((real_t)now.tv_nsec / 1000000000.0);
 }
 
 void benchmark_report_header(void)
@@ -25,8 +26,8 @@ void benchmark_report_header(void)
 
 void benchmark_report(benchmark_result_t* result)
 {
-    double mean_seconds = result->total_seconds / (double)result->repeats;
-    double per_second = 0.0;
+    real_t mean_seconds = result->total_seconds / (real_t)result->repeats;
+    real_t per_second = 0.0;
 
     if(result->best_seconds > 0.0)
     {

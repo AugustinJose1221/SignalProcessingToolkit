@@ -13,7 +13,7 @@
 // size. That is not an index of the list, and a caller that reads the list at
 // that place reads memory after the end of the list. Thus the result stays
 // below size, and it is always an index that the caller can use.
-uint32_t binarysearch_get_index(float* data, float value, uint32_t size)
+uint32_t binarysearch_get_index(real_t* data, real_t value, uint32_t size)
 {
     ASSERT(data != NULL);
     ASSERT(size > 0);

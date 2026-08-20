@@ -6,8 +6,8 @@
 #include "defs.h"
 #endif
 
-static matrix_t take_from_pool(float** pool, uint32_t m, uint32_t n);
-static void build_matrices(kalman_t* kalman, float* mempool);
+static matrix_t take_from_pool(real_t** pool, uint32_t m, uint32_t n);
+static void build_matrices(kalman_t* kalman, real_t* mempool);
 
 // Allocation
 
@@ -18,9 +18,9 @@ kalman_t kalman_alloc(uint32_t ni, uint32_t nx, uint32_t ny)
     ASSERT(ny > 0);
 
     kalman_t kalman;
-    float* mempool;
+    real_t* mempool;
 
-    mempool = (float*)malloc(sizeof(float)*KALMAN_MEMPOOL_SIZE(ni, nx, ny));
+    mempool = (real_t*)malloc(sizeof(real_t)*KALMAN_MEMPOOL_SIZE(ni, nx, ny));
 
     kalman.ni = ni;
     kalman.nx = nx;
@@ -34,7 +34,7 @@ kalman_t kalman_alloc(uint32_t ni, uint32_t nx, uint32_t ny)
     return kalman;
 }
 
-kalman_t kalman_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, float* mempool)
+kalman_t kalman_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, real_t* mempool)
 {
     ASSERT(ni > 0);
     ASSERT(nx > 0);
@@ -57,12 +57,12 @@ kalman_t kalman_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, float* mempo
 
 // The two allocation functions share this layout. Thus a dynamic filter and a
 // static filter hold their matrices in the same order.
-static void build_matrices(kalman_t* kalman, float* mempool)
+static void build_matrices(kalman_t* kalman, real_t* mempool)
 {
     uint32_t ni = kalman->ni;
     uint32_t nx = kalman->nx;
     uint32_t ny = kalman->ny;
-    float* pool = mempool;
+    real_t* pool = mempool;
 
     kalman->_x = take_from_pool(&pool, nx, 1);
     kalman->x  = take_from_pool(&pool, nx, 1);
@@ -93,11 +93,11 @@ static void build_matrices(kalman_t* kalman, float* mempool)
 
     for(uint32_t i = 0; i < KALMAN_MEMPOOL_SIZE(ni, nx, ny); i++)
     {
-        mempool[i] = 0.0f;
+        mempool[i] = REAL_C(0.0);
     }
 }
 
-static matrix_t take_from_pool(float** pool, uint32_t m, uint32_t n)
+static matrix_t take_from_pool(real_t** pool, uint32_t m, uint32_t n)
 {
     matrix_t matrix = matrix_static_alloc(m, n, *pool);
     *pool += m*n;

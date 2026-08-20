@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // The filter of Savitzky and Golay.
 //
@@ -32,7 +37,7 @@ typedef struct{
     uint32_t window;            // The number of samples of the window, odd
     uint32_t order;             // The order of the polynomial
     uint32_t derivative;        // Which derivative the filter gives
-    float* coefficient;         // One coefficient for each sample of the window
+    real_t* coefficient;         // One coefficient for each sample of the window
     bool dynamic_alloc;         // True if the memory comes from the heap
 }savgol_t;
 
@@ -42,7 +47,7 @@ savgol_t savgol_alloc(uint32_t window);
 
 // Give a filter that uses the memory at coefficient, which must hold as many
 // float values as the window. This function takes no memory from the heap.
-savgol_t savgol_static_alloc(uint32_t window, float* coefficient);
+savgol_t savgol_static_alloc(uint32_t window, real_t* coefficient);
 
 // True if the window and the order fit together: the window must be odd and
 // larger than the order, and the derivative must not be above the order.
@@ -63,11 +68,11 @@ bool savgol_is_valid(uint32_t window, uint32_t order, uint32_t derivative);
 bool savgol_design(savgol_t* savgol, uint32_t order, uint32_t derivative);
 
 // Give one coefficient of the filter.
-float savgol_get_coefficient(savgol_t* savgol, uint32_t index);
+real_t savgol_get_coefficient(savgol_t* savgol, uint32_t index);
 
 // Give the filtered value at the middle of the given window of samples. The
 // list must hold as many samples as the window of the filter.
-float savgol_apply(savgol_t* savgol, const float* window);
+real_t savgol_apply(savgol_t* savgol, const real_t* window);
 
 // Filter a whole signal.
 //
@@ -78,7 +83,7 @@ float savgol_apply(savgol_t* savgol, const float* window);
 //
 // The result of a derivative is for one step of the sample. Divide it by the
 // time between two samples to get a derivative for the time.
-void savgol_process_block(savgol_t* savgol, const float* input, float* output,
+void savgol_process_block(savgol_t* savgol, const real_t* input, real_t* output,
                           uint32_t size);
 
 // Release the memory of a filter that came from savgol_alloc. This function

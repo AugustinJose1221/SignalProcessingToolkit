@@ -40,19 +40,19 @@ method starts again with it.
 
 ```c
 typedef struct{
-    float* x;
-    float* y;
+    real_t* x;
+    real_t* y;
     uint32_t size;
     cspline_t cspline;
     cspline_mempool_t cspline_mempool;
-    float* peak_buffer;
-    float* peak_index_buffer;
-    float* valley_buffer;
-    float* valley_index_buffer;
+    real_t* peak_buffer;
+    real_t* peak_index_buffer;
+    real_t* valley_buffer;
+    real_t* valley_index_buffer;
     imf_t* imf;
     uint32_t imf_count;
-    float* residue;
-    float* working_buffer;
+    real_t* residue;
+    real_t* working_buffer;
     bool dynamic_alloc;
 }emd_t;
 ```
@@ -71,7 +71,7 @@ comes from the heap. Give it to emd_free when you no longer need it.
 ### `emd_static_alloc`
 
 ```c
-emd_t emd_static_alloc(uint32_t size, float** membank, float** mempool, float* peak_buffer, float* valley_buffer);
+emd_t emd_static_alloc(uint32_t size, real_t** membank, real_t** mempool, real_t* peak_buffer, real_t* valley_buffer);
 ```
 
 Give a decomposition that uses the memory that the caller holds. The
@@ -82,7 +82,7 @@ values as the number of samples. This function takes no memory from the heap.
 ### `emd_initialize`
 
 ```c
-void emd_initialize(emd_t* emd, uint32_t num_of_imf, imf_t* imf, float* x, float* y, float* residue, float* working_buffer, float* peak_index_buffer, float* valley_index_buffer);
+void emd_initialize(emd_t* emd, uint32_t num_of_imf, imf_t* imf, real_t* x, real_t* y, real_t* residue, real_t* working_buffer, real_t* peak_index_buffer, real_t* valley_index_buffer);
 ```
 
 Give the decomposition the signal and the memory that it needs while it

@@ -29,8 +29,8 @@ window. The reason stands at movavg_process_sample.
 ```c
 typedef struct{
     ringbuf_t window;           // The samples of the window
-    double total;               // The running sum of the samples
-    double square_total;        // The running sum of the squares
+    real_t total;               // The running sum of the samples
+    real_t square_total;        // The running sum of the squares
     uint32_t since_refresh;     // Samples since the totals were built again
 }movavg_t;
 ```
@@ -49,7 +49,7 @@ heap. Give the filter to movavg_free when you no longer need it.
 ### `movavg_static_alloc`
 
 ```c
-movavg_t movavg_static_alloc(uint32_t size, float* data);
+movavg_t movavg_static_alloc(uint32_t size, real_t* data);
 ```
 
 Give a filter that uses the memory at data, which must hold as many float
@@ -66,7 +66,7 @@ Forget every sample and every total.
 ### `movavg_process_sample`
 
 ```c
-float movavg_process_sample(movavg_t* movavg, float sample);
+real_t movavg_process_sample(movavg_t* movavg, real_t sample);
 ```
 
 Put one sample in and give the mean of the window as it now stands.
@@ -78,7 +78,7 @@ first sample and does not start low.
 ### `movavg_process_block`
 
 ```c
-void movavg_process_block(movavg_t* movavg, const float* input, float* output, uint32_t size);
+void movavg_process_block(movavg_t* movavg, const real_t* input, real_t* output, uint32_t size);
 ```
 
 Filter a whole block. The input and the output may be the same list.
@@ -86,7 +86,7 @@ Filter a whole block. The input and the output may be the same list.
 ### `movavg_get_mean`
 
 ```c
-float movavg_get_mean(const movavg_t* movavg);
+real_t movavg_get_mean(const movavg_t* movavg);
 ```
 
 Give the mean of the window without putting a sample in.
@@ -94,7 +94,7 @@ Give the mean of the window without putting a sample in.
 ### `movavg_get_rms`
 
 ```c
-float movavg_get_rms(const movavg_t* movavg);
+real_t movavg_get_rms(const movavg_t* movavg);
 ```
 
 Give the root of the mean of the squares of the window.
@@ -106,7 +106,7 @@ gives 1. Take this one for the energy or the power of a signal.
 ### `movavg_get_deviation`
 
 ```c
-float movavg_get_deviation(const movavg_t* movavg);
+real_t movavg_get_deviation(const movavg_t* movavg);
 ```
 
 Give the standard deviation of the window.

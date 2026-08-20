@@ -1,5 +1,6 @@
 #include <perf/benchmark/benchmark.h>
 
+#include <sptk/core/real.h>
 #include <sptk/linalg/matrix.h>
 
 #include <stdlib.h>
@@ -22,7 +23,7 @@ static matrix_t make_random_matrix(uint32_t m, uint32_t n)
         for(uint32_t j = 0; j < n; j++)
         {
             matrix_add_element(&matrix, i, j,
-                               ((float)rand() / (float)RAND_MAX) - 0.5f);
+                               ((real_t)rand() / (real_t)RAND_MAX) - REAL_C(0.5));
         }
     }
 
@@ -37,16 +38,16 @@ static matrix_t make_invertible_matrix(uint32_t order)
 
     for(uint32_t i = 0; i < order; i++)
     {
-        float sum = 0.0f;
+        real_t sum = REAL_C(0.0);
         for(uint32_t j = 0; j < order; j++)
         {
             if(i != j)
             {
-                float value = matrix_get_element(&matrix, i, j);
-                sum += (value < 0.0f) ? -value : value;
+                real_t value = matrix_get_element(&matrix, i, j);
+                sum += (value < REAL_C(0.0)) ? -value : value;
             }
         }
-        matrix_add_element(&matrix, i, i, sum + 1.0f);
+        matrix_add_element(&matrix, i, i, sum + REAL_C(1.0));
     }
 
     return matrix;
@@ -104,7 +105,7 @@ void run_matrix_benchmark(void)
     {
         uint32_t order = DETERMINANT_ORDERS[index];
         matrix_t matrix = make_random_matrix(order, order);
-        float value;
+        real_t value;
 
         BENCHMARK_MEASURE("matrix", "determinant", order, 5,
                           value = matrix_determinant(&matrix));

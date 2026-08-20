@@ -12,7 +12,7 @@ ringbuf_t ringbuf_alloc(uint32_t size)
 
     ringbuf_t ringbuf;
 
-    ringbuf.data = (float*)malloc(sizeof(float)*size);
+    ringbuf.data = (real_t*)malloc(sizeof(real_t)*size);
     ringbuf.size = size;
     ringbuf.dynamic_alloc = true;
 
@@ -21,7 +21,7 @@ ringbuf_t ringbuf_alloc(uint32_t size)
     return ringbuf;
 }
 
-ringbuf_t ringbuf_static_alloc(uint32_t size, float* data)
+ringbuf_t ringbuf_static_alloc(uint32_t size, real_t* data)
 {
     ASSERT(size > 0);
     ASSERT(data != NULL);
@@ -46,11 +46,11 @@ void ringbuf_reset(ringbuf_t* ringbuf)
 
     for(uint32_t index = 0; index < ringbuf->size; index++)
     {
-        ringbuf->data[index] = 0.0f;
+        ringbuf->data[index] = REAL_C(0.0);
     }
 }
 
-void ringbuf_put(ringbuf_t* ringbuf, float sample)
+void ringbuf_put(ringbuf_t* ringbuf, real_t sample)
 {
     ASSERT(ringbuf != NULL);
 
@@ -74,13 +74,13 @@ void ringbuf_put(ringbuf_t* ringbuf, float sample)
     }
 }
 
-float ringbuf_get(const ringbuf_t* ringbuf, uint32_t age)
+real_t ringbuf_get(const ringbuf_t* ringbuf, uint32_t age)
 {
     ASSERT(ringbuf != NULL);
 
     if(age >= ringbuf->count)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
     // The head stands one place past the newest sample, thus the newest sample
@@ -106,7 +106,7 @@ bool ringbuf_is_full(const ringbuf_t* ringbuf)
     return ringbuf->count >= ringbuf->size;
 }
 
-uint32_t ringbuf_copy(const ringbuf_t* ringbuf, float* output)
+uint32_t ringbuf_copy(const ringbuf_t* ringbuf, real_t* output)
 {
     ASSERT(ringbuf != NULL);
     ASSERT(output != NULL);

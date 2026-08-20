@@ -1,11 +1,12 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "ekf.h"
 #include "kalman.h"
 #include "matrix.h"
 #include <stdlib.h>
 #include <math.h>
 
-#define TOLERANCE   0.001f
+#define TOLERANCE   REAL_C(0.001)
 
 void setUp(void)
 {
@@ -28,7 +29,7 @@ static void constant_state(const matrix_t* state, const matrix_t* input,
 // The measurement is the square of the state. Its slope at the point x is 2x.
 static void square_measurement(const matrix_t* state, matrix_t* result)
 {
-    float value = matrix_get_element((matrix_t*)state, 0, 0);
+    real_t value = matrix_get_element((matrix_t*)state, 0, 0);
     matrix_add_element(result, 0, 0, value*value);
 }
 
@@ -43,8 +44,8 @@ static void constant_speed(const matrix_t* state, const matrix_t* input,
                            matrix_t* result)
 {
     (void)input;
-    float position = matrix_get_element((matrix_t*)state, 0, 0);
-    float speed = matrix_get_element((matrix_t*)state, 1, 0);
+    real_t position = matrix_get_element((matrix_t*)state, 0, 0);
+    real_t speed = matrix_get_element((matrix_t*)state, 1, 0);
 
     matrix_add_element(result, 0, 0, position + speed);
     matrix_add_element(result, 1, 0, speed);
@@ -56,7 +57,7 @@ static void position_measurement(const matrix_t* state, matrix_t* result)
     matrix_add_element(result, 0, 0, matrix_get_element((matrix_t*)state, 0, 0));
 }
 
-static matrix_t make_matrix(uint32_t m, uint32_t n, float* values)
+static matrix_t make_matrix(uint32_t m, uint32_t n, real_t* values)
 {
     matrix_t matrix = matrix_alloc(m, n);
     for(uint32_t i = 0; i < m; i++)
@@ -69,7 +70,7 @@ static matrix_t make_matrix(uint32_t m, uint32_t n, float* values)
     return matrix;
 }
 
-static void set_scalar(ekf_t* ekf, void (*setter)(ekf_t*, matrix_t*), float value)
+static void set_scalar(ekf_t* ekf, void (*setter)(ekf_t*, matrix_t*), real_t value)
 {
     matrix_t matrix = make_matrix(1, 1, &value);
     setter(ekf, &matrix);
@@ -86,7 +87,7 @@ void test_ekf_alloc(void)
     TEST_ASSERT_EQUAL(true, ekf.dynamic_alloc);
     TEST_ASSERT_NOT_NULL(ekf.mempool);
     TEST_ASSERT_NULL(ekf.state_function);
-    TEST_ASSERT_EQUAL_FLOAT(EKF_DEFAULT_DERIVATIVE_STEP, ekf.derivative_step);
+    TEST_ASSERT_EQUAL_REAL(EKF_DEFAULT_DERIVATIVE_STEP, ekf.derivative_step);
 
     ekf_free(&ekf);
 }
@@ -113,10 +114,10 @@ void test_ekf_alloc_gives_matrices_of_the_correct_order(void)
 
 void test_ekf_static_alloc_stays_inside_the_memory_pool(void)
 {
-    float mempool[EKF_MEMPOOL_SIZE(2, 3, 2)];
+    real_t mempool[EKF_MEMPOOL_SIZE(2, 3, 2)];
     ekf_t ekf = ekf_static_alloc(2, 3, 2, mempool);
 
-    float* end = ekf.scratch.ny1_c.elem
+    real_t* end = ekf.scratch.ny1_c.elem
                  + (ekf.scratch.ny1_c.m * ekf.scratch.ny1_c.n);
 
     TEST_ASSERT_EQUAL_PTR(mempool + EKF_MEMPOOL_SIZE(2, 3, 2), end);
@@ -128,12 +129,12 @@ void test_ekf_the_state_jacobian_of_a_constant_model_is_the_unit_matrix(void)
     // f(x) = x, thus the slope is one.
     ekf_t ekf = ekf_alloc(1, 1, 1);
     ekf_set_state_function(&ekf, constant_state);
-    set_scalar(&ekf, ekf_set_state_matrix, 5.0f);
+    set_scalar(&ekf, ekf_set_state_matrix, REAL_C(5.0));
 
     matrix_t jacobian = matrix_alloc(1, 1);
     ekf_state_jacobian_into(&ekf, &jacobian);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, matrix_get_element(&jacobian, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), matrix_get_element(&jacobian, 0, 0));
 
     matrix_free(&jacobian);
     ekf_free(&ekf);
@@ -147,13 +148,13 @@ void test_ekf_the_measurement_jacobian_of_a_square_is_two_times_the_state(void)
 
     matrix_t jacobian = matrix_alloc(1, 1);
 
-    set_scalar(&ekf, ekf_set_state_matrix, 3.0f);
+    set_scalar(&ekf, ekf_set_state_matrix, REAL_C(3.0));
     ekf_measurement_jacobian_into(&ekf, &jacobian);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 6.0f, matrix_get_element(&jacobian, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(6.0), matrix_get_element(&jacobian, 0, 0));
 
-    set_scalar(&ekf, ekf_set_state_matrix, -2.5f);
+    set_scalar(&ekf, ekf_set_state_matrix, -REAL_C(2.5));
     ekf_measurement_jacobian_into(&ekf, &jacobian);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, -5.0f, matrix_get_element(&jacobian, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), -REAL_C(5.0), matrix_get_element(&jacobian, 0, 0));
 
     matrix_free(&jacobian);
     ekf_free(&ekf);
@@ -166,17 +167,17 @@ void test_ekf_the_state_jacobian_of_the_constant_speed_model(void)
     ekf_t ekf = ekf_alloc(1, 2, 1);
     ekf_set_state_function(&ekf, constant_speed);
 
-    float state[2] = {10.0f, 2.0f};
+    real_t state[2] = {REAL_C(10.0), REAL_C(2.0)};
     matrix_t x = make_matrix(2, 1, state);
     ekf_set_state_matrix(&ekf, &x);
 
     matrix_t jacobian = matrix_alloc(2, 2);
     ekf_state_jacobian_into(&ekf, &jacobian);
 
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.0f, matrix_get_element(&jacobian, 0, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.0f, matrix_get_element(&jacobian, 0, 1));
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, matrix_get_element(&jacobian, 1, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.0f, matrix_get_element(&jacobian, 1, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0), matrix_get_element(&jacobian, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0), matrix_get_element(&jacobian, 0, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(0.0), matrix_get_element(&jacobian, 1, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0), matrix_get_element(&jacobian, 1, 1));
 
     matrix_free(&x);
     matrix_free(&jacobian);
@@ -187,12 +188,12 @@ void test_ekf_the_jacobian_does_not_change_the_state(void)
 {
     ekf_t ekf = ekf_alloc(1, 1, 1);
     ekf_set_state_function(&ekf, constant_state);
-    set_scalar(&ekf, ekf_set_state_matrix, 7.0f);
+    set_scalar(&ekf, ekf_set_state_matrix, REAL_C(7.0));
 
     matrix_t jacobian = matrix_alloc(1, 1);
     ekf_state_jacobian_into(&ekf, &jacobian);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 7.0f, matrix_get_element(&ekf.x, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(7.0), matrix_get_element(&ekf.x, 0, 0));
 
     matrix_free(&jacobian);
     ekf_free(&ekf);
@@ -203,16 +204,16 @@ void test_ekf_predict_moves_the_state_through_the_function(void)
     ekf_t ekf = ekf_alloc(1, 2, 1);
     ekf_set_state_function(&ekf, constant_speed);
 
-    float state[2] = {0.0f, 3.0f};
+    real_t state[2] = {REAL_C(0.0), REAL_C(3.0)};
     matrix_t x = make_matrix(2, 1, state);
     ekf_set_state_matrix(&ekf, &x);
 
     ekf_predict(&ekf);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 3.0f, matrix_get_element(&ekf.x, 0, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 3.0f, matrix_get_element(&ekf.x, 1, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(3.0), matrix_get_element(&ekf.x, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(3.0), matrix_get_element(&ekf.x, 1, 0));
 
     ekf_predict(&ekf);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 6.0f, matrix_get_element(&ekf.x, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(6.0), matrix_get_element(&ekf.x, 0, 0));
 
     matrix_free(&x);
     ekf_free(&ekf);
@@ -225,14 +226,14 @@ void test_ekf_with_a_linear_model_agrees_with_the_kalman_filter(void)
     ekf_t ekf = ekf_alloc(1, 1, 1);
     ekf_set_state_function(&ekf, constant_state);
     ekf_set_measurement_function(&ekf, direct_measurement);
-    set_scalar(&ekf, ekf_set_state_matrix, 0.0f);
-    set_scalar(&ekf, ekf_set_covariance_matrix, 1.0f);
-    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, 0.0f);
-    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, 1.0f);
+    set_scalar(&ekf, ekf_set_state_matrix, REAL_C(0.0));
+    set_scalar(&ekf, ekf_set_covariance_matrix, REAL_C(1.0));
+    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, REAL_C(0.0));
+    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, REAL_C(1.0));
 
     kalman_t kalman = kalman_alloc(1, 1, 1);
-    float one = 1.0f;
-    float zero = 0.0f;
+    real_t one = REAL_C(1.0);
+    real_t zero = REAL_C(0.0);
     matrix_t unit = make_matrix(1, 1, &one);
     matrix_t nothing = make_matrix(1, 1, &zero);
     kalman_set_state_matrix(&kalman, &nothing);
@@ -244,7 +245,7 @@ void test_ekf_with_a_linear_model_agrees_with_the_kalman_filter(void)
     kalman_set_measurement_covariance_matrix(&kalman, &unit);
     kalman_set_observation_matrix(&kalman, &unit);
 
-    float measurement = 4.0f;
+    real_t measurement = REAL_C(4.0);
     matrix_t y = make_matrix(1, 1, &measurement);
 
     for(uint32_t step = 0; step < 10; step++)
@@ -252,10 +253,10 @@ void test_ekf_with_a_linear_model_agrees_with_the_kalman_filter(void)
         TEST_ASSERT_EQUAL(true, ekf_step(&ekf, NULL, &y));
         TEST_ASSERT_EQUAL(true, kalman_step(&kalman, NULL, &y));
 
-        TEST_ASSERT_FLOAT_WITHIN(0.01f,
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01),
                                  matrix_get_element(&kalman.x, 0, 0),
                                  matrix_get_element(&ekf.x, 0, 0));
-        TEST_ASSERT_FLOAT_WITHIN(0.01f,
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01),
                                  matrix_get_element(&kalman.p, 0, 0),
                                  matrix_get_element(&ekf.p, 0, 0));
     }
@@ -275,12 +276,12 @@ void test_ekf_finds_the_state_behind_a_measurement_that_is_not_linear(void)
     ekf_t ekf = ekf_alloc(1, 1, 1);
     ekf_set_state_function(&ekf, constant_state);
     ekf_set_measurement_function(&ekf, square_measurement);
-    set_scalar(&ekf, ekf_set_state_matrix, 1.0f);
-    set_scalar(&ekf, ekf_set_covariance_matrix, 10.0f);
-    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, 0.001f);
-    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, 0.1f);
+    set_scalar(&ekf, ekf_set_state_matrix, REAL_C(1.0));
+    set_scalar(&ekf, ekf_set_covariance_matrix, REAL_C(10.0));
+    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, REAL_C(0.001));
+    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, REAL_C(0.1));
 
-    float measurement = 9.0f;
+    real_t measurement = REAL_C(9.0);
     matrix_t y = make_matrix(1, 1, &measurement);
 
     for(uint32_t step = 0; step < 40; step++)
@@ -288,7 +289,7 @@ void test_ekf_finds_the_state_behind_a_measurement_that_is_not_linear(void)
         TEST_ASSERT_EQUAL(true, ekf_step(&ekf, NULL, &y));
     }
 
-    TEST_ASSERT_FLOAT_WITHIN(0.05f, 3.0f, matrix_get_element(&ekf.x, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.05), REAL_C(3.0), matrix_get_element(&ekf.x, 0, 0));
 
     matrix_free(&y);
     ekf_free(&ekf);
@@ -301,12 +302,12 @@ void test_ekf_removes_the_noise_of_a_measurement_that_is_not_linear(void)
     ekf_t ekf = ekf_alloc(1, 1, 1);
     ekf_set_state_function(&ekf, constant_state);
     ekf_set_measurement_function(&ekf, square_measurement);
-    set_scalar(&ekf, ekf_set_state_matrix, 0.5f);
-    set_scalar(&ekf, ekf_set_covariance_matrix, 5.0f);
-    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, 0.001f);
-    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, 0.5f);
+    set_scalar(&ekf, ekf_set_state_matrix, REAL_C(0.5));
+    set_scalar(&ekf, ekf_set_covariance_matrix, REAL_C(5.0));
+    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, REAL_C(0.001));
+    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, REAL_C(0.5));
 
-    float samples[10] = {4.4f, 3.6f, 4.2f, 3.8f, 4.1f, 3.9f, 4.3f, 3.7f, 4.0f, 4.05f};
+    real_t samples[10] = {REAL_C(4.4), REAL_C(3.6), REAL_C(4.2), REAL_C(3.8), REAL_C(4.1), REAL_C(3.9), REAL_C(4.3), REAL_C(3.7), REAL_C(4.0), REAL_C(4.05)};
     matrix_t y = matrix_alloc(1, 1);
 
     for(uint32_t round = 0; round < 4; round++)
@@ -318,7 +319,7 @@ void test_ekf_removes_the_noise_of_a_measurement_that_is_not_linear(void)
         }
     }
 
-    TEST_ASSERT_FLOAT_WITHIN(0.1f, 2.0f, matrix_get_element(&ekf.x, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.1), REAL_C(2.0), matrix_get_element(&ekf.x, 0, 0));
 
     matrix_free(&y);
     ekf_free(&ekf);
@@ -329,21 +330,21 @@ void test_ekf_the_covariance_never_grows_when_there_is_no_process_noise(void)
     ekf_t ekf = ekf_alloc(1, 1, 1);
     ekf_set_state_function(&ekf, constant_state);
     ekf_set_measurement_function(&ekf, direct_measurement);
-    set_scalar(&ekf, ekf_set_state_matrix, 0.0f);
-    set_scalar(&ekf, ekf_set_covariance_matrix, 1.0f);
-    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, 0.0f);
-    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, 1.0f);
+    set_scalar(&ekf, ekf_set_state_matrix, REAL_C(0.0));
+    set_scalar(&ekf, ekf_set_covariance_matrix, REAL_C(1.0));
+    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, REAL_C(0.0));
+    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, REAL_C(1.0));
 
-    float measurement = 2.0f;
+    real_t measurement = REAL_C(2.0);
     matrix_t y = make_matrix(1, 1, &measurement);
 
-    float previous = matrix_get_element(&ekf.p, 0, 0);
+    real_t previous = matrix_get_element(&ekf.p, 0, 0);
     for(uint32_t step = 0; step < 15; step++)
     {
         TEST_ASSERT_EQUAL(true, ekf_step(&ekf, NULL, &y));
-        float current = matrix_get_element(&ekf.p, 0, 0);
-        TEST_ASSERT_TRUE(current <= previous + 0.0001f);
-        TEST_ASSERT_TRUE(current >= -0.0001f);
+        real_t current = matrix_get_element(&ekf.p, 0, 0);
+        TEST_ASSERT_TRUE(current <= previous + REAL_C(0.0001));
+        TEST_ASSERT_TRUE(current >= -REAL_C(0.0001));
         previous = current;
     }
 
@@ -359,10 +360,10 @@ void test_ekf_the_two_dimensional_filter_finds_the_speed(void)
     ekf_set_state_function(&ekf, constant_speed);
     ekf_set_measurement_function(&ekf, position_measurement);
 
-    float state[2] = {0.0f, 0.0f};
-    float covariance[4] = {10.0f, 0.0f, 0.0f, 10.0f};
-    float process[4] = {0.001f, 0.0f, 0.0f, 0.001f};
-    float noise = 0.1f;
+    real_t state[2] = {REAL_C(0.0), REAL_C(0.0)};
+    real_t covariance[4] = {REAL_C(10.0), REAL_C(0.0), REAL_C(0.0), REAL_C(10.0)};
+    real_t process[4] = {REAL_C(0.001), REAL_C(0.0), REAL_C(0.0), REAL_C(0.001)};
+    real_t noise = REAL_C(0.1);
 
     matrix_t x = make_matrix(2, 1, state);
     matrix_t p = make_matrix(2, 2, covariance);
@@ -378,12 +379,12 @@ void test_ekf_the_two_dimensional_filter_finds_the_speed(void)
 
     for(uint32_t step = 1; step <= 30; step++)
     {
-        matrix_add_element(&y, 0, 0, 2.0f*(float)step);
+        matrix_add_element(&y, 0, 0, REAL_C(2.0)*(real_t)step);
         TEST_ASSERT_EQUAL(true, ekf_step(&ekf, NULL, &y));
     }
 
-    TEST_ASSERT_FLOAT_WITHIN(0.1f, 2.0f, matrix_get_element(&ekf.x, 1, 0));
-    TEST_ASSERT_FLOAT_WITHIN(0.5f, 60.0f, matrix_get_element(&ekf.x, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.1), REAL_C(2.0), matrix_get_element(&ekf.x, 1, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.5), REAL_C(60.0), matrix_get_element(&ekf.x, 0, 0));
 
     matrix_free(&x);
     matrix_free(&p);
@@ -400,18 +401,18 @@ void test_ekf_update_reports_a_singular_innovation_covariance(void)
     ekf_t ekf = ekf_alloc(1, 1, 1);
     ekf_set_state_function(&ekf, constant_state);
     ekf_set_measurement_function(&ekf, direct_measurement);
-    set_scalar(&ekf, ekf_set_state_matrix, 1.0f);
-    set_scalar(&ekf, ekf_set_covariance_matrix, 0.0f);
-    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, 0.0f);
-    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, 0.0f);
+    set_scalar(&ekf, ekf_set_state_matrix, REAL_C(1.0));
+    set_scalar(&ekf, ekf_set_covariance_matrix, REAL_C(0.0));
+    set_scalar(&ekf, ekf_set_process_noise_covariance_matrix, REAL_C(0.0));
+    set_scalar(&ekf, ekf_set_measurement_covariance_matrix, REAL_C(0.0));
 
-    float measurement = 5.0f;
+    real_t measurement = REAL_C(5.0);
     matrix_t y = make_matrix(1, 1, &measurement);
     ekf_set_measurement_matrix(&ekf, &y);
 
     TEST_ASSERT_EQUAL(false, ekf_update(&ekf));
     TEST_ASSERT_EQUAL(true, ekf.singular);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, matrix_get_element(&ekf.x, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), matrix_get_element(&ekf.x, 0, 0));
 
     matrix_free(&y);
     ekf_free(&ekf);
@@ -421,17 +422,17 @@ void test_ekf_set_derivative_step(void)
 {
     ekf_t ekf = ekf_alloc(1, 1, 1);
 
-    ekf_set_derivative_step(&ekf, 0.01f);
-    TEST_ASSERT_EQUAL_FLOAT(0.01f, ekf.derivative_step);
+    ekf_set_derivative_step(&ekf, REAL_C(0.01));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.01), ekf.derivative_step);
 
     // A larger step still gives the correct slope for a square, because the
     // central difference has no error for a polynomial of the second power.
     ekf_set_measurement_function(&ekf, square_measurement);
-    set_scalar(&ekf, ekf_set_state_matrix, 4.0f);
+    set_scalar(&ekf, ekf_set_state_matrix, REAL_C(4.0));
 
     matrix_t jacobian = matrix_alloc(1, 1);
     ekf_measurement_jacobian_into(&ekf, &jacobian);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 8.0f, matrix_get_element(&jacobian, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(8.0), matrix_get_element(&jacobian, 0, 0));
 
     matrix_free(&jacobian);
     ekf_free(&ekf);
@@ -450,7 +451,7 @@ void test_ekf_get_functions(void)
 
 void test_ekf_a_static_filter_gives_the_same_result_as_a_dynamic_one(void)
 {
-    float mempool[EKF_MEMPOOL_SIZE(1, 1, 1)];
+    real_t mempool[EKF_MEMPOOL_SIZE(1, 1, 1)];
 
     ekf_t dynamic_ekf = ekf_alloc(1, 1, 1);
     ekf_t static_ekf = ekf_static_alloc(1, 1, 1, mempool);
@@ -460,21 +461,21 @@ void test_ekf_a_static_filter_gives_the_same_result_as_a_dynamic_one(void)
     {
         ekf_set_state_function(filters[which], constant_state);
         ekf_set_measurement_function(filters[which], square_measurement);
-        set_scalar(filters[which], ekf_set_state_matrix, 1.0f);
-        set_scalar(filters[which], ekf_set_covariance_matrix, 5.0f);
-        set_scalar(filters[which], ekf_set_process_noise_covariance_matrix, 0.01f);
-        set_scalar(filters[which], ekf_set_measurement_covariance_matrix, 0.5f);
+        set_scalar(filters[which], ekf_set_state_matrix, REAL_C(1.0));
+        set_scalar(filters[which], ekf_set_covariance_matrix, REAL_C(5.0));
+        set_scalar(filters[which], ekf_set_process_noise_covariance_matrix, REAL_C(0.01));
+        set_scalar(filters[which], ekf_set_measurement_covariance_matrix, REAL_C(0.5));
     }
 
     matrix_t y = matrix_alloc(1, 1);
-    float samples[5] = {4.0f, 4.2f, 3.8f, 4.1f, 3.9f};
+    real_t samples[5] = {REAL_C(4.0), REAL_C(4.2), REAL_C(3.8), REAL_C(4.1), REAL_C(3.9)};
 
     for(uint32_t index = 0; index < 5; index++)
     {
         matrix_add_element(&y, 0, 0, samples[index]);
         TEST_ASSERT_EQUAL(true, ekf_step(&dynamic_ekf, NULL, &y));
         TEST_ASSERT_EQUAL(true, ekf_step(&static_ekf, NULL, &y));
-        TEST_ASSERT_FLOAT_WITHIN(TOLERANCE,
+        TEST_ASSERT_REAL_WITHIN(TOLERANCE,
                                  matrix_get_element(&dynamic_ekf.x, 0, 0),
                                  matrix_get_element(&static_ekf.x, 0, 0));
     }

@@ -23,8 +23,8 @@ emd makes them, and this module holds one of them and writes it out.
 
 ```c
 typedef struct{
-    float* x;                   // The position of each point
-    float* y;                   // The value of each point
+    real_t* x;                   // The position of each point
+    real_t* y;                   // The value of each point
     uint32_t size;              // The number of points
     bool dynamic_alloc;         // True if the memory comes from the heap
 }imf_t;
@@ -44,7 +44,7 @@ the heap. Give the function to imf_free when you no longer need it.
 ### `imf_static_alloc`
 
 ```c
-imf_t imf_static_alloc(uint32_t size, float* x, float* y);
+imf_t imf_static_alloc(uint32_t size, real_t* x, real_t* y);
 ```
 
 Give a function that uses the memory at x and at y. Both must hold as many

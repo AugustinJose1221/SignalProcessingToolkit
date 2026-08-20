@@ -17,7 +17,7 @@ A buffer of the last samples. Declared in `sptk/core/ringbuf.h`.
 
 ```c
 typedef struct{
-    float* data;                // The samples
+    real_t* data;                // The samples
     uint32_t size;              // How many samples the buffer can hold
     uint32_t head;              // Where the next sample goes
     uint32_t count;             // How many samples it holds now
@@ -39,7 +39,7 @@ the heap. Give the buffer to ringbuf_free when you no longer need it.
 ### `ringbuf_static_alloc`
 
 ```c
-ringbuf_t ringbuf_static_alloc(uint32_t size, float* data);
+ringbuf_t ringbuf_static_alloc(uint32_t size, real_t* data);
 ```
 
 Give a buffer that uses the memory at data, which must hold as many float
@@ -56,7 +56,7 @@ Forget every sample. The buffer keeps its memory and its size.
 ### `ringbuf_put`
 
 ```c
-void ringbuf_put(ringbuf_t* ringbuf, float sample);
+void ringbuf_put(ringbuf_t* ringbuf, real_t sample);
 ```
 
 Put one sample in. When the buffer is full this takes the place of the
@@ -65,7 +65,7 @@ oldest sample, which is then gone.
 ### `ringbuf_get`
 
 ```c
-float ringbuf_get(const ringbuf_t* ringbuf, uint32_t age);
+real_t ringbuf_get(const ringbuf_t* ringbuf, uint32_t age);
 ```
 
 Give the sample of the given age. An age of 0 is the newest sample.
@@ -94,7 +94,7 @@ sample will push one out.
 ### `ringbuf_copy`
 
 ```c
-uint32_t ringbuf_copy(const ringbuf_t* ringbuf, float* output);
+uint32_t ringbuf_copy(const ringbuf_t* ringbuf, real_t* output);
 ```
 
 Write the samples into a flat list, the oldest first and the newest last.

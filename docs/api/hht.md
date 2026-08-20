@@ -16,7 +16,7 @@ The Hilbert-Huang transform. Declared in `sptk/transform/hht.h`.
 ### `hht_transform_imf`
 
 ```c
-void hht_transform_imf(fft_t* fft, imf_t* imf, cnum_t* work, float* amplitude, float* frequency, float sample_rate);
+void hht_transform_imf(fft_t* fft, imf_t* imf, cnum_t* work, real_t* amplitude, real_t* frequency, real_t sample_rate);
 ```
 
 Give the amplitude and the frequency at each point of time, for one
@@ -32,7 +32,7 @@ power of two.
 ### `hht_transform`
 
 ```c
-void hht_transform(fft_t* fft, imf_t* imf, uint32_t count, cnum_t* work, float* amplitude, float* frequency, float sample_rate);
+void hht_transform(fft_t* fft, imf_t* imf, uint32_t count, cnum_t* work, real_t* amplitude, real_t* frequency, real_t sample_rate);
 ```
 
 Give the amplitude and the frequency for a list of intrinsic mode
@@ -46,7 +46,7 @@ size complex numbers.
 ### `hht_mean_frequency`
 
 ```c
-float hht_mean_frequency(const float* amplitude, const float* frequency, uint32_t size);
+real_t hht_mean_frequency(const real_t* amplitude, const real_t* frequency, uint32_t size);
 ```
 
 Give the mean frequency of one intrinsic mode function, where each point

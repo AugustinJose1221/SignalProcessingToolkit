@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // Windows.
 //
@@ -83,7 +88,7 @@ bool window_takes_a_parameter(window_kind_t kind);
 // same thing, thus this module serves both.
 //
 // A size of 1 gives the single value 1.
-void window_build(float* window, uint32_t size, window_kind_t kind);
+void window_build(real_t* window, uint32_t size, window_kind_t kind);
 
 // Write the values of a window that takes a parameter.
 //
@@ -102,14 +107,14 @@ void window_build(float* window, uint32_t size, window_kind_t kind);
 //
 // A kind that takes no parameter ignores it, thus this function can always
 // stand in for window_build.
-void window_build_with(float* window, uint32_t size, window_kind_t kind,
-                       float parameter);
+void window_build_with(real_t* window, uint32_t size, window_kind_t kind,
+                       real_t parameter);
 
 // Give one value of a window, without building the whole of it. This suits a
 // caller that has no room to hold the window, and one that builds a window
 // into another list as it goes.
-float window_value(uint32_t index, uint32_t size, window_kind_t kind,
-                   float parameter);
+real_t window_value(uint32_t index, uint32_t size, window_kind_t kind,
+                   real_t parameter);
 
 // Give the beta of a Kaiser window for a FILTER whose stop band must lie the
 // given number of decibels down. Give a positive number: 60 means 60 dB down.
@@ -129,14 +134,14 @@ float window_value(uint32_t index, uint32_t size, window_kind_t kind,
 // whose own side lobes lie 60 dB down needs a beta near 8.2, not near 5.7.
 // Take beta from the table above the declaration of window_build_with for
 // that, and take this function only for designing a filter.
-float window_kaiser_beta(float stop_band_decibel);
+real_t window_kaiser_beta(real_t stop_band_decibel);
 
 // Give the coherent gain of a window, which is the mean of its values.
 //
 // A tone that stands exactly on a bin comes out of the transform at this part
 // of its true height. Divide the height of a peak by this number to read the
 // height of the tone. A rectangular window gives 1, a Hann window gives 0.5.
-float window_coherent_gain(const float* window, uint32_t size);
+real_t window_coherent_gain(const real_t* window, uint32_t size);
 
 // Give the noise gain of a window, which is the root of the mean of the
 // squares of its values.
@@ -144,18 +149,18 @@ float window_coherent_gain(const float* window, uint32_t size);
 // Noise, unlike a tone, does not stand on one bin. It comes out at this part
 // of its true size. Divide by this number to read the size of the noise. A
 // rectangular window gives 1, a Hann window gives about 0.61.
-float window_noise_gain(const float* window, uint32_t size);
+real_t window_noise_gain(const real_t* window, uint32_t size);
 
 // Give the equivalent noise bandwidth of a window, in bins.
 //
 // This is how many bins of noise a single bin holds after the window. A
 // rectangular window gives 1.0, a Hann window gives 1.5. A measurement of the
 // density of noise divides by this, and by the width of a bin.
-float window_noise_bandwidth(const float* window, uint32_t size);
+real_t window_noise_bandwidth(const real_t* window, uint32_t size);
 
 // Multiply a block of samples by a window. The input and the output may be the
 // same list.
-void window_apply(const float* window, const float* input, float* output,
+void window_apply(const real_t* window, const real_t* input, real_t* output,
                   uint32_t size);
 
 #endif//WINDOW_H

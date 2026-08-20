@@ -19,7 +19,7 @@ A point on a plane.
 
 ```c
 typedef struct{
-    float x;
-    float y;
+    real_t x;
+    real_t y;
 }point2d_t;
 ```
