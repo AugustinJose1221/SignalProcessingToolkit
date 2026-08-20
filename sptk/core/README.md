@@ -6,10 +6,58 @@ share, thus they hold no `.c` file and no function.
 
 | Header | What it gives |
 | --- | --- |
+| `real.h` | `real_t`, the one type that holds every number |
 | `ringbuf.h` | A buffer that holds the last samples and forgets the rest |
 | `callback.h` | The type of a function that writes text |
 | `defs.h` | `ASSERT` |
 | `point2d.h` | A point on a plane |
+
+## real.h
+
+**Every number in the library is a `real_t`.** No module anywhere spells
+`float` or `double`. The width is decided one time, for the whole build, and
+never module by module.
+
+```bash
+cmake -S . -B build                        # 32 bits, the default
+cmake -S . -B build -DSPTK_REAL_64=ON      # 64 bits
+```
+
+**Which to choose.** Take 32 bits on a small processor: a number is half the
+memory, and a processor with a unit for 32 bit arithmetic and none for 64 bit
+runs the wider build tens of times more slowly, because every operation becomes
+a call to a library that does it in software.
+
+Take 64 bits when the numbers are large, when the filters are slow, or when the
+answer matters more than the time. A number at 32 bits holds about seven
+digits, and three kinds of work run out of them:
+
+| The trouble | What it looks like |
+| --- | --- |
+| A large offset | A reading at 8 000 000 counts with a signal of a few thousand on top spends six of the seven digits on the part that carries nothing |
+| A long sum | Five samples near eight million have a variance of exactly 2; at 32 bits `stats_variance` gives 2.25 |
+| A slow filter | A section lifts its own rounding error by a large factor; `IIR_MIN_CUTOFF` holds the lowest cutoff that 32 bits can carry |
+
+The guide of each area gives measured numbers, and the tests hold both widths,
+so that what each one costs is written down and not forgotten.
+
+**Write every number with `REAL_C`.** A number written as `0.5` is a double and
+one written as `0.5f` is a float, and either one is wrong in one of the two
+builds. `0.5` in a 32 bit build quietly makes the arithmetic around it run in
+64 bits and then throws the extra away; `0.5f` in a 64 bit build rounds to
+seven digits before the wider arithmetic ever sees it. `REAL_C(0.5)` writes the
+right one.
+
+**Use the macros for mathematics.** `REAL_SQRT`, `REAL_SIN` and the rest stand
+for `sqrtf` or `sqrt` as the build asks. They cost nothing, because the
+compiler puts the right call in where they stand.
+
+**Use the functions only where a function must be handed over.** A macro has no
+address, thus none of them can be GIVEN to something that takes a function.
+`real_sin`, `real_cos` and the rest are ordinary functions with addresses that
+always agree with `real_t`. The `pmatrix` module needs them: before `real_t`
+existed a caller could give it `sinf` directly, and that now builds without a
+word and gives nonsense at 64 bits.
 
 ## ringbuf.h
 

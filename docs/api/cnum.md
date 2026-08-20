@@ -17,8 +17,8 @@ Complex numbers. Declared in `sptk/linalg/cnum.h`.
 
 ```c
 typedef struct{
-    float re;                   // The real part
-    float im;                   // The imaginary part
+    real_t re;                   // The real part
+    real_t im;                   // The imaginary part
 }cnum_t;
 ```
 
@@ -27,7 +27,7 @@ typedef struct{
 ### `cnum_make`
 
 ```c
-cnum_t cnum_make(float re, float im);
+cnum_t cnum_make(real_t re, real_t im);
 ```
 
 Give a complex number with the given real part and imaginary part.
@@ -35,7 +35,7 @@ Give a complex number with the given real part and imaginary part.
 ### `cnum_from_real`
 
 ```c
-cnum_t cnum_from_real(float re);
+cnum_t cnum_from_real(real_t re);
 ```
 
 Give a complex number whose imaginary part is zero.
@@ -92,7 +92,7 @@ quotient has no value, and the function gives zero.
 ### `cnum_scale`
 
 ```c
-cnum_t cnum_scale(cnum_t a, float factor);
+cnum_t cnum_scale(cnum_t a, real_t factor);
 ```
 
 Give the number with both parts multiplied by a real factor.
@@ -116,7 +116,7 @@ Give the number with the sign of both parts changed.
 ### `cnum_real`
 
 ```c
-float cnum_real(cnum_t a);
+real_t cnum_real(cnum_t a);
 ```
 
 Give the real part of the number.
@@ -124,7 +124,7 @@ Give the real part of the number.
 ### `cnum_imaginary`
 
 ```c
-float cnum_imaginary(cnum_t a);
+real_t cnum_imaginary(cnum_t a);
 ```
 
 Give the imaginary part of the number.
@@ -132,7 +132,7 @@ Give the imaginary part of the number.
 ### `cnum_magnitude`
 
 ```c
-float cnum_magnitude(cnum_t a);
+real_t cnum_magnitude(cnum_t a);
 ```
 
 Give the distance of the number from zero.
@@ -140,7 +140,7 @@ Give the distance of the number from zero.
 ### `cnum_magnitude_squared`
 
 ```c
-float cnum_magnitude_squared(cnum_t a);
+real_t cnum_magnitude_squared(cnum_t a);
 ```
 
 Give the square of the distance from zero. This function does not take a
@@ -166,7 +166,7 @@ True if both parts of the two numbers are the same.
 ### `cnum_is_near`
 
 ```c
-bool cnum_is_near(cnum_t a, cnum_t b, float tolerance);
+bool cnum_is_near(cnum_t a, cnum_t b, real_t tolerance);
 ```
 
 Give true if the two numbers differ by less than the tolerance. A float

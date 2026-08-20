@@ -95,6 +95,7 @@ name and shape of every function.
 
 | Module | What it holds |
 | --- | --- |
+| [`real`](api/real.md) | The one type that holds every number |
 | [`ringbuf`](api/ringbuf.md) | A buffer of the last samples |
 | [`point2d`](api/point2d.md) | A point on a plane |
 | [`callback`](api/callback.md) | The print callback |

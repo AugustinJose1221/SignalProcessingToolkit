@@ -8,11 +8,11 @@
 
 #include <math.h>
 
-#define FIR_PI      3.14159265358979323846f
+#define FIR_PI      REAL_C(3.14159265358979323846)
 
-static float fir_sinc(float x);
-static float fir_hamming(uint32_t index, uint32_t length);
-static void fir_build_low_pass(float* coefficient, uint32_t length, float cutoff);
+static real_t fir_sinc(real_t x);
+static real_t fir_hamming(uint32_t index, uint32_t length);
+static void fir_build_low_pass(real_t* coefficient, uint32_t length, real_t cutoff);
 
 fir_t fir_alloc(uint32_t length)
 {
@@ -21,21 +21,21 @@ fir_t fir_alloc(uint32_t length)
     fir_t fir;
 
     fir.length = length;
-    fir.coefficient = (float*)malloc(sizeof(float)*length);
-    fir.history = (float*)malloc(sizeof(float)*length);
+    fir.coefficient = (real_t*)malloc(sizeof(real_t)*length);
+    fir.history = (real_t*)malloc(sizeof(real_t)*length);
     fir.position = 0;
     fir.dynamic_alloc = true;
 
     for(uint32_t index = 0; index < length; index++)
     {
-        fir.coefficient[index] = 0.0f;
+        fir.coefficient[index] = REAL_C(0.0);
     }
     fir_reset(&fir);
 
     return fir;
 }
 
-fir_t fir_static_alloc(uint32_t length, float* coefficient, float* history)
+fir_t fir_static_alloc(uint32_t length, real_t* coefficient, real_t* history)
 {
     ASSERT(length > 0);
     ASSERT(coefficient != NULL);
@@ -51,26 +51,26 @@ fir_t fir_static_alloc(uint32_t length, float* coefficient, float* history)
 
     for(uint32_t index = 0; index < length; index++)
     {
-        fir.coefficient[index] = 0.0f;
+        fir.coefficient[index] = REAL_C(0.0);
     }
     fir_reset(&fir);
 
     return fir;
 }
 
-bool fir_is_valid_cutoff(uint32_t length, float cutoff)
+bool fir_is_valid_cutoff(uint32_t length, real_t cutoff)
 {
     if(length == 0u)
     {
         return false;
     }
 
-    float turn = FIR_TRANSITION / (float)length;
+    real_t turn = FIR_TRANSITION / (real_t)length;
 
-    return (cutoff >= turn) && (cutoff <= (0.5f - turn));
+    return (cutoff >= turn) && (cutoff <= (REAL_C(0.5) - turn));
 }
 
-bool fir_is_valid_band(uint32_t length, float low_cutoff, float high_cutoff)
+bool fir_is_valid_band(uint32_t length, real_t low_cutoff, real_t high_cutoff)
 {
     if(!fir_is_valid_cutoff(length, low_cutoff)
        || !fir_is_valid_cutoff(length, high_cutoff))
@@ -78,12 +78,12 @@ bool fir_is_valid_band(uint32_t length, float low_cutoff, float high_cutoff)
         return false;
     }
 
-    float turn = FIR_TRANSITION / (float)length;
+    real_t turn = FIR_TRANSITION / (real_t)length;
 
     return (high_cutoff - low_cutoff) >= turn;
 }
 
-bool fir_design_low_pass(fir_t* fir, float cutoff)
+bool fir_design_low_pass(fir_t* fir, real_t cutoff)
 {
     ASSERT(fir != NULL);
 
@@ -100,7 +100,7 @@ bool fir_design_low_pass(fir_t* fir, float cutoff)
     return true;
 }
 
-bool fir_design_high_pass(fir_t* fir, float cutoff)
+bool fir_design_high_pass(fir_t* fir, real_t cutoff)
 {
     ASSERT(fir != NULL);
     // The change of the sign works with a middle coefficient only, thus the
@@ -121,12 +121,12 @@ bool fir_design_high_pass(fir_t* fir, float cutoff)
     {
         fir->coefficient[index] = -fir->coefficient[index];
     }
-    fir->coefficient[middle] += 1.0f;
+    fir->coefficient[middle] += REAL_C(1.0);
 
     return true;
 }
 
-bool fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff)
+bool fir_design_band_pass(fir_t* fir, real_t low_cutoff, real_t high_cutoff)
 {
     ASSERT(fir != NULL);
 
@@ -140,16 +140,16 @@ bool fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff)
 
     for(uint32_t index = 0; index < fir->length; index++)
     {
-        float middle = ((float)fir->length - 1.0f) / 2.0f;
-        float position = (float)index - middle;
-        float lower = 2.0f * low_cutoff * fir_sinc(2.0f * low_cutoff * position);
+        real_t middle = ((real_t)fir->length - REAL_C(1.0)) / REAL_C(2.0);
+        real_t position = (real_t)index - middle;
+        real_t lower = REAL_C(2.0) * low_cutoff * fir_sinc(REAL_C(2.0) * low_cutoff * position);
         fir->coefficient[index] -= lower * fir_hamming(index, fir->length);
     }
 
     return true;
 }
 
-void fir_set_coefficient(fir_t* fir, uint32_t index, float value)
+void fir_set_coefficient(fir_t* fir, uint32_t index, real_t value)
 {
     ASSERT(fir != NULL);
     ASSERT(index < fir->length);
@@ -157,7 +157,7 @@ void fir_set_coefficient(fir_t* fir, uint32_t index, float value)
     fir->coefficient[index] = value;
 }
 
-float fir_get_coefficient(fir_t* fir, uint32_t index)
+real_t fir_get_coefficient(fir_t* fir, uint32_t index)
 {
     ASSERT(fir != NULL);
     ASSERT(index < fir->length);
@@ -165,13 +165,13 @@ float fir_get_coefficient(fir_t* fir, uint32_t index)
     return fir->coefficient[index];
 }
 
-float fir_process_sample(fir_t* fir, float sample)
+real_t fir_process_sample(fir_t* fir, real_t sample)
 {
     ASSERT(fir != NULL);
 
     fir->history[fir->position] = sample;
 
-    float result = 0.0f;
+    real_t result = REAL_C(0.0);
     uint32_t index = fir->position;
 
     // Walk back through the history, from the newest sample to the oldest one.
@@ -198,7 +198,7 @@ float fir_process_sample(fir_t* fir, float sample)
     return result;
 }
 
-void fir_process_block(fir_t* fir, const float* input, float* output, uint32_t size)
+void fir_process_block(fir_t* fir, const real_t* input, real_t* output, uint32_t size)
 {
     ASSERT(fir != NULL);
     ASSERT(input != NULL);
@@ -216,28 +216,28 @@ void fir_reset(fir_t* fir)
 
     for(uint32_t index = 0; index < fir->length; index++)
     {
-        fir->history[index] = 0.0f;
+        fir->history[index] = REAL_C(0.0);
     }
     fir->position = 0;
 }
 
-float fir_get_gain(fir_t* fir, float frequency)
+real_t fir_get_gain(fir_t* fir, real_t frequency)
 {
     ASSERT(fir != NULL);
 
     // The answer of the filter is the sum of each coefficient times the point
     // on the circle at the angle of that step.
-    float real = 0.0f;
-    float imaginary = 0.0f;
+    real_t real = REAL_C(0.0);
+    real_t imaginary = REAL_C(0.0);
 
     for(uint32_t index = 0; index < fir->length; index++)
     {
-        float angle = -2.0f * FIR_PI * frequency * (float)index;
-        real += fir->coefficient[index] * cosf(angle);
-        imaginary += fir->coefficient[index] * sinf(angle);
+        real_t angle = -REAL_C(2.0) * FIR_PI * frequency * (real_t)index;
+        real += fir->coefficient[index] * REAL_COS(angle);
+        imaginary += fir->coefficient[index] * REAL_SIN(angle);
     }
 
-    return sqrtf((real*real) + (imaginary*imaginary));
+    return REAL_SQRT((real*real) + (imaginary*imaginary));
 }
 
 void fir_free(fir_t* fir)
@@ -255,38 +255,38 @@ void fir_free(fir_t* fir)
 }
 
 // Give sin(pi*x)/(pi*x), which is 1 at the point zero.
-static float fir_sinc(float x)
+static real_t fir_sinc(real_t x)
 {
-    if((x < 0.000001f) && (x > -0.000001f))
+    if((x < REAL_C(0.000001)) && (x > -REAL_C(0.000001)))
     {
-        return 1.0f;
+        return REAL_C(1.0);
     }
 
-    return sinf(FIR_PI * x) / (FIR_PI * x);
+    return REAL_SIN(FIR_PI * x) / (FIR_PI * x);
 }
 
 // The window of Hamming. A window takes the ends of the coefficients down to
 // almost zero. Without it the filter holds large waves in the band that it
 // stops.
-static float fir_hamming(uint32_t index, uint32_t length)
+static real_t fir_hamming(uint32_t index, uint32_t length)
 {
     if(length == 1)
     {
-        return 1.0f;
+        return REAL_C(1.0);
     }
 
-    return 0.54f - (0.46f * cosf((2.0f * FIR_PI * (float)index)
-                                 / ((float)length - 1.0f)));
+    return REAL_C(0.54) - (REAL_C(0.46) * REAL_COS((REAL_C(2.0) * FIR_PI * (real_t)index)
+                                 / ((real_t)length - REAL_C(1.0))));
 }
 
-static void fir_build_low_pass(float* coefficient, uint32_t length, float cutoff)
+static void fir_build_low_pass(real_t* coefficient, uint32_t length, real_t cutoff)
 {
-    float middle = ((float)length - 1.0f) / 2.0f;
+    real_t middle = ((real_t)length - REAL_C(1.0)) / REAL_C(2.0);
 
     for(uint32_t index = 0; index < length; index++)
     {
-        float position = (float)index - middle;
-        coefficient[index] = 2.0f * cutoff * fir_sinc(2.0f * cutoff * position)
+        real_t position = (real_t)index - middle;
+        coefficient[index] = REAL_C(2.0) * cutoff * fir_sinc(REAL_C(2.0) * cutoff * position)
                              * fir_hamming(index, length);
     }
 }

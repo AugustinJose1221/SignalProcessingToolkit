@@ -23,16 +23,17 @@
 
 #if (RUN_EXAMPLE == RUN_GOERTZEL_EXAMPLE)
 
+#include <sptk/core/real.h>
 #include <sptk/transform/goertzel.h>
 #include <math.h>
 #include <stdio.h>
 
 #define BLOCK           205u
-#define SAMPLE_RATE     8000.0f
-#define PI              3.14159265358979323846f
+#define SAMPLE_RATE     REAL_C(8000.0)
+#define PI              REAL_C(3.14159265358979323846)
 
-static const float ROW_TONES[4] = {697.0f, 770.0f, 852.0f, 941.0f};
-static const float COLUMN_TONES[4] = {1209.0f, 1336.0f, 1477.0f, 1633.0f};
+static const real_t ROW_TONES[4] = {REAL_C(697.0), REAL_C(770.0), REAL_C(852.0), REAL_C(941.0)};
+static const real_t COLUMN_TONES[4] = {REAL_C(1209.0), REAL_C(1336.0), REAL_C(1477.0), REAL_C(1633.0)};
 static const char KEYS[4][4] = {
     {'1', '2', '3', 'A'},
     {'4', '5', '6', 'B'},
@@ -41,17 +42,17 @@ static const char KEYS[4][4] = {
 };
 
 // Give the index of the tone of the group that the block holds most of.
-static uint32_t find_strongest(const float* block, const float* tones)
+static uint32_t find_strongest(const real_t* block, const real_t* tones)
 {
     uint32_t strongest = 0;
-    float largest = -1.0f;
+    real_t largest = -REAL_C(1.0);
 
     for(uint32_t index = 0; index < 4; index++)
     {
         goertzel_t detector = goertzel_init(tones[index], SAMPLE_RATE, BLOCK);
         goertzel_process_block(&detector, block, BLOCK);
 
-        float answer = goertzel_magnitude_squared(&detector);
+        real_t answer = goertzel_magnitude_squared(&detector);
         printf("  %6.0f Hz : %12.0f\n", tones[index], answer);
 
         if(answer > largest)
@@ -70,27 +71,27 @@ static uint32_t find_strongest(const float* block, const float* tones)
 // It stands for a caller who presses the key 5, which sends 770 hertz and
 // 1336 hertz together, over a line that holds a little noise.
 // ---------------------------------------------------------------------------
-static void fill_block(float* block)
+static void fill_block(real_t* block)
 {
     for(uint32_t index = 0; index < BLOCK; index++)
     {
-        float time = (float)index / SAMPLE_RATE;
+        real_t time = (real_t)index / SAMPLE_RATE;
 
-        block[index] = sinf(2.0f*PI*770.0f*time)
-                       + sinf(2.0f*PI*1336.0f*time)
-                       + (0.1f * sinf((float)index * 12.9898f)
-                          * cosf((float)index * 78.233f));
+        block[index] = REAL_SIN(REAL_C(2.0)*PI*REAL_C(770.0)*time)
+                       + REAL_SIN(REAL_C(2.0)*PI*REAL_C(1336.0)*time)
+                       + (REAL_C(0.1) * REAL_SIN((real_t)index * REAL_C(12.9898))
+                          * REAL_COS((real_t)index * REAL_C(78.233)));
     }
 }
 
 int main(void)
 {
-    float block[BLOCK];
+    real_t block[BLOCK];
 
     fill_block(block);
 
     printf("A block of %u samples at %.0f hertz, which is %.1f ms of audio\n\n",
-           BLOCK, SAMPLE_RATE, (1000.0f*(float)BLOCK)/SAMPLE_RATE);
+           BLOCK, SAMPLE_RATE, (REAL_C(1000.0)*(real_t)BLOCK)/SAMPLE_RATE);
 
     printf("The four tones of the rows:\n");
     uint32_t row = find_strongest(block, ROW_TONES);

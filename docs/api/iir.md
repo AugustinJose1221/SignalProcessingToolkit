@@ -50,7 +50,7 @@ needs for its state.
 ### `IIR_MIN_CUTOFF`
 
 ```c
-#define IIR_MIN_CUTOFF      0.001f
+#define IIR_MIN_CUTOFF      REAL_C(0.001)
 ```
 
 The smallest cutoff that a design in single precision can hold.
@@ -81,8 +81,8 @@ first, as the guide of this area says.
 ```c
 typedef struct{
     uint32_t sections;          // The number of biquad sections
-    float* coefficient;         // Five coefficients for each section
-    float* state;               // Two values for each section
+    real_t* coefficient;         // Five coefficients for each section
+    real_t* state;               // Two values for each section
     bool dynamic_alloc;         // True if the memory comes from the heap
 }iir_t;
 ```
@@ -92,7 +92,7 @@ typedef struct{
 ### `iir_is_valid_cutoff`
 
 ```c
-bool iir_is_valid_cutoff(float cutoff);
+bool iir_is_valid_cutoff(real_t cutoff);
 ```
 
 True if a design can hold the given cutoff, which is a part of the sample
@@ -114,7 +114,7 @@ no longer need it.
 ### `iir_static_alloc`
 
 ```c
-iir_t iir_static_alloc(uint32_t sections, float* coefficient, float* state);
+iir_t iir_static_alloc(uint32_t sections, real_t* coefficient, real_t* state);
 ```
 
 Give a filter that uses the memory that the caller holds. The list
@@ -125,7 +125,7 @@ no memory from the heap.
 ### `iir_design_low_pass`
 
 ```c
-bool iir_design_low_pass(iir_t* iir, float cutoff);
+bool iir_design_low_pass(iir_t* iir, real_t cutoff);
 ```
 
 Build the coefficients of a filter of Butterworth that lets the low
@@ -137,7 +137,7 @@ IIR_MIN_CUTOFF to 0.5.
 ### `iir_design_high_pass`
 
 ```c
-bool iir_design_high_pass(iir_t* iir, float cutoff);
+bool iir_design_high_pass(iir_t* iir, real_t cutoff);
 ```
 
 Build the coefficients of a filter of Butterworth that lets the high
@@ -148,7 +148,7 @@ IIR_MIN_CUTOFF to 0.5.
 ### `iir_design_band_pass`
 
 ```c
-bool iir_design_band_pass(iir_t* iir, float low_cutoff, float high_cutoff);
+bool iir_design_band_pass(iir_t* iir, real_t low_cutoff, real_t high_cutoff);
 ```
 
 Build a filter that passes the band between the two cutoffs.
@@ -169,7 +169,7 @@ held, or if the high cutoff is not above the low one.
 ### `iir_design_band_stop`
 
 ```c
-bool iir_design_band_stop(iir_t* iir, float low_cutoff, float high_cutoff);
+bool iir_design_band_stop(iir_t* iir, real_t low_cutoff, real_t high_cutoff);
 ```
 
 Build a filter that stops the band between the two cutoffs and passes
@@ -185,7 +185,7 @@ above the low one.
 ### `iir_design_notch`
 
 ```c
-bool iir_design_notch(iir_t* iir, float centre, float quality);
+bool iir_design_notch(iir_t* iir, real_t centre, real_t quality);
 ```
 
 Build a filter that stops one frequency and passes everything else.
@@ -213,7 +213,7 @@ zero.
 ### `iir_design_peak`
 
 ```c
-bool iir_design_peak(iir_t* iir, float centre, float quality);
+bool iir_design_peak(iir_t* iir, real_t centre, real_t quality);
 ```
 
 Build a filter that passes one frequency and stops everything else.
@@ -232,7 +232,7 @@ zero.
 ### `iir_set_section`
 
 ```c
-void iir_set_section(iir_t* iir, uint32_t section, float b0, float b1, float b2, float a0, float a1, float a2);
+void iir_set_section(iir_t* iir, uint32_t section, real_t b0, real_t b1, real_t b2, real_t a0, real_t a1, real_t a2);
 ```
 
 Write the five coefficients of one section. The three coefficients b belong
@@ -243,7 +243,7 @@ coefficients as another program calculated them.
 ### `iir_process_sample`
 
 ```c
-float iir_process_sample(iir_t* iir, float sample);
+real_t iir_process_sample(iir_t* iir, real_t sample);
 ```
 
 Give the filtered value of one sample.
@@ -251,7 +251,7 @@ Give the filtered value of one sample.
 ### `iir_process_block`
 
 ```c
-void iir_process_block(iir_t* iir, const float* input, float* output, uint32_t size);
+void iir_process_block(iir_t* iir, const real_t* input, real_t* output, uint32_t size);
 ```
 
 Filter a block of samples. The input and the output may be the same list.
@@ -268,7 +268,7 @@ that has seen no sample yet.
 ### `iir_get_gain`
 
 ```c
-float iir_get_gain(iir_t* iir, float frequency);
+real_t iir_get_gain(iir_t* iir, real_t frequency);
 ```
 
 Give the size of the answer of the filter at the given frequency, which is a

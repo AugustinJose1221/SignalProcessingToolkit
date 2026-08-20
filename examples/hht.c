@@ -22,6 +22,7 @@
 
 #if (RUN_EXAMPLE == RUN_HHT_EXAMPLE)
 
+#include <sptk/core/real.h>
 #include <sptk/transform/hht.h>
 #include <sptk/transform/hilbert.h>
 #include <sptk/transform/fft.h>
@@ -33,19 +34,19 @@
 
 #define SIZE            256u
 #define NUMBER_OF_IMF   4u
-#define SAMPLE_RATE     256.0f
-#define PI              3.14159265358979323846f
+#define SAMPLE_RATE     REAL_C(256.0)
+#define PI              REAL_C(3.14159265358979323846)
 
-static float x[SIZE];
-static float y[SIZE];
-static float residue[SIZE];
-static float working_buffer[SIZE];
-static float peak_index_buffer[SIZE];
-static float valley_index_buffer[SIZE];
+static real_t x[SIZE];
+static real_t y[SIZE];
+static real_t residue[SIZE];
+static real_t working_buffer[SIZE];
+static real_t peak_index_buffer[SIZE];
+static real_t valley_index_buffer[SIZE];
 
 static cnum_t work[SIZE];
-static float amplitude[SIZE];
-static float frequency[SIZE];
+static real_t amplitude[SIZE];
+static real_t frequency[SIZE];
 
 // ---------------------------------------------------------------------------
 // Replace this function with a read from your own sensor.
@@ -57,10 +58,10 @@ static void read_accelerometer(void)
 {
     for(uint32_t index = 0; index < SIZE; index++)
     {
-        float time = (float)index / SAMPLE_RATE;
+        real_t time = (real_t)index / SAMPLE_RATE;
 
-        x[index] = (float)index;
-        y[index] = cosf(2.0f*PI*((10.0f*time) + (15.0f*time*time)));
+        x[index] = (real_t)index;
+        y[index] = REAL_COS(REAL_C(2.0)*PI*((REAL_C(10.0)*time) + (REAL_C(15.0)*time*time)));
     }
 }
 
@@ -94,7 +95,7 @@ int main(void)
 
     for(uint32_t index = 32; index < (SIZE - 32); index += 32)
     {
-        printf("%10.3f %12.1f %12.2f\n", (float)index/SAMPLE_RATE,
+        printf("%10.3f %12.1f %12.2f\n", (real_t)index/SAMPLE_RATE,
                frequency[index], amplitude[index]);
     }
 

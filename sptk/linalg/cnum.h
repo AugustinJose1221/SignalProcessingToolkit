@@ -2,6 +2,11 @@
 #define CNUM_H
 
 #include <stdbool.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // A complex number.
 //
@@ -13,14 +18,14 @@
 // library.
 
 typedef struct{
-    float re;                   // The real part
-    float im;                   // The imaginary part
+    real_t re;                   // The real part
+    real_t im;                   // The imaginary part
 }cnum_t;
 
 // Give a complex number with the given real part and imaginary part.
-cnum_t cnum_make(float re, float im);
+cnum_t cnum_make(real_t re, real_t im);
 // Give a complex number whose imaginary part is zero.
-cnum_t cnum_from_real(float re);
+cnum_t cnum_from_real(real_t re);
 // Give the number zero.
 cnum_t cnum_zero(void);
 // Give the number one.
@@ -38,24 +43,24 @@ cnum_t cnum_multiply(cnum_t a, cnum_t b);
 cnum_t cnum_divide(cnum_t a, cnum_t b);
 
 // Give the number with both parts multiplied by a real factor.
-cnum_t cnum_scale(cnum_t a, float factor);
+cnum_t cnum_scale(cnum_t a, real_t factor);
 // Give the number with the sign of the imaginary part changed.
 cnum_t cnum_conjugate(cnum_t a);
 // Give the number with the sign of both parts changed.
 cnum_t cnum_negate(cnum_t a);
 
 // Give the real part of the number.
-float cnum_real(cnum_t a);
+real_t cnum_real(cnum_t a);
 // Give the imaginary part of the number.
-float cnum_imaginary(cnum_t a);
+real_t cnum_imaginary(cnum_t a);
 
 // Give the distance of the number from zero.
-float cnum_magnitude(cnum_t a);
+real_t cnum_magnitude(cnum_t a);
 
 // Give the square of the distance from zero. This function does not take a
 // square root, thus it is faster than cnum_magnitude and it keeps more of the
 // accuracy. Use it when you only compare two distances.
-float cnum_magnitude_squared(cnum_t a);
+real_t cnum_magnitude_squared(cnum_t a);
 
 // True if both parts of the number are zero.
 bool cnum_is_zero(cnum_t a);
@@ -65,6 +70,6 @@ bool cnum_is_equal(cnum_t a, cnum_t b);
 // Give true if the two numbers differ by less than the tolerance. A float
 // keeps about 7 digits, thus a calculation with several steps gives a result
 // that is near the correct value but not equal to it.
-bool cnum_is_near(cnum_t a, cnum_t b, float tolerance);
+bool cnum_is_near(cnum_t a, cnum_t b, real_t tolerance);
 
 #endif//CNUM_H

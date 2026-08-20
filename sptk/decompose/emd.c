@@ -12,9 +12,9 @@
 #include "valleydetect.h"
 #endif
 
-static void emd_update_runtime_params(emd_t* emd, float* x, float* y);
-static float emd_get_largest(float* data, uint32_t size);
-static float emd_get_smallest(float* data, uint32_t size);
+static void emd_update_runtime_params(emd_t* emd, real_t* x, real_t* y);
+static real_t emd_get_largest(real_t* data, uint32_t size);
+static real_t emd_get_smallest(real_t* data, uint32_t size);
 
 emd_t emd_alloc(uint32_t size)
 {
@@ -25,14 +25,14 @@ emd_t emd_alloc(uint32_t size)
     emd.size = size;
     emd.cspline = cspline_alloc(size);
     emd.cspline_mempool = cspline_alloc_mempool(size);
-    emd.peak_buffer = (float*)malloc(sizeof(float)*size);
-    emd.valley_buffer = (float*)malloc(sizeof(float)*size);
+    emd.peak_buffer = (real_t*)malloc(sizeof(real_t)*size);
+    emd.valley_buffer = (real_t*)malloc(sizeof(real_t)*size);
     emd.dynamic_alloc = true;
 
     return emd;
 }
 
-emd_t emd_static_alloc(uint32_t size, float** membank, float** mempool, float* peak_buffer, float* valley_buffer)
+emd_t emd_static_alloc(uint32_t size, real_t** membank, real_t** mempool, real_t* peak_buffer, real_t* valley_buffer)
 {
     ASSERT(size != 0);
     ASSERT(membank != NULL);
@@ -48,7 +48,7 @@ emd_t emd_static_alloc(uint32_t size, float** membank, float** mempool, float* p
     return emd;
 }
 
-void emd_initialize(emd_t* emd, uint32_t num_of_imf, imf_t* imf, float* x, float* y, float* residue, float* working_buffer, float* peak_index_buffer, float* valley_index_buffer)
+void emd_initialize(emd_t* emd, uint32_t num_of_imf, imf_t* imf, real_t* x, real_t* y, real_t* residue, real_t* working_buffer, real_t* peak_index_buffer, real_t* valley_index_buffer)
 {
     ASSERT(emd != NULL);
     ASSERT(num_of_imf > 0);
@@ -76,7 +76,7 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
     uint32_t shift;
     uint32_t iteration_count = 0;
 
-    float interpolation_index = 0;
+    real_t interpolation_index = 0;
 
     *status = 0;
 
@@ -89,8 +89,8 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
     {
         for(uint32_t index = 0; index < emd->size; index++)
         {
-            emd->imf[imf_index].x[index] = (float)index;
-            emd->imf[imf_index].y[index] = 0.0f;
+            emd->imf[imf_index].x[index] = (real_t)index;
+            emd->imf[imf_index].y[index] = REAL_C(0.0);
         }
         return &emd->imf[imf_index];
     }
@@ -98,7 +98,7 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
     start_index = (uint32_t)emd->x[0];
     shift = (uint32_t)(emd->x[1]-emd->x[0]);
 
-    memcpy(emd->working_buffer, emd->residue, sizeof(float)*emd->size);
+    memcpy(emd->working_buffer, emd->residue, sizeof(real_t)*emd->size);
 
     peakcount = peakdetect_get_peaks(emd->working_buffer, &emd->peak_index_buffer[1], &emd->peak_buffer[1], emd->size);
     valleycount = valleydetect_get_valley(emd->working_buffer, &emd->valley_index_buffer[1], &emd->valley_buffer[1], emd->size);
@@ -186,7 +186,7 @@ uint32_t emd_sift(emd_t* emd, uint32_t stopping_threshold)
     uint32_t imf_count = 0;
     uint32_t status;
 
-    memcpy(emd->residue, emd->y, sizeof(float)*emd->size);
+    memcpy(emd->residue, emd->y, sizeof(real_t)*emd->size);
 
     do{
         imf = emd_get_imf(emd, imf_count, stopping_threshold, &status);
@@ -212,7 +212,7 @@ void emd_free(emd_t emd)
     }
 }
 
-static void emd_update_runtime_params(emd_t* emd, float* x, float* y)
+static void emd_update_runtime_params(emd_t* emd, real_t* x, real_t* y)
 {
     ASSERT(emd != NULL);
     ASSERT(x != NULL);
@@ -222,12 +222,12 @@ static void emd_update_runtime_params(emd_t* emd, float* x, float* y)
     emd->y = y;
 }
 
-static float emd_get_largest(float* data, uint32_t size)
+static real_t emd_get_largest(real_t* data, uint32_t size)
 {
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
-    float largest = data[0];
+    real_t largest = data[0];
 
     for(uint32_t index = 1; index < size; index++)
     {
@@ -240,12 +240,12 @@ static float emd_get_largest(float* data, uint32_t size)
     return largest;
 }
 
-static float emd_get_smallest(float* data, uint32_t size)
+static real_t emd_get_smallest(real_t* data, uint32_t size)
 {
     ASSERT(data != NULL);
     ASSERT(size > 0);
 
-    float smallest = data[0];
+    real_t smallest = data[0];
 
     for(uint32_t index = 1; index < size; index++)
     {

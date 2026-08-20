@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // A buffer that holds the last samples and forgets the rest.
 //
@@ -40,7 +45,7 @@
 // The size is any number above zero. It does not have to be a power of two.
 
 typedef struct{
-    float* data;                // The samples
+    real_t* data;                // The samples
     uint32_t size;              // How many samples the buffer can hold
     uint32_t head;              // Where the next sample goes
     uint32_t count;             // How many samples it holds now
@@ -53,20 +58,20 @@ ringbuf_t ringbuf_alloc(uint32_t size);
 
 // Give a buffer that uses the memory at data, which must hold as many float
 // values as the given size. This function takes no memory from the heap.
-ringbuf_t ringbuf_static_alloc(uint32_t size, float* data);
+ringbuf_t ringbuf_static_alloc(uint32_t size, real_t* data);
 
 // Forget every sample. The buffer keeps its memory and its size.
 void ringbuf_reset(ringbuf_t* ringbuf);
 
 // Put one sample in. When the buffer is full this takes the place of the
 // oldest sample, which is then gone.
-void ringbuf_put(ringbuf_t* ringbuf, float sample);
+void ringbuf_put(ringbuf_t* ringbuf, real_t sample);
 
 // Give the sample of the given age. An age of 0 is the newest sample.
 //
 // Give 0 for an age that the buffer does not hold, either because that many
 // samples have not arrived yet or because the age is not below the size.
-float ringbuf_get(const ringbuf_t* ringbuf, uint32_t age);
+real_t ringbuf_get(const ringbuf_t* ringbuf, uint32_t age);
 
 // Give how many samples the buffer holds now. This rises to the size and then
 // stays there.
@@ -83,7 +88,7 @@ bool ringbuf_is_full(const ringbuf_t* ringbuf);
 // other function that wants a block in order.
 //
 // Give how many samples were written.
-uint32_t ringbuf_copy(const ringbuf_t* ringbuf, float* output);
+uint32_t ringbuf_copy(const ringbuf_t* ringbuf, real_t* output);
 
 // Release the memory of a buffer that came from ringbuf_alloc. This function
 // does nothing for a buffer that came from ringbuf_static_alloc.

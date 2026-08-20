@@ -5,8 +5,10 @@
 #include <stdbool.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/linalg/matrix.h>
 #else
+#include "real.h"
 #include "matrix.h"
 #endif//TEST
 
@@ -53,7 +55,7 @@ typedef struct{
         matrix_t k;                 // Kalman gain matrix (nx x ny)
 
         kalman_scratch_t scratch;   // Intermediate results
-        float* mempool;             // Start of the memory that holds all the matrices
+        real_t* mempool;             // Start of the memory that holds all the matrices
         bool singular;              // The last update found a singular matrix
         bool dynamic_alloc;
 }kalman_t;
@@ -72,7 +74,7 @@ kalman_t kalman_alloc(uint32_t ni, uint32_t nx, uint32_t ny);
 //
 // This function takes no memory from the heap, and the filter takes none while
 // it runs. Thus a target with no heap can use the filter.
-kalman_t kalman_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, float* mempool);
+kalman_t kalman_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, real_t* mempool);
 
 // Set the state of the filter. This function writes the value into the state
 // and into the previous state, thus it gives the filter its first value.

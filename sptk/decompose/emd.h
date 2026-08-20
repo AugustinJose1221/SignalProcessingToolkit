@@ -4,9 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/interpolate/cspline.h>
 #include <sptk/decompose/imf.h>
 #else
+#include "real.h"
 #include "cspline.h"
 #include "imf.h"
 #endif
@@ -26,19 +28,19 @@
 // result is an intrinsic mode function. The rest is the residue, and the
 // method starts again with it.
 typedef struct{
-    float* x;
-    float* y;
+    real_t* x;
+    real_t* y;
     uint32_t size;
     cspline_t cspline;
     cspline_mempool_t cspline_mempool;
-    float* peak_buffer;
-    float* peak_index_buffer;
-    float* valley_buffer;
-    float* valley_index_buffer;
+    real_t* peak_buffer;
+    real_t* peak_index_buffer;
+    real_t* valley_buffer;
+    real_t* valley_index_buffer;
     imf_t* imf;
     uint32_t imf_count;
-    float* residue;
-    float* working_buffer;
+    real_t* residue;
+    real_t* working_buffer;
     bool dynamic_alloc;
 }emd_t;
 
@@ -50,7 +52,7 @@ emd_t emd_alloc(uint32_t size);
 // parameters membank and mempool are lists of five pointers for the spline and
 // for its memory pool. The two buffers must each hold room for as many float
 // values as the number of samples. This function takes no memory from the heap.
-emd_t emd_static_alloc(uint32_t size, float** membank, float** mempool, float* peak_buffer, float* valley_buffer);
+emd_t emd_static_alloc(uint32_t size, real_t** membank, real_t** mempool, real_t* peak_buffer, real_t* valley_buffer);
 
 // Give the decomposition the signal and the memory that it needs while it
 // runs.
@@ -59,7 +61,7 @@ emd_t emd_static_alloc(uint32_t size, float** membank, float** mempool, float* p
 // how many it holds. That number is the largest number of functions that the
 // decomposition can give. The lists x and y hold the signal. The other four
 // lists must each hold room for as many float values as the number of samples.
-void emd_initialize(emd_t* emd, uint32_t num_of_imf, imf_t* imf, float* x, float* y, float* residue, float* working_buffer, float* peak_index_buffer, float* valley_index_buffer);
+void emd_initialize(emd_t* emd, uint32_t num_of_imf, imf_t* imf, real_t* x, real_t* y, real_t* residue, real_t* working_buffer, real_t* peak_index_buffer, real_t* valley_index_buffer);
 
 // Take one intrinsic mode function out of the residue and give a pointer to
 // it. The pointer shows into the list that emd_initialize took.

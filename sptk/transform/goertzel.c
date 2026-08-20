@@ -8,13 +8,13 @@
 
 #include <math.h>
 
-#define GOERTZEL_PI     3.14159265358979323846f
+#define GOERTZEL_PI     REAL_C(3.14159265358979323846)
 
-goertzel_t goertzel_init(float frequency, float sample_rate, uint32_t block_size)
+goertzel_t goertzel_init(real_t frequency, real_t sample_rate, uint32_t block_size)
 {
-    ASSERT(sample_rate > 0.0f);
-    ASSERT(frequency >= 0.0f);
-    ASSERT(frequency < (sample_rate / 2.0f));
+    ASSERT(sample_rate > REAL_C(0.0));
+    ASSERT(frequency >= REAL_C(0.0));
+    ASSERT(frequency < (sample_rate / REAL_C(2.0)));
     ASSERT(block_size > 0);
 
     goertzel_t goertzel;
@@ -22,12 +22,12 @@ goertzel_t goertzel_init(float frequency, float sample_rate, uint32_t block_size
     // Find the bin of the block that lies nearest to the given frequency, and
     // then take the angle of that bin. The algorithm works with a whole number
     // of turns inside the block.
-    float bin = ((float)block_size * frequency) / sample_rate;
-    float angle = (2.0f * GOERTZEL_PI * bin) / (float)block_size;
+    real_t bin = ((real_t)block_size * frequency) / sample_rate;
+    real_t angle = (REAL_C(2.0) * GOERTZEL_PI * bin) / (real_t)block_size;
 
-    goertzel.cosine = cosf(angle);
-    goertzel.sine = sinf(angle);
-    goertzel.coefficient = 2.0f * goertzel.cosine;
+    goertzel.cosine = REAL_COS(angle);
+    goertzel.sine = REAL_SIN(angle);
+    goertzel.coefficient = REAL_C(2.0) * goertzel.cosine;
     goertzel.block_size = block_size;
 
     goertzel_reset(&goertzel);
@@ -35,13 +35,13 @@ goertzel_t goertzel_init(float frequency, float sample_rate, uint32_t block_size
     return goertzel;
 }
 
-void goertzel_process_sample(goertzel_t* goertzel, float sample)
+void goertzel_process_sample(goertzel_t* goertzel, real_t sample)
 {
     ASSERT(goertzel != NULL);
 
     // The state holds the last two values of a filter with two poles. After
     // the whole block the two values give the answer at the frequency.
-    float value = sample + (goertzel->coefficient * goertzel->first)
+    real_t value = sample + (goertzel->coefficient * goertzel->first)
                   - goertzel->second;
 
     goertzel->second = goertzel->first;
@@ -49,7 +49,7 @@ void goertzel_process_sample(goertzel_t* goertzel, float sample)
     goertzel->count++;
 }
 
-void goertzel_process_block(goertzel_t* goertzel, const float* input, uint32_t size)
+void goertzel_process_block(goertzel_t* goertzel, const real_t* input, uint32_t size)
 {
     ASSERT(goertzel != NULL);
     ASSERT(input != NULL);
@@ -67,38 +67,38 @@ bool goertzel_is_block_complete(goertzel_t* goertzel)
     return goertzel->count >= goertzel->block_size;
 }
 
-float goertzel_magnitude_squared(goertzel_t* goertzel)
+real_t goertzel_magnitude_squared(goertzel_t* goertzel)
 {
     ASSERT(goertzel != NULL);
 
-    float real = goertzel->first - (goertzel->second * goertzel->cosine);
-    float imaginary = goertzel->second * goertzel->sine;
+    real_t real = goertzel->first - (goertzel->second * goertzel->cosine);
+    real_t imaginary = goertzel->second * goertzel->sine;
 
     return (real*real) + (imaginary*imaginary);
 }
 
-float goertzel_magnitude(goertzel_t* goertzel)
+real_t goertzel_magnitude(goertzel_t* goertzel)
 {
     ASSERT(goertzel != NULL);
 
-    return sqrtf(goertzel_magnitude_squared(goertzel));
+    return REAL_SQRT(goertzel_magnitude_squared(goertzel));
 }
 
-float goertzel_phase(goertzel_t* goertzel)
+real_t goertzel_phase(goertzel_t* goertzel)
 {
     ASSERT(goertzel != NULL);
 
-    float real = goertzel->first - (goertzel->second * goertzel->cosine);
-    float imaginary = goertzel->second * goertzel->sine;
+    real_t real = goertzel->first - (goertzel->second * goertzel->cosine);
+    real_t imaginary = goertzel->second * goertzel->sine;
 
-    return atan2f(imaginary, real);
+    return REAL_ATAN2(imaginary, real);
 }
 
 void goertzel_reset(goertzel_t* goertzel)
 {
     ASSERT(goertzel != NULL);
 
-    goertzel->first = 0.0f;
-    goertzel->second = 0.0f;
+    goertzel->first = REAL_C(0.0);
+    goertzel->second = REAL_C(0.0);
     goertzel->count = 0;
 }

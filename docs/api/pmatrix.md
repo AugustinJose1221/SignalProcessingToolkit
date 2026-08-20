@@ -76,7 +76,7 @@ Write zero into every element of the matrix.
 ### `pmatrix_evaluate_element`
 
 ```c
-float pmatrix_evaluate_element(pmatrix_t* matrix, uint32_t i, uint32_t j, float x);
+real_t pmatrix_evaluate_element(pmatrix_t* matrix, uint32_t i, uint32_t j, real_t x);
 ```
 
 Give the value of one element for the given value of the parameter.
@@ -84,7 +84,7 @@ Give the value of one element for the given value of the parameter.
 ### `pmatrix_evaluate`
 
 ```c
-matrix_t pmatrix_evaluate(pmatrix_t* matrix, float x);
+matrix_t pmatrix_evaluate(pmatrix_t* matrix, real_t x);
 ```
 
 Give a new matrix of float values for the given value of the parameter. This
@@ -93,7 +93,7 @@ function gets memory. Use pmatrix_evaluate_into on a target with no heap.
 ### `pmatrix_evaluate_into`
 
 ```c
-void pmatrix_evaluate_into(pmatrix_t* matrix, float x, matrix_t* dest);
+void pmatrix_evaluate_into(pmatrix_t* matrix, real_t x, matrix_t* dest);
 ```
 
 Write the values into a matrix that already holds memory. The destination
@@ -102,7 +102,7 @@ must have the same order as the parameter matrix.
 ### `pmatrix_zero`
 
 ```c
-float pmatrix_zero(float x);
+real_t pmatrix_zero(real_t x);
 ```
 
 An element that always gives zero.
@@ -110,7 +110,7 @@ An element that always gives zero.
 ### `pmatrix_one`
 
 ```c
-float pmatrix_one(float x);
+real_t pmatrix_one(real_t x);
 ```
 
 An element that always gives one.

@@ -3,6 +3,7 @@
 // use the real binary search module.
 
 #include "unity.h"
+#include "real_assert.h"
 #include "cspline.h"
 // The spline calls the binary search. This include has no mock prefix, thus
 // the build takes the real module and not a mock of it.
@@ -10,7 +11,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define TOLERANCE   0.0001f
+#define TOLERANCE   REAL_C(0.0001)
 
 void setUp(void)
 {
@@ -24,8 +25,8 @@ void tearDown(void)
 
 void test_cspline_gives_the_knot_values_at_the_knots(void)
 {
-    float x[5] = {0, 1, 2, 3, 4};
-    float y[5] = {0, 1, 0, 1, 0};
+    real_t x[5] = {0, 1, 2, 3, 4};
+    real_t y[5] = {0, 1, 0, 1, 0};
     cspline_t cspline = cspline_alloc(5);
     cspline_mempool_t mempool = cspline_alloc_mempool(5);
 
@@ -33,7 +34,7 @@ void test_cspline_gives_the_knot_values_at_the_knots(void)
 
     for(uint32_t index = 0; index < 5; index++)
     {
-        TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, y[index],
+        TEST_ASSERT_REAL_WITHIN(TOLERANCE, y[index],
                                  cspline_get_interpolated_point(&cspline, x[index]));
     }
 
@@ -45,8 +46,8 @@ void test_cspline_is_continuous_at_the_knots(void)
 {
     // A spline has no step at a knot. The value on the left of a knot and the
     // value on the right of a knot must be almost the same.
-    float x[5] = {0, 1, 2, 3, 4};
-    float y[5] = {0, 1, 0, 1, 0};
+    real_t x[5] = {0, 1, 2, 3, 4};
+    real_t y[5] = {0, 1, 0, 1, 0};
     cspline_t cspline = cspline_alloc(5);
     cspline_mempool_t mempool = cspline_alloc_mempool(5);
 
@@ -54,9 +55,9 @@ void test_cspline_is_continuous_at_the_knots(void)
 
     for(uint32_t knot = 1; knot < 4; knot++)
     {
-        float left = cspline_get_interpolated_point(&cspline, (float)knot - 0.001f);
-        float right = cspline_get_interpolated_point(&cspline, (float)knot + 0.001f);
-        TEST_ASSERT_FLOAT_WITHIN(0.01f, left, right);
+        real_t left = cspline_get_interpolated_point(&cspline, (real_t)knot - REAL_C(0.001));
+        real_t right = cspline_get_interpolated_point(&cspline, (real_t)knot + REAL_C(0.001));
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), left, right);
     }
 
     cspline_free(cspline);
@@ -67,8 +68,8 @@ void test_cspline_of_a_straight_line_is_the_straight_line(void)
 {
     // The values lie on a straight line. Thus the spline must give that line
     // at every point between the knots.
-    float x[4] = {0, 1, 2, 3};
-    float y[4] = {0, 2, 4, 6};
+    real_t x[4] = {0, 1, 2, 3};
+    real_t y[4] = {0, 2, 4, 6};
     cspline_t cspline = cspline_alloc(4);
     cspline_mempool_t mempool = cspline_alloc_mempool(4);
 
@@ -76,8 +77,8 @@ void test_cspline_of_a_straight_line_is_the_straight_line(void)
 
     for(int step = 0; step <= 30; step++)
     {
-        float point = (float)step/10.0f;
-        TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.0f*point,
+        real_t point = (real_t)step/REAL_C(10.0);
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(2.0)*point,
                                  cspline_get_interpolated_point(&cspline, point));
     }
 
@@ -87,18 +88,18 @@ void test_cspline_of_a_straight_line_is_the_straight_line(void)
 
 void test_cspline_stays_between_the_knot_values_of_a_rising_line(void)
 {
-    float x[4] = {0, 1, 2, 3};
-    float y[4] = {0, 1, 4, 9};
+    real_t x[4] = {0, 1, 2, 3};
+    real_t y[4] = {0, 1, 4, 9};
     cspline_t cspline = cspline_alloc(4);
     cspline_mempool_t mempool = cspline_alloc_mempool(4);
 
     cspline_init(&cspline, mempool, x, y);
 
-    float previous = cspline_get_interpolated_point(&cspline, 0.0f);
+    real_t previous = cspline_get_interpolated_point(&cspline, REAL_C(0.0));
     for(int step = 1; step <= 30; step++)
     {
-        float point = (float)step/10.0f;
-        float value = cspline_get_interpolated_point(&cspline, point);
+        real_t point = (real_t)step/REAL_C(10.0);
+        real_t value = cspline_get_interpolated_point(&cspline, point);
         TEST_ASSERT_TRUE(value >= previous - TOLERANCE);
         previous = value;
     }
@@ -112,15 +113,15 @@ void test_cspline_reads_the_last_interval_at_the_last_knot(void)
     // The coefficient arrays hold one element for each interval, thus they
     // hold size-1 elements. At the last knot the index must stay inside the
     // arrays.
-    float x[3] = {1, 2, 3};
-    float y[3] = {1, 4, 9};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {1, 4, 9};
     cspline_t cspline = cspline_alloc(3);
     cspline_mempool_t mempool = cspline_alloc_mempool(3);
 
     cspline_init(&cspline, mempool, x, y);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 9.0f,
-                             cspline_get_interpolated_point(&cspline, 3.0f));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(9.0),
+                             cspline_get_interpolated_point(&cspline, REAL_C(3.0)));
 
     cspline_free(cspline);
     cspline_free_mempool(mempool);
@@ -128,15 +129,15 @@ void test_cspline_reads_the_last_interval_at_the_last_knot(void)
 
 void test_cspline_uses_the_first_interval_at_the_first_knot(void)
 {
-    float x[3] = {1, 2, 3};
-    float y[3] = {5, 4, 9};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {5, 4, 9};
     cspline_t cspline = cspline_alloc(3);
     cspline_mempool_t mempool = cspline_alloc_mempool(3);
 
     cspline_init(&cspline, mempool, x, y);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 5.0f,
-                             cspline_get_interpolated_point(&cspline, 1.0f));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(5.0),
+                             cspline_get_interpolated_point(&cspline, REAL_C(1.0)));
 
     cspline_free(cspline);
     cspline_free_mempool(mempool);

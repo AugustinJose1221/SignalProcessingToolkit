@@ -17,14 +17,14 @@
 //
 // An insertion needs the place after the end in that case, thus this function
 // puts the exception right. It is the only place where the difference matters.
-static uint32_t medfilt_place_of(const float* sorted, uint32_t count, float value)
+static uint32_t medfilt_place_of(const real_t* sorted, uint32_t count, real_t value)
 {
     if(count == 0u)
     {
         return 0u;
     }
 
-    uint32_t place = binarysearch_get_index((float*)sorted, value, count);
+    uint32_t place = binarysearch_get_index((real_t*)sorted, value, count);
 
     if((place == (count - 1u)) && (sorted[count - 1u] < value))
     {
@@ -34,7 +34,7 @@ static uint32_t medfilt_place_of(const float* sorted, uint32_t count, float valu
     return place;
 }
 
-static void medfilt_insert(float* sorted, uint32_t count, float value)
+static void medfilt_insert(real_t* sorted, uint32_t count, real_t value)
 {
     uint32_t place = medfilt_place_of(sorted, count, value);
 
@@ -46,7 +46,7 @@ static void medfilt_insert(float* sorted, uint32_t count, float value)
     sorted[place] = value;
 }
 
-static void medfilt_remove(float* sorted, uint32_t count, float value)
+static void medfilt_remove(real_t* sorted, uint32_t count, real_t value)
 {
     // The value is known to stand in the list, thus the search always finds
     // it and the exception above cannot arise here. Where the same value
@@ -72,18 +72,18 @@ medfilt_t medfilt_alloc(uint32_t size)
     medfilt_t medfilt;
 
     medfilt.window = ringbuf_alloc(size);
-    medfilt.sorted = (float*)malloc(sizeof(float)*size);
+    medfilt.sorted = (real_t*)malloc(sizeof(real_t)*size);
     medfilt.dynamic_alloc = true;
 
     for(uint32_t index = 0; index < size; index++)
     {
-        medfilt.sorted[index] = 0.0f;
+        medfilt.sorted[index] = REAL_C(0.0);
     }
 
     return medfilt;
 }
 
-medfilt_t medfilt_static_alloc(uint32_t size, float* window, float* sorted)
+medfilt_t medfilt_static_alloc(uint32_t size, real_t* window, real_t* sorted)
 {
     ASSERT(size > 0);
     ASSERT(window != NULL);
@@ -97,7 +97,7 @@ medfilt_t medfilt_static_alloc(uint32_t size, float* window, float* sorted)
 
     for(uint32_t index = 0; index < size; index++)
     {
-        medfilt.sorted[index] = 0.0f;
+        medfilt.sorted[index] = REAL_C(0.0);
     }
 
     return medfilt;
@@ -111,11 +111,11 @@ void medfilt_reset(medfilt_t* medfilt)
 
     for(uint32_t index = 0; index < medfilt->window.size; index++)
     {
-        medfilt->sorted[index] = 0.0f;
+        medfilt->sorted[index] = REAL_C(0.0);
     }
 }
 
-float medfilt_process_sample(medfilt_t* medfilt, float sample)
+real_t medfilt_process_sample(medfilt_t* medfilt, real_t sample)
 {
     ASSERT(medfilt != NULL);
 
@@ -125,7 +125,7 @@ float medfilt_process_sample(medfilt_t* medfilt, float sample)
     // of the window, while it can still be found.
     if(ringbuf_is_full(&medfilt->window))
     {
-        float leaving = ringbuf_get(&medfilt->window, count - 1u);
+        real_t leaving = ringbuf_get(&medfilt->window, count - 1u);
         medfilt_remove(medfilt->sorted, count, leaving);
         count--;
     }
@@ -136,7 +136,7 @@ float medfilt_process_sample(medfilt_t* medfilt, float sample)
     return medfilt_get_median(medfilt);
 }
 
-void medfilt_process_block(medfilt_t* medfilt, const float* input, float* output,
+void medfilt_process_block(medfilt_t* medfilt, const real_t* input, real_t* output,
                            uint32_t size)
 {
     ASSERT(medfilt != NULL);
@@ -149,7 +149,7 @@ void medfilt_process_block(medfilt_t* medfilt, const float* input, float* output
     }
 }
 
-float medfilt_get_median(medfilt_t* medfilt)
+real_t medfilt_get_median(medfilt_t* medfilt)
 {
     ASSERT(medfilt != NULL);
 
@@ -157,7 +157,7 @@ float medfilt_get_median(medfilt_t* medfilt)
 
     if(count == 0u)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
     uint32_t middle = count / 2u;
@@ -167,10 +167,10 @@ float medfilt_get_median(medfilt_t* medfilt)
         return medfilt->sorted[middle];
     }
 
-    return (medfilt->sorted[middle - 1u] + medfilt->sorted[middle]) / 2.0f;
+    return (medfilt->sorted[middle - 1u] + medfilt->sorted[middle]) / REAL_C(2.0);
 }
 
-float medfilt_get_percentile(medfilt_t* medfilt, float part)
+real_t medfilt_get_percentile(medfilt_t* medfilt, real_t part)
 {
     ASSERT(medfilt != NULL);
 
@@ -178,24 +178,24 @@ float medfilt_get_percentile(medfilt_t* medfilt, float part)
 
     if(count == 0u)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
     if(count == 1u)
     {
         return medfilt->sorted[0];
     }
-    if(part <= 0.0f)
+    if(part <= REAL_C(0.0))
     {
         return medfilt->sorted[0];
     }
-    if(part >= 1.0f)
+    if(part >= REAL_C(1.0))
     {
         return medfilt->sorted[count - 1u];
     }
 
-    float place = part * (float)(count - 1u);
+    real_t place = part * (real_t)(count - 1u);
     uint32_t below = (uint32_t)place;
-    float between = place - (float)below;
+    real_t between = place - (real_t)below;
 
     if((below + 1u) >= count)
     {

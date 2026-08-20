@@ -18,6 +18,7 @@
 
 #if (RUN_EXAMPLE == RUN_FFT_EXAMPLE)
 
+#include <sptk/core/real.h>
 #include <sptk/transform/fft.h>
 #include <sptk/linalg/cnum.h>
 #include <math.h>
@@ -26,18 +27,18 @@
 // 25 samples in a second is enough for a heart rate, and 256 samples then
 // cover about 10 seconds. A longer block gives a finer answer but reacts more
 // slowly to a change.
-#define SAMPLE_RATE     25.0f
+#define SAMPLE_RATE     REAL_C(25.0)
 #define SIZE            256u
 
 // The band where a heart rate can lie, in hertz.
-#define LOWEST_RATE     0.7f
-#define HIGHEST_RATE    3.0f
+#define LOWEST_RATE     REAL_C(0.7)
+#define HIGHEST_RATE    REAL_C(3.0)
 
-#define PI              3.14159265358979323846f
+#define PI              REAL_C(3.14159265358979323846)
 
-static float signal[SIZE];
+static real_t signal[SIZE];
 static cnum_t spectrum[SIZE];
-static float magnitude[SIZE];
+static real_t magnitude[SIZE];
 
 // ---------------------------------------------------------------------------
 // Replace this function with a read from your own sensor.
@@ -46,27 +47,27 @@ static float magnitude[SIZE];
 // minute, which is 1.2 hertz. The reading holds three things that a real
 // sensor also holds: the pulse itself, a slow drift, and noise.
 // ---------------------------------------------------------------------------
-static void read_sensor_block(float* block, uint32_t size)
+static void read_sensor_block(real_t* block, uint32_t size)
 {
-    const float rate = 1.2f;
+    const real_t rate = REAL_C(1.2);
 
     for(uint32_t index = 0; index < size; index++)
     {
-        float time = (float)index / SAMPLE_RATE;
+        real_t time = (real_t)index / SAMPLE_RATE;
 
         // The pulse. The second part gives the shape its sharp rise, which a
         // real pulse also has.
-        float pulse = sinf(2.0f*PI*rate*time)
-                      + (0.3f*sinf(2.0f*PI*2.0f*rate*time));
+        real_t pulse = REAL_SIN(REAL_C(2.0)*PI*rate*time)
+                      + (REAL_C(0.3)*REAL_SIN(REAL_C(2.0)*PI*REAL_C(2.0)*rate*time));
 
         // The sensor moves against the skin, thus the reading drifts.
-        float drift = 0.8f * sinf(2.0f*PI*0.05f*time);
+        real_t drift = REAL_C(0.8) * REAL_SIN(REAL_C(2.0)*PI*REAL_C(0.05)*time);
 
         // The light of the room and the sensor itself bring noise.
-        float noise = 0.15f * sinf((float)index * 12.9898f)
-                      * cosf((float)index * 78.233f);
+        real_t noise = REAL_C(0.15) * REAL_SIN((real_t)index * REAL_C(12.9898))
+                      * REAL_COS((real_t)index * REAL_C(78.233));
 
-        block[index] = 2.5f + pulse + drift + noise;
+        block[index] = REAL_C(2.5) + pulse + drift + noise;
     }
 }
 
@@ -83,11 +84,11 @@ int main(void)
     // strongest one. Only the bins below the middle hold new information: the
     // bins above it mirror them.
     uint32_t best_bin = 0;
-    float best_magnitude = 0.0f;
+    real_t best_magnitude = REAL_C(0.0);
 
     for(uint32_t bin = 1; bin < (SIZE/2); bin++)
     {
-        float frequency = fft_bin_frequency(bin, SIZE, SAMPLE_RATE);
+        real_t frequency = fft_bin_frequency(bin, SIZE, SAMPLE_RATE);
 
         if((frequency >= LOWEST_RATE) && (frequency <= HIGHEST_RATE))
         {
@@ -99,20 +100,20 @@ int main(void)
         }
     }
 
-    float rate_in_hertz = fft_bin_frequency(best_bin, SIZE, SAMPLE_RATE);
-    float beats_in_a_minute = rate_in_hertz * 60.0f;
+    real_t rate_in_hertz = fft_bin_frequency(best_bin, SIZE, SAMPLE_RATE);
+    real_t beats_in_a_minute = rate_in_hertz * REAL_C(60.0);
 
     printf("A pulse sensor at %.0f samples in a second, %u samples, %.1f seconds\n\n",
-           SAMPLE_RATE, SIZE, (float)SIZE/SAMPLE_RATE);
+           SAMPLE_RATE, SIZE, (real_t)SIZE/SAMPLE_RATE);
 
     printf("%10s %10s %12s\n", "BIN", "RATE [bpm]", "STRENGTH");
     for(uint32_t bin = 1; bin < (SIZE/2); bin++)
     {
-        float frequency = fft_bin_frequency(bin, SIZE, SAMPLE_RATE);
+        real_t frequency = fft_bin_frequency(bin, SIZE, SAMPLE_RATE);
         if((frequency >= LOWEST_RATE) && (frequency <= HIGHEST_RATE)
-           && (magnitude[bin] > (best_magnitude/10.0f)))
+           && (magnitude[bin] > (best_magnitude/REAL_C(10.0))))
         {
-            printf("%10u %10.1f %12.1f%s\n", bin, frequency*60.0f, magnitude[bin],
+            printf("%10u %10.1f %12.1f%s\n", bin, frequency*REAL_C(60.0), magnitude[bin],
                    (bin == best_bin) ? "  <- the strongest" : "");
         }
     }
@@ -122,9 +123,9 @@ int main(void)
     // The drift lies below the band and the noise spreads over every bin, thus
     // neither of them wins. That is why no filter is needed before this step:
     // the band already leaves both of them out.
-    printf("\nThe slow drift sits at %.2f hertz, which lies below the band.\n", 0.05f);
+    printf("\nThe slow drift sits at %.2f hertz, which lies below the band.\n", REAL_C(0.05));
     printf("One bin holds %.3f hertz, thus the answer steps by %.1f beats.\n",
-           SAMPLE_RATE/(float)SIZE, (SAMPLE_RATE/(float)SIZE)*60.0f);
+           SAMPLE_RATE/(real_t)SIZE, (SAMPLE_RATE/(real_t)SIZE)*REAL_C(60.0));
     printf("Use a longer block for a finer answer, or count over several blocks.\n");
 
     fft_free(&fft);

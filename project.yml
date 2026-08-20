@@ -123,7 +123,9 @@
     - sptk/estimate/**
     - sptk/decompose/**
     - sptk/util/**
+    - tests/support/**
   :support:
+    - tests/support/**
   :libraries: []
 
 # You can even specify specific files to add or remove from your test
@@ -141,6 +143,7 @@
 :defines:
   :test:
     - TEST # Simple list option to add symbol 'TEST' to compilation of all files in all test executables
+    - "#{ENV['SPTK_DEFINE'] || 'SPTK_REAL_32'}"
   :release: []
 
   # Enable to inject name of a test as a unique compilation symbol into its respective executable build. 
@@ -219,6 +222,11 @@
 # Configuration options specific to Unity. 
 :unity:
   :defines:
+    # The tests compare values of the type real_t, which is a float or a double
+    # depending on how the library is built. Unity leaves its double asserts
+    # out unless it is told to keep them, thus a build in 64 bit mode would
+    # have no way to compare its results.
+    - UNITY_INCLUDE_DOUBLE
 
 # You can optionally have ceedling create environment variables for you before
 # performing the rest of its tasks.

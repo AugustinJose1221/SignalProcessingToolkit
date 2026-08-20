@@ -5,8 +5,10 @@
 #include <stdbool.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/linalg/matrix.h>
 #else
+#include "real.h"
 #include "matrix.h"
 #endif
 
@@ -37,9 +39,9 @@
 // calculation.
 //
 // A function of the standard library that takes a float and gives a float,
-// such as sinf or cosf, fits the type of an element directly.
+// such as real_sin or real_cos, fits the type of an element directly.
 
-typedef float (*pmatrix_function_t)(float x);
+typedef real_t (*pmatrix_function_t)(real_t x);
 
 typedef struct{
     uint32_t m;
@@ -69,20 +71,20 @@ pmatrix_function_t pmatrix_get_element(pmatrix_t* matrix, uint32_t i, uint32_t j
 void pmatrix_set_zero(pmatrix_t* matrix);
 
 // Give the value of one element for the given value of the parameter.
-float pmatrix_evaluate_element(pmatrix_t* matrix, uint32_t i, uint32_t j, float x);
+real_t pmatrix_evaluate_element(pmatrix_t* matrix, uint32_t i, uint32_t j, real_t x);
 
 // Give a new matrix of float values for the given value of the parameter. This
 // function gets memory. Use pmatrix_evaluate_into on a target with no heap.
-matrix_t pmatrix_evaluate(pmatrix_t* matrix, float x);
+matrix_t pmatrix_evaluate(pmatrix_t* matrix, real_t x);
 
 // Write the values into a matrix that already holds memory. The destination
 // must have the same order as the parameter matrix.
-void pmatrix_evaluate_into(pmatrix_t* matrix, float x, matrix_t* dest);
+void pmatrix_evaluate_into(pmatrix_t* matrix, real_t x, matrix_t* dest);
 
 // An element that always gives zero.
-float pmatrix_zero(float x);
+real_t pmatrix_zero(real_t x);
 // An element that always gives one.
-float pmatrix_one(float x);
+real_t pmatrix_one(real_t x);
 
 // Release the memory of a matrix that came from pmatrix_alloc. This function
 // does nothing for a matrix that came from pmatrix_static_alloc.

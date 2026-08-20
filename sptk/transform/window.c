@@ -8,28 +8,28 @@
 
 #include <math.h>
 
-#define WINDOW_PI       3.14159265358979323846f
+#define WINDOW_PI       REAL_C(3.14159265358979323846)
 
 // The modified Bessel function of the first kind, of the order zero.
 //
 // The Kaiser window needs it. There is no such function in the standard
 // library, thus it stands here. The series below converges quickly for the
 // values that a window asks for, which lie under about 20.
-static float window_bessel(float x)
+static real_t window_bessel(real_t x)
 {
     // Each term of the series is the one before it times (x/2)^2/k^2, thus no
     // factorial and no power has to be worked out on its own. That keeps the
     // numbers small and holds the accuracy.
-    float half = x / 2.0f;
-    float term = 1.0f;
-    float total = 1.0f;
+    real_t half = x / REAL_C(2.0);
+    real_t term = REAL_C(1.0);
+    real_t total = REAL_C(1.0);
 
     for(uint32_t k = 1; k < 40u; k++)
     {
-        term *= (half / (float)k) * (half / (float)k);
+        term *= (half / (real_t)k) * (half / (real_t)k);
         total += term;
 
-        if(term < (1.0e-9f * total))
+        if(term < (REAL_C(1.0e-9) * total))
         {
             break;
         }
@@ -40,79 +40,79 @@ static float window_bessel(float x)
 
 // The value of a window that is a sum of cosines. Every fixed window of this
 // module is such a sum, thus one function serves them all.
-static float window_cosine_sum(uint32_t index, uint32_t size,
-                               float a0, float a1, float a2, float a3)
+static real_t window_cosine_sum(uint32_t index, uint32_t size,
+                               real_t a0, real_t a1, real_t a2, real_t a3)
 {
     if(size <= 1u)
     {
-        return 1.0f;
+        return REAL_C(1.0);
     }
 
     // The window is symmetric, thus the last value stands at 2*pi and equals
     // the first one. The divisor is size-1 and not size for that reason.
-    float turn = (2.0f * WINDOW_PI * (float)index) / (float)(size - 1u);
+    real_t turn = (REAL_C(2.0) * WINDOW_PI * (real_t)index) / (real_t)(size - 1u);
 
     return a0
-           - (a1 * cosf(turn))
-           + (a2 * cosf(2.0f * turn))
-           - (a3 * cosf(3.0f * turn));
+           - (a1 * REAL_COS(turn))
+           + (a2 * REAL_COS(REAL_C(2.0) * turn))
+           - (a3 * REAL_COS(REAL_C(3.0) * turn));
 }
 
-static float window_tukey(uint32_t index, uint32_t size, float part)
+static real_t window_tukey(uint32_t index, uint32_t size, real_t part)
 {
     if(size <= 1u)
     {
-        return 1.0f;
+        return REAL_C(1.0);
     }
-    if(part <= 0.0f)
+    if(part <= REAL_C(0.0))
     {
-        return 1.0f;
+        return REAL_C(1.0);
     }
-    if(part > 1.0f)
+    if(part > REAL_C(1.0))
     {
-        part = 1.0f;
+        part = REAL_C(1.0);
     }
 
-    float last = (float)(size - 1u);
-    float position = (float)index / last;
-    float edge = part / 2.0f;
+    real_t last = (real_t)(size - 1u);
+    real_t position = (real_t)index / last;
+    real_t edge = part / REAL_C(2.0);
 
     if(position < edge)
     {
         // The falling part at the start, which is half of a Hann window.
-        return 0.5f * (1.0f + cosf(WINDOW_PI * ((position / edge) - 1.0f)));
+        return REAL_C(0.5) * (REAL_C(1.0) + REAL_COS(WINDOW_PI * ((position / edge) - REAL_C(1.0))));
     }
-    if(position > (1.0f - edge))
+    if(position > (REAL_C(1.0) - edge))
     {
-        return 0.5f * (1.0f + cosf(WINDOW_PI * (((position - 1.0f) / edge) + 1.0f)));
+        return REAL_C(0.5) * (REAL_C(1.0) + REAL_COS(WINDOW_PI * (((position - REAL_C(1.0)) / edge) + REAL_C(1.0))));
     }
 
     // The flat part in the middle.
-    return 1.0f;
+    return REAL_C(1.0);
 }
 
-static float window_kaiser(uint32_t index, uint32_t size, float beta)
+static real_t window_kaiser(uint32_t index, uint32_t size, real_t beta)
 {
     if(size <= 1u)
     {
-        return 1.0f;
+        return REAL_C(1.0);
     }
-    if(beta < 0.0f)
+    if(beta < REAL_C(0.0))
     {
-        beta = 0.0f;
+        beta = REAL_C(0.0);
     }
 
-    float last = (float)(size - 1u);
+    real_t last = (real_t)(size - 1u);
     // A number from -1 at the first sample to 1 at the last one.
-    float position = ((2.0f * (float)index) / last) - 1.0f;
-    float inside = 1.0f - (position * position);
+    real_t position = ((REAL_C(2.0) * (real_t)index) / last) - REAL_C(1.0);
+    real_t inside = REAL_C(1.0) - (position * position);
 
-    if(inside < 0.0f)
+    if(inside < REAL_C(0.0))
     {
-        inside = 0.0f;
+        inside = REAL_C(0.0);
     }
 
-    return window_bessel(beta * sqrtf(inside)) / window_bessel(beta);
+    return window_bessel(beta * REAL_SQRT(inside)) / window_bessel(beta);
 }
 
 bool window_is_valid_kind(window_kind_t kind)
@@ -125,30 +125,30 @@ bool window_takes_a_parameter(window_kind_t kind)
     return (kind == WINDOW_TUKEY) || (kind == WINDOW_KAISER);
 }
 
-float window_value(uint32_t index, uint32_t size, window_kind_t kind,
-                   float parameter)
+real_t window_value(uint32_t index, uint32_t size, window_kind_t kind,
+                   real_t parameter)
 {
     ASSERT(window_is_valid_kind(kind));
 
     if(index >= size)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
     switch(kind)
     {
         case WINDOW_HANN:
-            return window_cosine_sum(index, size, 0.5f, 0.5f, 0.0f, 0.0f);
+            return window_cosine_sum(index, size, REAL_C(0.5), REAL_C(0.5), REAL_C(0.0), REAL_C(0.0));
 
         case WINDOW_HAMMING:
-            return window_cosine_sum(index, size, 0.54f, 0.46f, 0.0f, 0.0f);
+            return window_cosine_sum(index, size, REAL_C(0.54), REAL_C(0.46), REAL_C(0.0), REAL_C(0.0));
 
         case WINDOW_BLACKMAN:
-            return window_cosine_sum(index, size, 0.42f, 0.5f, 0.08f, 0.0f);
+            return window_cosine_sum(index, size, REAL_C(0.42), REAL_C(0.5), REAL_C(0.08), REAL_C(0.0));
 
         case WINDOW_BLACKMAN_HARRIS:
             return window_cosine_sum(index, size,
-                                     0.35875f, 0.48829f, 0.14128f, 0.01168f);
+                                     REAL_C(0.35875), REAL_C(0.48829), REAL_C(0.14128), REAL_C(0.01168));
 
         case WINDOW_TUKEY:
             return window_tukey(index, size, parameter);
@@ -158,12 +158,12 @@ float window_value(uint32_t index, uint32_t size, window_kind_t kind,
 
         case WINDOW_RECTANGULAR:
         default:
-            return 1.0f;
+            return REAL_C(1.0);
     }
 }
 
-void window_build_with(float* window, uint32_t size, window_kind_t kind,
-                       float parameter)
+void window_build_with(real_t* window, uint32_t size, window_kind_t kind,
+                       real_t parameter)
 {
     ASSERT(window != NULL);
     ASSERT(window_is_valid_kind(kind));
@@ -174,80 +174,80 @@ void window_build_with(float* window, uint32_t size, window_kind_t kind,
     }
 }
 
-void window_build(float* window, uint32_t size, window_kind_t kind)
+void window_build(real_t* window, uint32_t size, window_kind_t kind)
 {
-    window_build_with(window, size, kind, 0.0f);
+    window_build_with(window, size, kind, REAL_C(0.0));
 }
 
-float window_kaiser_beta(float stop_band_decibel)
+real_t window_kaiser_beta(real_t stop_band_decibel)
 {
     // The rule of Kaiser, in three pieces over the range of the level. The
     // level is the stop band of a filter that the window builds, not the side
     // lobe of the window. The header says why that matters.
-    float level = (stop_band_decibel < 0.0f)
+    real_t level = (stop_band_decibel < REAL_C(0.0))
                   ? -stop_band_decibel : stop_band_decibel;
 
-    if(level > 50.0f)
+    if(level > REAL_C(50.0))
     {
-        return 0.1102f * (level - 8.7f);
+        return REAL_C(0.1102) * (level - REAL_C(8.7));
     }
-    if(level >= 21.0f)
+    if(level >= REAL_C(21.0))
     {
-        return (0.5842f * powf(level - 21.0f, 0.4f))
-               + (0.07886f * (level - 21.0f));
+        return (REAL_C(0.5842) * REAL_POW(level - REAL_C(21.0), REAL_C(0.4)))
+               + (REAL_C(0.07886) * (level - REAL_C(21.0)));
     }
 
     // Under 21 dB no window is needed: a rectangular one already does it.
-    return 0.0f;
+    return REAL_C(0.0);
 }
 
-float window_coherent_gain(const float* window, uint32_t size)
+real_t window_coherent_gain(const real_t* window, uint32_t size)
 {
     ASSERT(window != NULL);
 
     if(size == 0u)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
-    float total = 0.0f;
+    real_t total = REAL_C(0.0);
     for(uint32_t index = 0; index < size; index++)
     {
         total += window[index];
     }
 
-    return total / (float)size;
+    return total / (real_t)size;
 }
 
-float window_noise_gain(const float* window, uint32_t size)
+real_t window_noise_gain(const real_t* window, uint32_t size)
 {
     ASSERT(window != NULL);
 
     if(size == 0u)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
-    float total = 0.0f;
+    real_t total = REAL_C(0.0);
     for(uint32_t index = 0; index < size; index++)
     {
         total += window[index] * window[index];
     }
 
-    return sqrtf(total / (float)size);
+    return REAL_SQRT(total / (real_t)size);
 }
 
-float window_noise_bandwidth(const float* window, uint32_t size)
+real_t window_noise_bandwidth(const real_t* window, uint32_t size)
 {
     ASSERT(window != NULL);
 
     if(size == 0u)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
-    float sum = 0.0f;
-    float squares = 0.0f;
+    real_t sum = REAL_C(0.0);
+    real_t squares = REAL_C(0.0);
 
     for(uint32_t index = 0; index < size; index++)
     {
@@ -255,15 +255,15 @@ float window_noise_bandwidth(const float* window, uint32_t size)
         squares += window[index] * window[index];
     }
 
-    if((sum * sum) <= 0.0f)
+    if((sum * sum) <= REAL_C(0.0))
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
-    return ((float)size * squares) / (sum * sum);
+    return ((real_t)size * squares) / (sum * sum);
 }
 
-void window_apply(const float* window, const float* input, float* output,
+void window_apply(const real_t* window, const real_t* input, real_t* output,
                   uint32_t size)
 {
     ASSERT(window != NULL);

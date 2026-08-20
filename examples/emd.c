@@ -2,6 +2,7 @@
 
 #if (RUN_EXAMPLE == RUN_EMD_EXAMPLE)
 
+#include <sptk/core/real.h>
 #include <sptk/interpolate/cspline.h>
 #include <sptk/decompose/emd.h>
 #include <sptk/decompose/imf.h>
@@ -10,19 +11,19 @@
 #include <time.h>
 
 #define SAMPLE_SIZE 1000u
-#define PI 3.14159265f
+#define PI REAL_C(3.14159265)
 #define RADS_TO_DEG(x)  ((PI/180)*x)
 #define NUMBER_OF_IMF   6u
 
 int main()
 {
-    float x[SAMPLE_SIZE];
-    float y[SAMPLE_SIZE];
+    real_t x[SAMPLE_SIZE];
+    real_t y[SAMPLE_SIZE];
 
-    float residue[SAMPLE_SIZE];
-    float working_buffer[SAMPLE_SIZE];
-    float peak_index_buffer[SAMPLE_SIZE];
-    float valley_index_buffer[SAMPLE_SIZE];
+    real_t residue[SAMPLE_SIZE];
+    real_t working_buffer[SAMPLE_SIZE];
+    real_t peak_index_buffer[SAMPLE_SIZE];
+    real_t valley_index_buffer[SAMPLE_SIZE];
 
     uint32_t imf_count;
 
@@ -33,7 +34,7 @@ int main()
     for(uint32_t i = 0; i < SAMPLE_SIZE; i++)
     {
         x[i] = i;
-        y[i] = sin(RADS_TO_DEG(10*i)) + sin(RADS_TO_DEG(20*i)) /*+ log(rand())*/;
+        y[i] = REAL_SIN(RADS_TO_DEG(10*i)) + REAL_SIN(RADS_TO_DEG(20*i)) /*+ REAL_LOG(rand())*/;
     }
 
     for(uint32_t i = 0; i < NUMBER_OF_IMF; i++)

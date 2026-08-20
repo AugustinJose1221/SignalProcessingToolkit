@@ -28,11 +28,11 @@ less than the number of points.
 ```c
 typedef struct{
     uint32_t size;
-    float* x;
-    float* y;
-    float* b;
-    float* c;
-    float* d;
+    real_t* x;
+    real_t* y;
+    real_t* b;
+    real_t* c;
+    real_t* d;
     bool dynamic_alloc;
 }cspline_t;
 ```
@@ -47,11 +47,11 @@ needs after cspline_init gives back.
 
 ```c
 typedef struct{
-    float* dx;
-    float* dp;
-    float* d;
-    float* b;
-    float* q;
+    real_t* dx;
+    real_t* dp;
+    real_t* d;
+    real_t* b;
+    real_t* q;
     bool dynamic_alloc;
 }cspline_mempool_t;
 ```
@@ -70,7 +70,7 @@ heap. Give the spline to cspline_free when you no longer need it.
 ### `cspline_static_alloc`
 
 ```c
-cspline_t cspline_static_alloc(uint32_t size, float** membank);
+cspline_t cspline_static_alloc(uint32_t size, real_t** membank);
 ```
 
 Give a spline that uses the memory that the caller holds. The parameter
@@ -89,7 +89,7 @@ comes from the heap. Give the pool to cspline_free_mempool.
 ### `cspline_static_alloc_mempool`
 
 ```c
-cspline_mempool_t cspline_static_alloc_mempool(float** membank);
+cspline_mempool_t cspline_static_alloc_mempool(real_t** membank);
 ```
 
 Give a memory pool that uses the memory that the caller holds. The parameter
@@ -99,7 +99,7 @@ heap.
 ### `cspline_init`
 
 ```c
-void cspline_init(cspline_t* cspline, cspline_mempool_t mempool, float* x, float* y);
+void cspline_init(cspline_t* cspline, cspline_mempool_t mempool, real_t* x, real_t* y);
 ```
 
 Calculate the coefficients of the spline for the given points.
@@ -121,7 +121,7 @@ function, because the coefficients belong to the points of the old size.
 ### `cspline_get_interpolated_point`
 
 ```c
-float cspline_get_interpolated_point(cspline_t* cspline, float x);
+real_t cspline_get_interpolated_point(cspline_t* cspline, real_t x);
 ```
 
 Give the value of the curve at the position x.

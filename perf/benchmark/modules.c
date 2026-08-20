@@ -3,6 +3,7 @@
 
 #include <perf/benchmark/benchmark.h>
 
+#include <sptk/core/real.h>
 #include <sptk/linalg/vector.h>
 #include <sptk/interpolate/cspline.h>
 #include <sptk/estimate/kalman.h>
@@ -24,9 +25,9 @@ static const uint32_t SPLINE_SIZE_COUNT =
 static const uint32_t EMD_SIZES[] = {64, 256, 1024};
 static const uint32_t EMD_SIZE_COUNT = sizeof(EMD_SIZES)/sizeof(EMD_SIZES[0]);
 
-static float random_value(void)
+static real_t random_value(void)
 {
-    return ((float)rand() / (float)RAND_MAX) - 0.5f;
+    return ((real_t)rand() / (real_t)RAND_MAX) - REAL_C(0.5);
 }
 
 void run_vector_benchmark(void)
@@ -35,7 +36,7 @@ void run_vector_benchmark(void)
     {
         uint32_t size = VECTOR_SIZES[index];
         uint32_t repeats = 200;
-        float value;
+        real_t value;
 
         vector_t a = vector_alloc(size);
         vector_t b = vector_alloc(size);
@@ -64,14 +65,14 @@ void run_cspline_benchmark(void)
     {
         uint32_t size = SPLINE_SIZES[index];
         uint32_t repeats = 100;
-        float value = 0.0f;
+        real_t value = REAL_C(0.0);
 
-        float* x = (float*)malloc(sizeof(float)*size);
-        float* y = (float*)malloc(sizeof(float)*size);
+        real_t* x = (real_t*)malloc(sizeof(real_t)*size);
+        real_t* y = (real_t*)malloc(sizeof(real_t)*size);
 
         for(uint32_t position = 0; position < size; position++)
         {
-            x[position] = (float)position;
+            x[position] = (real_t)position;
             y[position] = random_value();
         }
 
@@ -85,7 +86,7 @@ void run_cspline_benchmark(void)
 
         BENCHMARK_MEASURE("cspline", "interpolate_one_point", size, repeats * 10,
                           value = cspline_get_interpolated_point(&spline,
-                                                                 (float)(size/2) + 0.5f));
+                                                                 (real_t)(size/2) + REAL_C(0.5)));
         (void)value;
 
         cspline_free(spline);
@@ -119,8 +120,8 @@ void run_kalman_benchmark(void)
         matrix_t x = matrix_create_zero_matrix(nx, 1);
         matrix_t y = matrix_create_zero_matrix(ny, 1);
 
-        matrix_add_element(&c, 0, 0, 1.0f);
-        matrix_add_element(&y, 0, 0, 1.0f);
+        matrix_add_element(&c, 0, 0, REAL_C(1.0));
+        matrix_add_element(&y, 0, 0, REAL_C(1.0));
 
         kalman_set_state_matrix(&kalman, &x);
         kalman_set_state_transition_matrix(&kalman, &a);
@@ -160,12 +161,12 @@ void run_emd_benchmark(void)
         uint32_t repeats = 10;
         uint32_t count = 0;
 
-        float* x = (float*)malloc(sizeof(float)*size);
-        float* y = (float*)malloc(sizeof(float)*size);
-        float* residue = (float*)malloc(sizeof(float)*size);
-        float* working = (float*)malloc(sizeof(float)*size);
-        float* peak_index = (float*)malloc(sizeof(float)*size);
-        float* valley_index = (float*)malloc(sizeof(float)*size);
+        real_t* x = (real_t*)malloc(sizeof(real_t)*size);
+        real_t* y = (real_t*)malloc(sizeof(real_t)*size);
+        real_t* residue = (real_t*)malloc(sizeof(real_t)*size);
+        real_t* working = (real_t*)malloc(sizeof(real_t)*size);
+        real_t* peak_index = (real_t*)malloc(sizeof(real_t)*size);
+        real_t* valley_index = (real_t*)malloc(sizeof(real_t)*size);
 
         imf_t imf[4];
         for(uint32_t position = 0; position < NUMBER_OF_IMF; position++)
@@ -175,10 +176,10 @@ void run_emd_benchmark(void)
 
         for(uint32_t position = 0; position < size; position++)
         {
-            x[position] = (float)position;
+            x[position] = (real_t)position;
             // A signal that holds two frequencies and a little noise.
-            y[position] = (float)((position % 8) - 4) + (0.5f*(float)((position % 21) - 10))
-                          + (0.1f*random_value());
+            y[position] = (real_t)((position % 8) - 4) + (REAL_C(0.5)*(real_t)((position % 21) - 10))
+                          + (REAL_C(0.1)*random_value());
         }
 
         emd_t emd = emd_alloc(size);
@@ -217,7 +218,7 @@ void run_movavg_benchmark(void)
     {
         uint32_t size = WINDOW_SIZES[index];
         uint32_t repeats = 20000;
-        float value = 0.0f;
+        real_t value = REAL_C(0.0);
 
         movavg_t movavg = movavg_alloc(size);
         fir_t fir = fir_alloc(size);
@@ -226,7 +227,7 @@ void run_movavg_benchmark(void)
         // window, thus the two give the same answer.
         for(uint32_t position = 0; position < size; position++)
         {
-            fir_set_coefficient(&fir, position, 1.0f/(float)size);
+            fir_set_coefficient(&fir, position, REAL_C(1.0)/(real_t)size);
         }
 
         BENCHMARK_MEASURE("movavg", "process_sample", size, repeats,

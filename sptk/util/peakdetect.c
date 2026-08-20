@@ -6,7 +6,7 @@
 #include "defs.h"
 #endif
 
-uint32_t peakdetect_get_peaks(float* input, float* index_buffer, float* peak_buffer, uint32_t size)
+uint32_t peakdetect_get_peaks(real_t* input, real_t* index_buffer, real_t* peak_buffer, uint32_t size)
 {
     ASSERT(input != NULL);
     ASSERT(index_buffer != NULL);
@@ -21,7 +21,7 @@ uint32_t peakdetect_get_peaks(float* input, float* index_buffer, float* peak_buf
             if(input[index] > input[index-1] && input[index] > input[index+1])
             {
                 peak_buffer[peakcount] = input[index];
-                index_buffer[peakcount] = (float)index;
+                index_buffer[peakcount] = (real_t)index;
                 peakcount++;
             }
         }

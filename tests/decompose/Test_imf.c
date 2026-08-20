@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "imf.h"
 #include <stdlib.h>
 #include <stdarg.h>
@@ -48,8 +49,8 @@ void test_imf_alloc(void)
 
 void test_imf_static_alloc(void)
 {
-    float x[3] = {1, 2, 3};
-    float y[3] = {4, 5, 6};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {4, 5, 6};
     imf_t imf = imf_static_alloc(3, x, y);
     TEST_ASSERT_EQUAL(3, imf.size);
     TEST_ASSERT_EQUAL(false, imf.dynamic_alloc);
@@ -58,8 +59,8 @@ void test_imf_static_alloc(void)
 
 void test_imf_printf(void)
 {
-    float x[3] = {1, 2, 3};
-    float y[3] = {4, 5, 6};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {4, 5, 6};
     imf_t imf = imf_static_alloc(3, x, y);
     imf_printf(&imf, printf);
 
@@ -68,8 +69,8 @@ void test_imf_printf(void)
 
 void test_imf_print_all(void)
 {
-    float x[3] = {1, 2, 3};
-    float y[3] = {4, 5, 6};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {4, 5, 6};
     imf_t imf = imf_static_alloc(3, x, y);
     imf_print_all(&imf, 3, 1, printf);
 
@@ -81,8 +82,8 @@ void test_imf_print_all(void)
 
 void test_imf_printf_writes_one_line_for_each_point(void)
 {
-    float x[3] = {1, 2, 3};
-    float y[3] = {4, 5, 6};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {4, 5, 6};
     imf_t imf = imf_static_alloc(3, x, y);
 
     imf_printf(&imf, capture_printf);
@@ -94,9 +95,9 @@ void test_imf_printf_writes_one_line_for_each_point(void)
 
 void test_imf_print_all_writes_one_column_for_each_function(void)
 {
-    float x[2] = {1, 2};
-    float y_first[2] = {10, 20};
-    float y_second[2] = {30, 40};
+    real_t x[2] = {1, 2};
+    real_t y_first[2] = {10, 20};
+    real_t y_second[2] = {30, 40};
     imf_t imflist[2];
     imflist[0] = imf_static_alloc(2, x, y_first);
     imflist[1] = imf_static_alloc(2, x, y_second);
@@ -115,8 +116,8 @@ void test_imf_free_releases_the_memory_of_a_dynamic_function(void)
 
     for(uint32_t index = 0; index < imf.size; index++)
     {
-        imf.x[index] = (float)index;
-        imf.y[index] = (float)index * 2.0f;
+        imf.x[index] = (real_t)index;
+        imf.y[index] = (real_t)index * REAL_C(2.0);
     }
 
     imf_free(imf);
@@ -124,14 +125,14 @@ void test_imf_free_releases_the_memory_of_a_dynamic_function(void)
 
 void test_imf_free_keeps_the_memory_of_a_static_function(void)
 {
-    float x[3] = {1, 2, 3};
-    float y[3] = {4, 5, 6};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {4, 5, 6};
     imf_t imf = imf_static_alloc(3, x, y);
 
     imf_free(imf);
 
     // The memory belongs to the caller. It must still hold the values.
-    TEST_ASSERT_EQUAL_FLOAT(1.0f, x[0]);
-    TEST_ASSERT_EQUAL_FLOAT(6.0f, y[2]);
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0), x[0]);
+    TEST_ASSERT_EQUAL_REAL(REAL_C(6.0), y[2]);
     TEST_ASSERT_EQUAL_PTR(x, imf.x);
 }

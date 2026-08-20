@@ -4,6 +4,7 @@
 // meaning together with them.
 
 #include "unity.h"
+#include "real_assert.h"
 #include "emd.h"
 #include "imf.h"
 // The sift operation needs these modules. None of these includes has a mock
@@ -17,18 +18,18 @@
 
 // The sifting adds and subtracts values that are much larger than the signal.
 // Thus the tolerance for the reconstruction grows with the size of the value.
-#define RECONSTRUCTION_TOLERANCE(value)     ((0.001f*fabsf(value)) + 0.01f)
+#define RECONSTRUCTION_TOLERANCE(value)     ((REAL_C(0.001)*REAL_ABS(value)) + REAL_C(0.01))
 
 #define SAMPLE_SIZE     64u
 #define NUMBER_OF_IMF   4u
-#define PI              3.14159265f
+#define PI              REAL_C(3.14159265)
 
-static float x[SAMPLE_SIZE];
-static float y[SAMPLE_SIZE];
-static float residue[SAMPLE_SIZE];
-static float working_buffer[SAMPLE_SIZE];
-static float peak_index_buffer[SAMPLE_SIZE];
-static float valley_index_buffer[SAMPLE_SIZE];
+static real_t x[SAMPLE_SIZE];
+static real_t y[SAMPLE_SIZE];
+static real_t residue[SAMPLE_SIZE];
+static real_t working_buffer[SAMPLE_SIZE];
+static real_t peak_index_buffer[SAMPLE_SIZE];
+static real_t valley_index_buffer[SAMPLE_SIZE];
 static imf_t imf[NUMBER_OF_IMF];
 
 // A signal with two frequencies. The empirical mode decomposition must find
@@ -37,8 +38,8 @@ static void make_signal(void)
 {
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
-        x[index] = (float)index;
-        y[index] = sinf(2.0f*PI*(float)index/8.0f) + (0.5f*sinf(2.0f*PI*(float)index/21.0f));
+        x[index] = (real_t)index;
+        y[index] = REAL_SIN(REAL_C(2.0)*PI*(real_t)index/REAL_C(8.0)) + (REAL_C(0.5)*REAL_SIN(REAL_C(2.0)*PI*(real_t)index/REAL_C(21.0)));
     }
 }
 
@@ -97,7 +98,7 @@ void test_emd_get_imf_fills_the_x_values_with_the_sample_number(void)
 
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
-        TEST_ASSERT_EQUAL_FLOAT((float)index, result->x[index]);
+        TEST_ASSERT_EQUAL_REAL((real_t)index, result->x[index]);
     }
 
     emd_free(emd);
@@ -110,7 +111,7 @@ void test_emd_get_imf_gives_a_function_that_moves_around_zero(void)
     // size of the signal.
     emd_t emd = emd_alloc(SAMPLE_SIZE);
     uint32_t status = 0;
-    float sum = 0.0f;
+    real_t sum = REAL_C(0.0);
 
     emd_initialize(&emd, NUMBER_OF_IMF, imf, x, y, residue, working_buffer,
                    peak_index_buffer, valley_index_buffer);
@@ -125,10 +126,10 @@ void test_emd_get_imf_gives_a_function_that_moves_around_zero(void)
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
         sum += result->y[index];
-        TEST_ASSERT_TRUE(fabsf(result->y[index]) < 5.0f);
+        TEST_ASSERT_TRUE(REAL_ABS(result->y[index]) < REAL_C(5.0));
     }
 
-    TEST_ASSERT_FLOAT_WITHIN(0.5f, 0.0f, sum/(float)SAMPLE_SIZE);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.5), REAL_C(0.0), sum/(real_t)SAMPLE_SIZE);
 
     emd_free(emd);
 }
@@ -175,7 +176,7 @@ void test_emd_sift_keeps_the_sum_of_the_functions_and_the_residue(void)
     // This is the rule that defines the decomposition. The sum of all the
     // intrinsic mode functions and the residue must give the signal again.
     emd_t emd = emd_alloc(SAMPLE_SIZE);
-    float original[SAMPLE_SIZE];
+    real_t original[SAMPLE_SIZE];
 
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
@@ -189,12 +190,12 @@ void test_emd_sift_keeps_the_sum_of_the_functions_and_the_residue(void)
 
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
-        float sum = residue[index];
+        real_t sum = residue[index];
         for(uint32_t i = 0; i < imf_count; i++)
         {
             sum += imf[i].y[index];
         }
-        TEST_ASSERT_FLOAT_WITHIN(RECONSTRUCTION_TOLERANCE(original[index]),
+        TEST_ASSERT_REAL_WITHIN(RECONSTRUCTION_TOLERANCE(original[index]),
                                  original[index], sum);
     }
 
@@ -220,11 +221,11 @@ void test_emd_sift_with_a_straight_line_keeps_the_signal(void)
     // A straight line has no peak and no valley. The sifting must still stop,
     // and the sum of the results must still give the signal again.
     emd_t emd = emd_alloc(SAMPLE_SIZE);
-    float original[SAMPLE_SIZE];
+    real_t original[SAMPLE_SIZE];
 
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
-        y[index] = 2.0f*(float)index;
+        y[index] = REAL_C(2.0)*(real_t)index;
         original[index] = y[index];
     }
 
@@ -238,12 +239,12 @@ void test_emd_sift_with_a_straight_line_keeps_the_signal(void)
 
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
-        float sum = residue[index];
+        real_t sum = residue[index];
         for(uint32_t i = 0; i < imf_count; i++)
         {
             sum += imf[i].y[index];
         }
-        TEST_ASSERT_FLOAT_WITHIN(RECONSTRUCTION_TOLERANCE(original[index]),
+        TEST_ASSERT_REAL_WITHIN(RECONSTRUCTION_TOLERANCE(original[index]),
                                  original[index], sum);
     }
 
@@ -263,12 +264,12 @@ void test_emd_free_releases_the_memory_of_a_dynamic_decomposition(void)
 
 void test_emd_free_keeps_the_memory_of_a_static_decomposition(void)
 {
-    float membank[5][SAMPLE_SIZE];
-    float mempool[5][SAMPLE_SIZE];
-    float* membank_pointers[5];
-    float* mempool_pointers[5];
-    float peak_buffer[SAMPLE_SIZE];
-    float valley_buffer[SAMPLE_SIZE];
+    real_t membank[5][SAMPLE_SIZE];
+    real_t mempool[5][SAMPLE_SIZE];
+    real_t* membank_pointers[5];
+    real_t* mempool_pointers[5];
+    real_t peak_buffer[SAMPLE_SIZE];
+    real_t valley_buffer[SAMPLE_SIZE];
 
     for(int i = 0; i < 5; i++)
     {
@@ -295,20 +296,20 @@ void test_emd_get_imf_with_a_signal_that_is_too_short(void)
     // build an envelope for such a signal.
     for(uint32_t size = 1; size < EMD_MINIMUM_SIZE; size++)
     {
-        float short_x[EMD_MINIMUM_SIZE];
-        float short_y[EMD_MINIMUM_SIZE];
-        float short_residue[EMD_MINIMUM_SIZE];
-        float short_working[EMD_MINIMUM_SIZE];
-        float short_peak_index[EMD_MINIMUM_SIZE];
-        float short_valley_index[EMD_MINIMUM_SIZE];
+        real_t short_x[EMD_MINIMUM_SIZE];
+        real_t short_y[EMD_MINIMUM_SIZE];
+        real_t short_residue[EMD_MINIMUM_SIZE];
+        real_t short_working[EMD_MINIMUM_SIZE];
+        real_t short_peak_index[EMD_MINIMUM_SIZE];
+        real_t short_valley_index[EMD_MINIMUM_SIZE];
         imf_t short_imf = imf_alloc(size);
         uint32_t status = 1;
 
         for(uint32_t index = 0; index < size; index++)
         {
-            short_x[index] = (float)index;
-            short_y[index] = (float)index;
-            short_residue[index] = (float)index;
+            short_x[index] = (real_t)index;
+            short_y[index] = (real_t)index;
+            short_residue[index] = (real_t)index;
         }
 
         emd_t emd = emd_alloc(size);
@@ -320,7 +321,7 @@ void test_emd_get_imf_with_a_signal_that_is_too_short(void)
         TEST_ASSERT_EQUAL(0, status);
         for(uint32_t index = 0; index < size; index++)
         {
-            TEST_ASSERT_EQUAL_FLOAT(0.0f, result->y[index]);
+            TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), result->y[index]);
         }
 
         emd_free(emd);
@@ -334,11 +335,11 @@ void test_emd_sift_with_a_signal_that_only_rises(void)
     // writes nothing into the buffers, thus the envelopes must take their
     // value from the signal and not from memory that holds no value.
     emd_t emd = emd_alloc(SAMPLE_SIZE);
-    float original[SAMPLE_SIZE];
+    real_t original[SAMPLE_SIZE];
 
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
-        y[index] = (float)index;
+        y[index] = (real_t)index;
         original[index] = y[index];
     }
 
@@ -349,12 +350,12 @@ void test_emd_sift_with_a_signal_that_only_rises(void)
 
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
-        float sum = residue[index];
+        real_t sum = residue[index];
         for(uint32_t i = 0; i < imf_count; i++)
         {
             sum += imf[i].y[index];
         }
-        TEST_ASSERT_FLOAT_WITHIN(RECONSTRUCTION_TOLERANCE(original[index]),
+        TEST_ASSERT_REAL_WITHIN(RECONSTRUCTION_TOLERANCE(original[index]),
                                  original[index], sum);
     }
 

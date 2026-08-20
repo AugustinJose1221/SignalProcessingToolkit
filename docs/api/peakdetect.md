@@ -16,7 +16,7 @@ Peak detection. Declared in `sptk/util/peakdetect.h`.
 ### `peakdetect_get_peaks`
 
 ```c
-uint32_t peakdetect_get_peaks(float* input, float* index_buffer, float* peak_buffer, uint32_t size);
+uint32_t peakdetect_get_peaks(real_t* input, real_t* index_buffer, real_t* peak_buffer, uint32_t size);
 ```
 
 Find every peak of the signal and give the number of them.

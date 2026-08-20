@@ -27,23 +27,24 @@
 
 #if (RUN_EXAMPLE == RUN_FILTER_EXAMPLE)
 
+#include <sptk/core/real.h>
 #include <sptk/filter/fir.h>
 #include <sptk/filter/iir.h>
 #include <math.h>
 #include <stdio.h>
 
-#define SAMPLE_RATE     250.0f
+#define SAMPLE_RATE     REAL_C(250.0)
 #define SIZE            1000u       // 4 seconds
-#define PI              3.14159265358979323846f
+#define PI              REAL_C(3.14159265358979323846)
 
 // The two cutoffs, as a part of the sample rate.
-#define LOW_CUTOFF      (0.5f / SAMPLE_RATE)
-#define HIGH_CUTOFF     (40.0f / SAMPLE_RATE)
+#define LOW_CUTOFF      (REAL_C(0.5) / SAMPLE_RATE)
+#define HIGH_CUTOFF     (REAL_C(40.0) / SAMPLE_RATE)
 
-static float raw[SIZE];
-static float heart_only[SIZE];      // What the heart alone would give
-static float without_wander[SIZE];
-static float clean[SIZE];
+static real_t raw[SIZE];
+static real_t heart_only[SIZE];      // What the heart alone would give
+static real_t without_wander[SIZE];
+static real_t clean[SIZE];
 
 // ---------------------------------------------------------------------------
 // Replace this function with a read from your own device.
@@ -53,21 +54,21 @@ static float clean[SIZE];
 // ---------------------------------------------------------------------------
 static void read_electrode(void)
 {
-    const float beats_in_a_second = 75.0f / 60.0f;
+    const real_t beats_in_a_second = REAL_C(75.0) / REAL_C(60.0);
 
     for(uint32_t index = 0; index < SIZE; index++)
     {
-        float time = (float)index / SAMPLE_RATE;
+        real_t time = (real_t)index / SAMPLE_RATE;
 
         // The heart. A beat is a sharp peak, thus it needs several frequencies
         // to describe it.
-        float phase = beats_in_a_second * time;
-        float into_the_beat = phase - floorf(phase);
-        float beat = expf(-200.0f * (into_the_beat - 0.2f) * (into_the_beat - 0.2f));
+        real_t phase = beats_in_a_second * time;
+        real_t into_the_beat = phase - REAL_FLOOR(phase);
+        real_t beat = REAL_EXP(-REAL_C(200.0) * (into_the_beat - REAL_C(0.2)) * (into_the_beat - REAL_C(0.2)));
         heart_only[index] = beat;
 
-        float wander = 0.6f * sinf(2.0f*PI*0.3f*time);
-        float hum = 0.25f * sinf(2.0f*PI*50.0f*time);
+        real_t wander = REAL_C(0.6) * REAL_SIN(REAL_C(2.0)*PI*REAL_C(0.3)*time);
+        real_t hum = REAL_C(0.25) * REAL_SIN(REAL_C(2.0)*PI*REAL_C(50.0)*time);
 
         raw[index] = heart_only[index] + wander + hum;
     }
@@ -80,15 +81,15 @@ static void read_electrode(void)
 // with it. And a high pass filter takes the mean of a signal away, which is
 // what it is there for, thus the comparison must take the mean away from both
 // sides.
-static float distance_from_the_heart(const float* signal, uint32_t delay)
+static real_t distance_from_the_heart(const real_t* signal, uint32_t delay)
 {
     // A filter needs time to settle after its first sample. Leave the first
     // second out, so that the comparison sees the settled filter and not its
     // start.
     uint32_t first = (uint32_t)SAMPLE_RATE + delay;
 
-    float signal_mean = 0.0f;
-    float heart_mean = 0.0f;
+    real_t signal_mean = REAL_C(0.0);
+    real_t heart_mean = REAL_C(0.0);
     uint32_t count = SIZE - first;
 
     for(uint32_t index = first; index < SIZE; index++)
@@ -96,13 +97,13 @@ static float distance_from_the_heart(const float* signal, uint32_t delay)
         signal_mean += signal[index];
         heart_mean += heart_only[index - delay];
     }
-    signal_mean /= (float)count;
-    heart_mean /= (float)count;
+    signal_mean /= (real_t)count;
+    heart_mean /= (real_t)count;
 
-    float total = 0.0f;
+    real_t total = REAL_C(0.0);
     for(uint32_t index = first; index < SIZE; index++)
     {
-        total += fabsf((signal[index] - signal_mean)
+        total += REAL_ABS((signal[index] - signal_mean)
                        - (heart_only[index - delay] - heart_mean));
     }
 
@@ -139,18 +140,18 @@ int main(void)
     uint32_t delay = low_pass.length / 2;
 
     printf("An ECG at %.0f samples in a second, %u samples, %.1f seconds\n\n",
-           SAMPLE_RATE, SIZE, (float)SIZE/SAMPLE_RATE);
+           SAMPLE_RATE, SIZE, (real_t)SIZE/SAMPLE_RATE);
 
     printf("What each filter lets through:\n\n");
     printf("%14s %12s %12s %12s\n", "FREQUENCY", "HIGH PASS", "LOW PASS", "BOTH");
-    float points[6] = {0.3f, 0.5f, 5.0f, 25.0f, 40.0f, 50.0f};
+    real_t points[6] = {REAL_C(0.3), REAL_C(0.5), REAL_C(5.0), REAL_C(25.0), REAL_C(40.0), REAL_C(50.0)};
     const char* what[6] = {"breathing", "cutoff", "heart", "heart", "cutoff", "mains hum"};
 
     for(uint32_t index = 0; index < 6; index++)
     {
-        float part = points[index] / SAMPLE_RATE;
-        float first = iir_get_gain(&high_pass, part);
-        float second = fir_get_gain(&low_pass, part);
+        real_t part = points[index] / SAMPLE_RATE;
+        real_t first = iir_get_gain(&high_pass, part);
+        real_t second = fir_get_gain(&low_pass, part);
 
         printf("%9.1f Hz  %12.3f %12.3f %12.3f   %s\n",
                points[index], first, second, first*second, what[index]);
@@ -159,8 +160,8 @@ int main(void)
     // Send the clean heart alone through the high pass filter. Whatever
     // distance that gives is not noise: it is what the filter itself does to
     // the shape of the signal.
-    static float heart_through_high_pass[SIZE];
-    static float heart_through_low_pass[SIZE];
+    static real_t heart_through_high_pass[SIZE];
+    static real_t heart_through_low_pass[SIZE];
 
     iir_reset(&high_pass);
     iir_process_block(&high_pass, heart_only, heart_through_high_pass, SIZE);
@@ -199,7 +200,7 @@ int main(void)
     printf("  %u for the low pass, which keeps the shape of each beat.\n",
            low_pass.length);
     printf("\nThe low pass moves the signal %u samples later, which is %.1f ms.\n",
-           delay, ((float)delay/SAMPLE_RATE)*1000.0f);
+           delay, ((real_t)delay/SAMPLE_RATE)*REAL_C(1000.0));
     printf("Take that delay into account when you measure the time of a beat.\n");
 
     iir_free(&high_pass);

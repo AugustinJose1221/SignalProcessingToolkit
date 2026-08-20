@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // A filter with a finite impulse response.
 //
@@ -32,7 +37,7 @@
 // at once. The turn takes a band of frequencies, and that band is narrower only
 // when the filter is longer. This is the width of that turn, and it is the
 // reason a low cutoff needs a long filter.
-#define FIR_TRANSITION      2.0f
+#define FIR_TRANSITION      REAL_C(2.0)
 
 // True if a filter of the given length can hold the given cutoff.
 //
@@ -49,17 +54,17 @@
 //
 // The gain holds while the cutoff is above the width of the turn, and falls
 // away under it. Thus: make the filter longer, or bring the sample rate down.
-bool fir_is_valid_cutoff(uint32_t length, float cutoff);
+bool fir_is_valid_cutoff(uint32_t length, real_t cutoff);
 
 // True if a filter of the given length can hold the given band. Both edges
 // must be valid, and the band between them must be at least as wide as the
 // turn, or the two edges run into each other and no frequency passes fully.
-bool fir_is_valid_band(uint32_t length, float low_cutoff, float high_cutoff);
+bool fir_is_valid_band(uint32_t length, real_t low_cutoff, real_t high_cutoff);
 
 typedef struct{
     uint32_t length;            // The number of coefficients
-    float* coefficient;         // The coefficients
-    float* history;             // The last samples, length of them
+    real_t* coefficient;         // The coefficients
+    real_t* history;             // The last samples, length of them
     uint32_t position;          // Where the next sample goes in the history
     bool dynamic_alloc;         // True if the memory comes from the heap
 }fir_t;
@@ -72,36 +77,36 @@ fir_t fir_alloc(uint32_t length);
 // Give a filter that uses the memory that the caller holds. Both lists must
 // hold as many float values as the given length. This function takes no
 // memory from the heap.
-fir_t fir_static_alloc(uint32_t length, float* coefficient, float* history);
+fir_t fir_static_alloc(uint32_t length, real_t* coefficient, real_t* history);
 
 // Build the coefficients of a filter that lets the low frequencies pass. The
 // cutoff is a part of the sample rate, and it must lie between 0 and 0.5.
 // Give false and leave the filter as it was if fir_is_valid_cutoff is false.
-bool fir_design_low_pass(fir_t* fir, float cutoff);
+bool fir_design_low_pass(fir_t* fir, real_t cutoff);
 
 // Build the coefficients of a filter that lets the high frequencies pass.
 // Give false and leave the filter as it was if fir_is_valid_cutoff is false.
-bool fir_design_high_pass(fir_t* fir, float cutoff);
+bool fir_design_high_pass(fir_t* fir, real_t cutoff);
 
 // Build the coefficients of a filter that lets a band of frequencies pass. The
 // low cutoff must be smaller than the high cutoff, and both must lie between 0
 // and 0.5.
 // Give false and leave the filter as it was if fir_is_valid_band is false.
-bool fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff);
+bool fir_design_band_pass(fir_t* fir, real_t low_cutoff, real_t high_cutoff);
 
 // Write one coefficient. Use this function to give the filter a set of
 // coefficients that another program calculated.
-void fir_set_coefficient(fir_t* fir, uint32_t index, float value);
+void fir_set_coefficient(fir_t* fir, uint32_t index, real_t value);
 
 // Give one coefficient.
-float fir_get_coefficient(fir_t* fir, uint32_t index);
+real_t fir_get_coefficient(fir_t* fir, uint32_t index);
 
 // Give the filtered value of one sample. The filter keeps the sample in its
 // history, thus the next call sees it.
-float fir_process_sample(fir_t* fir, float sample);
+real_t fir_process_sample(fir_t* fir, real_t sample);
 
 // Filter a block of samples. The input and the output may be the same list.
-void fir_process_block(fir_t* fir, const float* input, float* output, uint32_t size);
+void fir_process_block(fir_t* fir, const real_t* input, real_t* output, uint32_t size);
 
 // Set every sample of the history to zero. The filter then behaves as a filter
 // that has seen no sample yet.
@@ -110,7 +115,7 @@ void fir_reset(fir_t* fir);
 // Give the size of the answer of the filter at the given frequency, which is a
 // part of the sample rate. A value of 1 says that the frequency passes
 // unchanged, and a value of 0 says that the filter stops it.
-float fir_get_gain(fir_t* fir, float frequency);
+real_t fir_get_gain(fir_t* fir, real_t frequency);
 
 // Release the memory of a filter that came from fir_alloc. This function does
 // nothing for a filter that came from fir_static_alloc.

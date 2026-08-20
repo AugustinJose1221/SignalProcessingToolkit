@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // Find every peak of the signal and give the number of them.
 //
@@ -13,6 +18,6 @@
 // The function writes the index of each peak into index_buffer and the value
 // of each peak into peak_buffer. Both buffers must hold room for as many
 // values as the signal holds.
-uint32_t peakdetect_get_peaks(float* input, float* index_buffer, float* peak_buffer, uint32_t size);
+uint32_t peakdetect_get_peaks(real_t* input, real_t* index_buffer, real_t* peak_buffer, uint32_t size);
 
 #endif//PEAKDETECT_H

@@ -23,7 +23,7 @@ directory there:
 | Interpolation | `sptk/interpolate` | `cspline` | Give a smooth curve through a set of points |
 | Linear algebra | `sptk/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `vector`, `vector2d` | The arithmetic that the areas above need |
 | Utilities | `sptk/util` | `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
-| Core | `sptk/core` | `ringbuf`, `callback`, `defs`, `point2d` | A buffer of the last samples, and the types that every module shares |
+| Core | `sptk/core` | `real`, `ringbuf`, `callback`, `defs`, `point2d` | The type that holds every number, a buffer of the last samples, and the types that every module shares |
 
 Include a module by its area:
 
@@ -56,9 +56,16 @@ operation would need memory while it runs, the module gives a second form that
 writes into a result that the caller gives, such as `matrix_multiply_into`
 beside `matrix_multiply`.
 
-**It holds every value in a float.** A float keeps about 7 digits. Each module
-says in its header where that limit matters, such as the size of a transform
-or the order of a determinant.
+**It holds every value in one type, and that type has one width for the whole
+build.** Every sample, every coefficient and every result is a `real_t`. No
+module anywhere spells `float` or `double`, thus no two modules can disagree
+about how wide a number is.
+
+The width is 32 bits by default and 64 bits with `-DSPTK_REAL_64=ON`. At 32
+bits a number keeps about 7 digits and at 64 bits about 16. Each module says in
+its header where that limit matters, and the tests hold both widths, so that
+what the narrower one costs is written down. The guide of
+[core](sptk/core) says how to choose.
 
 ## An example
 
@@ -86,7 +93,28 @@ fft_magnitude(spectrum, magnitude, SIZE);
 cmake -S . -B build && cmake --build build
 ```
 
-This gives the static library `libsignalproc.a`.
+This gives the static library `libsignalproc.a`, with every number held in 32
+bits.
+
+### The width of a number
+
+The library holds every number in `real_t`. One option decides whether that is
+32 bits or 64:
+
+```bash
+cmake -S . -B build -DSPTK_REAL_64=ON && cmake --build build
+```
+
+Take 32 bits on a small processor: a number is half the memory, and a processor
+with no unit for 64 bit arithmetic runs the wider build tens of times more
+slowly. Take 64 bits where the numbers are large, the filters are slow, or the
+answer matters more than the time.
+
+The option is `PUBLIC`, thus a program that links against the library is built
+the same way. A program and a library that disagreed about the width would not
+fail to build, and would give nonsense.
+
+The guide of [core](sptk/core) gives the measured cost of each width.
 
 To build an example program, first choose one in `examples/run_example.h`, and
 then give:

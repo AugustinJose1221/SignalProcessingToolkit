@@ -1,18 +1,25 @@
 """Strategies and comparison helpers for the property based tests."""
 
 import ctypes
+import os
+import sys
 
 from hypothesis import strategies as st
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sptk  # noqa: E402
+
 
 def to_float32(value):
-    """Give the value that a float variable of the library really holds.
+    """Give the value that a variable of the library really holds.
 
-    Python calculates with 64 bits. The library holds every value in a float of
-    32 bits. A test that compares a Python result with a library result must
-    first bring the Python value to 32 bits.
+    Python calculates with 64 bits. The library holds every value in real_t,
+    which is 32 bits by default and 64 bits when the library is built that way.
+    A test that compares a Python result with a library result must first bring
+    the Python value to the width that the library holds, or the comparison
+    measures the difference between the two languages and not the library.
     """
-    return ctypes.c_float(value).value
+    return sptk.REAL_T(value).value
 
 # The library holds every value in a float. A float keeps about 7 digits. Very
 # large values and very small values lose all the digits after the point, and

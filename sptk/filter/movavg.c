@@ -11,13 +11,13 @@
 // Build the totals again from the samples that the window holds.
 static void movavg_refresh(movavg_t* movavg)
 {
-    double total = 0.0;
-    double squares = 0.0;
+    real_t total = 0.0;
+    real_t squares = 0.0;
     uint32_t count = ringbuf_count(&movavg->window);
 
     for(uint32_t age = 0; age < count; age++)
     {
-        double sample = (double)ringbuf_get(&movavg->window, age);
+        real_t sample = (real_t)ringbuf_get(&movavg->window, age);
         total += sample;
         squares += sample * sample;
     }
@@ -41,7 +41,7 @@ movavg_t movavg_alloc(uint32_t size)
     return movavg;
 }
 
-movavg_t movavg_static_alloc(uint32_t size, float* data)
+movavg_t movavg_static_alloc(uint32_t size, real_t* data)
 {
     ASSERT(size > 0);
     ASSERT(data != NULL);
@@ -66,21 +66,21 @@ void movavg_reset(movavg_t* movavg)
     movavg->since_refresh = 0;
 }
 
-float movavg_process_sample(movavg_t* movavg, float sample)
+real_t movavg_process_sample(movavg_t* movavg, real_t sample)
 {
     ASSERT(movavg != NULL);
 
     // The sample that is about to fall off the end, if the window is full.
     if(ringbuf_is_full(&movavg->window))
     {
-        double leaving = (double)ringbuf_get(&movavg->window,
+        real_t leaving = (real_t)ringbuf_get(&movavg->window,
                                              ringbuf_count(&movavg->window) - 1u);
         movavg->total -= leaving;
         movavg->square_total -= leaving * leaving;
     }
 
-    movavg->total += (double)sample;
-    movavg->square_total += (double)sample * (double)sample;
+    movavg->total += (real_t)sample;
+    movavg->square_total += (real_t)sample * (real_t)sample;
 
     ringbuf_put(&movavg->window, sample);
 
@@ -92,8 +92,8 @@ float movavg_process_sample(movavg_t* movavg, float sample)
     // samples is not. The error does not cancel: it walks, and after millions
     // of samples the mean can be visibly wrong.
     //
-    // A double makes each step far more accurate but does not make it exact.
-    // Building the totals again from the window does. It costs one pass over
+    // A wider build makes each step far more accurate but does not make it
+    // exact. Building the totals again from the window does. It costs one pass
     // the window every MOVAVG_REFRESH samples, which for a window of 500 and a
     // refresh of 4096 is about one eighth of an operation for each sample.
     movavg->since_refresh++;
@@ -105,7 +105,7 @@ float movavg_process_sample(movavg_t* movavg, float sample)
     return movavg_get_mean(movavg);
 }
 
-void movavg_process_block(movavg_t* movavg, const float* input, float* output,
+void movavg_process_block(movavg_t* movavg, const real_t* input, real_t* output,
                           uint32_t size)
 {
     ASSERT(movavg != NULL);
@@ -118,7 +118,7 @@ void movavg_process_block(movavg_t* movavg, const float* input, float* output,
     }
 }
 
-float movavg_get_mean(const movavg_t* movavg)
+real_t movavg_get_mean(const movavg_t* movavg)
 {
     ASSERT(movavg != NULL);
 
@@ -126,13 +126,13 @@ float movavg_get_mean(const movavg_t* movavg)
 
     if(count == 0u)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
-    return (float)(movavg->total / (double)count);
+    return (real_t)(movavg->total / (real_t)count);
 }
 
-float movavg_get_rms(const movavg_t* movavg)
+real_t movavg_get_rms(const movavg_t* movavg)
 {
     ASSERT(movavg != NULL);
 
@@ -140,10 +140,10 @@ float movavg_get_rms(const movavg_t* movavg)
 
     if(count == 0u)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
-    double mean_square = movavg->square_total / (double)count;
+    real_t mean_square = movavg->square_total / (real_t)count;
 
     // A sum of squares can only be positive. A very small negative number can
     // still appear from the rounding of the running total, and a root of it
@@ -153,10 +153,10 @@ float movavg_get_rms(const movavg_t* movavg)
         mean_square = 0.0;
     }
 
-    return (float)sqrt(mean_square);
+    return (real_t)REAL_SQRT(mean_square);
 }
 
-float movavg_get_deviation(const movavg_t* movavg)
+real_t movavg_get_deviation(const movavg_t* movavg)
 {
     ASSERT(movavg != NULL);
 
@@ -164,21 +164,21 @@ float movavg_get_deviation(const movavg_t* movavg)
 
     if(count == 0u)
     {
-        return 0.0f;
+        return REAL_C(0.0);
     }
 
     // Take the mean away from each sample first, then square. The header says
     // why the shorter way is wrong.
-    double mean = movavg->total / (double)count;
-    double total = 0.0;
+    real_t mean = movavg->total / (real_t)count;
+    real_t total = 0.0;
 
     for(uint32_t age = 0; age < count; age++)
     {
-        double distance = (double)ringbuf_get(&movavg->window, age) - mean;
+        real_t distance = (real_t)ringbuf_get(&movavg->window, age) - mean;
         total += distance * distance;
     }
 
-    return (float)sqrt(total / (double)count);
+    return (real_t)REAL_SQRT(total / (real_t)count);
 }
 
 uint32_t movavg_count(const movavg_t* movavg)

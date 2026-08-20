@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "cmatrix.h"
 #include "cnum.h"
 #include <stdlib.h>
@@ -6,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TOLERANCE   0.0001f
+#define TOLERANCE   REAL_C(0.0001)
 
 #define CAPTURE_SIZE    1024
 static char capture_buffer[CAPTURE_SIZE];
@@ -42,7 +43,7 @@ void tearDown(void)
 }
 
 // Fill a matrix from a list of real parts and a list of imaginary parts.
-static void fill(cmatrix_t* matrix, const float* real, const float* imaginary)
+static void fill(cmatrix_t* matrix, const real_t* real, const real_t* imaginary)
 {
     for(uint32_t i = 0; i < matrix->m; i++)
     {
@@ -79,10 +80,10 @@ void test_cmatrix_static_alloc(void)
 void test_cmatrix_add_element_and_get_element(void)
 {
     cmatrix_t matrix = cmatrix_alloc(2, 2);
-    cmatrix_add_element(&matrix, 0, 1, cnum_make(1.0f, -2.0f));
+    cmatrix_add_element(&matrix, 0, 1, cnum_make(REAL_C(1.0), -REAL_C(2.0)));
     cnum_t value = cmatrix_get_element(&matrix, 0, 1);
-    TEST_ASSERT_EQUAL_FLOAT(1.0f, value.re);
-    TEST_ASSERT_EQUAL_FLOAT(-2.0f, value.im);
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0), value.re);
+    TEST_ASSERT_EQUAL_REAL(-REAL_C(2.0), value.im);
     cmatrix_free(&matrix);
 }
 
@@ -103,8 +104,8 @@ void test_cmatrix_create_zero_matrix(void)
 
 void test_cmatrix_is_equal(void)
 {
-    float real[4] = {1, 2, 3, 4};
-    float imaginary[4] = {5, 6, 7, 8};
+    real_t real[4] = {1, 2, 3, 4};
+    real_t imaginary[4] = {5, 6, 7, 8};
     cmatrix_t a = cmatrix_alloc(2, 2);
     cmatrix_t b = cmatrix_alloc(2, 2);
     cmatrix_t c = cmatrix_alloc(1, 2);
@@ -114,7 +115,7 @@ void test_cmatrix_is_equal(void)
     TEST_ASSERT_EQUAL(true, cmatrix_is_equal(&a, &b));
     TEST_ASSERT_EQUAL(false, cmatrix_is_equal(&a, &c));
 
-    cmatrix_add_element(&b, 1, 1, cnum_make(0.0f, 0.0f));
+    cmatrix_add_element(&b, 1, 1, cnum_make(REAL_C(0.0), REAL_C(0.0)));
     TEST_ASSERT_EQUAL(false, cmatrix_is_equal(&a, &b));
 
     cmatrix_free(&a);
@@ -127,12 +128,12 @@ void test_cmatrix_is_near(void)
     cmatrix_t a = cmatrix_alloc(1, 1);
     cmatrix_t b = cmatrix_alloc(1, 1);
     cmatrix_t c = cmatrix_alloc(2, 1);
-    cmatrix_add_element(&a, 0, 0, cnum_make(1.0f, 2.0f));
-    cmatrix_add_element(&b, 0, 0, cnum_make(1.001f, 2.001f));
+    cmatrix_add_element(&a, 0, 0, cnum_make(REAL_C(1.0), REAL_C(2.0)));
+    cmatrix_add_element(&b, 0, 0, cnum_make(REAL_C(1.001), REAL_C(2.001)));
 
-    TEST_ASSERT_EQUAL(true, cmatrix_is_near(&a, &b, 0.01f));
-    TEST_ASSERT_EQUAL(false, cmatrix_is_near(&a, &b, 0.00001f));
-    TEST_ASSERT_EQUAL(false, cmatrix_is_near(&a, &c, 1.0f));
+    TEST_ASSERT_EQUAL(true, cmatrix_is_near(&a, &b, REAL_C(0.01)));
+    TEST_ASSERT_EQUAL(false, cmatrix_is_near(&a, &b, REAL_C(0.00001)));
+    TEST_ASSERT_EQUAL(false, cmatrix_is_near(&a, &c, REAL_C(1.0)));
 
     cmatrix_free(&a);
     cmatrix_free(&b);
@@ -166,15 +167,15 @@ void test_cmatrix_is_hermitian(void)
     // [[1, 2+i], [2-i, 3]] does not change when the conjugate transpose is
     // taken.
     cmatrix_t matrix = cmatrix_alloc(2, 2);
-    cmatrix_add_element(&matrix, 0, 0, cnum_make(1.0f, 0.0f));
-    cmatrix_add_element(&matrix, 0, 1, cnum_make(2.0f, 1.0f));
-    cmatrix_add_element(&matrix, 1, 0, cnum_make(2.0f, -1.0f));
-    cmatrix_add_element(&matrix, 1, 1, cnum_make(3.0f, 0.0f));
+    cmatrix_add_element(&matrix, 0, 0, cnum_make(REAL_C(1.0), REAL_C(0.0)));
+    cmatrix_add_element(&matrix, 0, 1, cnum_make(REAL_C(2.0), REAL_C(1.0)));
+    cmatrix_add_element(&matrix, 1, 0, cnum_make(REAL_C(2.0), -REAL_C(1.0)));
+    cmatrix_add_element(&matrix, 1, 1, cnum_make(REAL_C(3.0), REAL_C(0.0)));
 
     TEST_ASSERT_EQUAL(true, cmatrix_is_hermitian(&matrix));
 
     // A value on the diagonal that is not real breaks the rule.
-    cmatrix_add_element(&matrix, 0, 0, cnum_make(1.0f, 1.0f));
+    cmatrix_add_element(&matrix, 0, 0, cnum_make(REAL_C(1.0), REAL_C(1.0)));
     TEST_ASSERT_EQUAL(false, cmatrix_is_hermitian(&matrix));
 
     cmatrix_t oblong = cmatrix_create_zero_matrix(2, 3);
@@ -186,10 +187,10 @@ void test_cmatrix_is_hermitian(void)
 
 void test_cmatrix_add(void)
 {
-    float real_a[4] = {1, 2, 3, 4};
-    float imaginary_a[4] = {1, 1, 1, 1};
-    float real_b[4] = {10, 20, 30, 40};
-    float imaginary_b[4] = {-1, -1, -1, -1};
+    real_t real_a[4] = {1, 2, 3, 4};
+    real_t imaginary_a[4] = {1, 1, 1, 1};
+    real_t real_b[4] = {10, 20, 30, 40};
+    real_t imaginary_b[4] = {-1, -1, -1, -1};
 
     cmatrix_t a = cmatrix_alloc(2, 2);
     cmatrix_t b = cmatrix_alloc(2, 2);
@@ -198,9 +199,9 @@ void test_cmatrix_add(void)
 
     cmatrix_t sum = cmatrix_add(&a, &b);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 11.0f, cmatrix_get_element(&sum, 0, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, cmatrix_get_element(&sum, 0, 0).im);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 44.0f, cmatrix_get_element(&sum, 1, 1).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(11.0), cmatrix_get_element(&sum, 0, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), cmatrix_get_element(&sum, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(44.0), cmatrix_get_element(&sum, 1, 1).re);
 
     cmatrix_free(&a);
     cmatrix_free(&b);
@@ -210,16 +211,16 @@ void test_cmatrix_add(void)
 void test_cmatrix_subtract(void)
 {
     cmatrix_t a = cmatrix_alloc(1, 2);
-    cmatrix_add_element(&a, 0, 0, cnum_make(5.0f, 5.0f));
-    cmatrix_add_element(&a, 0, 1, cnum_make(1.0f, 0.0f));
+    cmatrix_add_element(&a, 0, 0, cnum_make(REAL_C(5.0), REAL_C(5.0)));
+    cmatrix_add_element(&a, 0, 1, cnum_make(REAL_C(1.0), REAL_C(0.0)));
     cmatrix_t b = cmatrix_alloc(1, 2);
-    cmatrix_add_element(&b, 0, 0, cnum_make(2.0f, 8.0f));
-    cmatrix_add_element(&b, 0, 1, cnum_make(1.0f, 0.0f));
+    cmatrix_add_element(&b, 0, 0, cnum_make(REAL_C(2.0), REAL_C(8.0)));
+    cmatrix_add_element(&b, 0, 1, cnum_make(REAL_C(1.0), REAL_C(0.0)));
 
     cmatrix_t difference = cmatrix_subtract(&a, &b);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 3.0f, cmatrix_get_element(&difference, 0, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -3.0f, cmatrix_get_element(&difference, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(3.0), cmatrix_get_element(&difference, 0, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(3.0), cmatrix_get_element(&difference, 0, 0).im);
     TEST_ASSERT_EQUAL(true, cnum_is_zero(cmatrix_get_element(&difference, 0, 1)));
 
     cmatrix_free(&a);
@@ -231,12 +232,12 @@ void test_cmatrix_multiply(void)
 {
     // [[i]] times [[i]] is [[-1]].
     cmatrix_t a = cmatrix_alloc(1, 1);
-    cmatrix_add_element(&a, 0, 0, cnum_make(0.0f, 1.0f));
+    cmatrix_add_element(&a, 0, 0, cnum_make(REAL_C(0.0), REAL_C(1.0)));
 
     cmatrix_t product = cmatrix_multiply(&a, &a);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -1.0f, cmatrix_get_element(&product, 0, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, cmatrix_get_element(&product, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(1.0), cmatrix_get_element(&product, 0, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), cmatrix_get_element(&product, 0, 0).im);
 
     cmatrix_free(&a);
     cmatrix_free(&product);
@@ -259,8 +260,8 @@ void test_cmatrix_multiply_gives_the_correct_order(void)
 
 void test_cmatrix_the_unit_matrix_does_not_change_a_matrix(void)
 {
-    float real[4] = {1, 2, 3, 4};
-    float imaginary[4] = {-1, -2, -3, -4};
+    real_t real[4] = {1, 2, 3, 4};
+    real_t imaginary[4] = {-1, -2, -3, -4};
     cmatrix_t matrix = cmatrix_alloc(2, 2);
     fill(&matrix, real, imaginary);
     cmatrix_t unit = cmatrix_create_unit_matrix(2);
@@ -277,13 +278,13 @@ void test_cmatrix_the_unit_matrix_does_not_change_a_matrix(void)
 void test_cmatrix_multiply_scalar(void)
 {
     cmatrix_t matrix = cmatrix_alloc(1, 1);
-    cmatrix_add_element(&matrix, 0, 0, cnum_make(1.0f, 2.0f));
+    cmatrix_add_element(&matrix, 0, 0, cnum_make(REAL_C(1.0), REAL_C(2.0)));
 
     // (1 + 2i)(3 + 4i) = -5 + 10i
-    cmatrix_t product = cmatrix_multiply_scalar(&matrix, cnum_make(3.0f, 4.0f));
+    cmatrix_t product = cmatrix_multiply_scalar(&matrix, cnum_make(REAL_C(3.0), REAL_C(4.0)));
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -5.0f, cmatrix_get_element(&product, 0, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 10.0f, cmatrix_get_element(&product, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(5.0), cmatrix_get_element(&product, 0, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(10.0), cmatrix_get_element(&product, 0, 0).im);
 
     cmatrix_free(&matrix);
     cmatrix_free(&product);
@@ -291,8 +292,8 @@ void test_cmatrix_multiply_scalar(void)
 
 void test_cmatrix_transpose(void)
 {
-    float real[6] = {1, 2, 3, 4, 5, 6};
-    float imaginary[6] = {1, 1, 1, 1, 1, 1};
+    real_t real[6] = {1, 2, 3, 4, 5, 6};
+    real_t imaginary[6] = {1, 1, 1, 1, 1, 1};
     cmatrix_t matrix = cmatrix_alloc(2, 3);
     fill(&matrix, real, imaginary);
 
@@ -300,9 +301,9 @@ void test_cmatrix_transpose(void)
 
     TEST_ASSERT_EQUAL(3, transpose.m);
     TEST_ASSERT_EQUAL(2, transpose.n);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 4.0f, cmatrix_get_element(&transpose, 0, 1).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(4.0), cmatrix_get_element(&transpose, 0, 1).re);
     // The plain transpose keeps the sign of the imaginary part.
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, cmatrix_get_element(&transpose, 0, 1).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), cmatrix_get_element(&transpose, 0, 1).im);
 
     cmatrix_free(&matrix);
     cmatrix_free(&transpose);
@@ -311,17 +312,17 @@ void test_cmatrix_transpose(void)
 void test_cmatrix_conjugate_transpose(void)
 {
     cmatrix_t matrix = cmatrix_alloc(1, 2);
-    cmatrix_add_element(&matrix, 0, 0, cnum_make(1.0f, 2.0f));
-    cmatrix_add_element(&matrix, 0, 1, cnum_make(3.0f, -4.0f));
+    cmatrix_add_element(&matrix, 0, 0, cnum_make(REAL_C(1.0), REAL_C(2.0)));
+    cmatrix_add_element(&matrix, 0, 1, cnum_make(REAL_C(3.0), -REAL_C(4.0)));
 
     cmatrix_t transpose = cmatrix_conjugate_transpose(&matrix);
 
     TEST_ASSERT_EQUAL(2, transpose.m);
     TEST_ASSERT_EQUAL(1, transpose.n);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, cmatrix_get_element(&transpose, 0, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -2.0f, cmatrix_get_element(&transpose, 0, 0).im);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 3.0f, cmatrix_get_element(&transpose, 1, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 4.0f, cmatrix_get_element(&transpose, 1, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), cmatrix_get_element(&transpose, 0, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(2.0), cmatrix_get_element(&transpose, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(3.0), cmatrix_get_element(&transpose, 1, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(4.0), cmatrix_get_element(&transpose, 1, 0).im);
 
     cmatrix_free(&matrix);
     cmatrix_free(&transpose);
@@ -330,15 +331,15 @@ void test_cmatrix_conjugate_transpose(void)
 void test_cmatrix_trace(void)
 {
     cmatrix_t matrix = cmatrix_alloc(2, 2);
-    cmatrix_add_element(&matrix, 0, 0, cnum_make(1.0f, 2.0f));
-    cmatrix_add_element(&matrix, 0, 1, cnum_make(9.0f, 9.0f));
-    cmatrix_add_element(&matrix, 1, 0, cnum_make(9.0f, 9.0f));
-    cmatrix_add_element(&matrix, 1, 1, cnum_make(3.0f, -5.0f));
+    cmatrix_add_element(&matrix, 0, 0, cnum_make(REAL_C(1.0), REAL_C(2.0)));
+    cmatrix_add_element(&matrix, 0, 1, cnum_make(REAL_C(9.0), REAL_C(9.0)));
+    cmatrix_add_element(&matrix, 1, 0, cnum_make(REAL_C(9.0), REAL_C(9.0)));
+    cmatrix_add_element(&matrix, 1, 1, cnum_make(REAL_C(3.0), -REAL_C(5.0)));
 
     cnum_t trace = cmatrix_trace(&matrix);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 4.0f, trace.re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -3.0f, trace.im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(4.0), trace.re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(3.0), trace.im);
 
     cmatrix_free(&matrix);
 }
@@ -347,15 +348,15 @@ void test_cmatrix_determinant(void)
 {
     // The determinant of [[1+i, 2], [3, 4-i]] is (1+i)(4-i) - 6 = -1 + 3i.
     cmatrix_t matrix = cmatrix_alloc(2, 2);
-    cmatrix_add_element(&matrix, 0, 0, cnum_make(1.0f, 1.0f));
-    cmatrix_add_element(&matrix, 0, 1, cnum_make(2.0f, 0.0f));
-    cmatrix_add_element(&matrix, 1, 0, cnum_make(3.0f, 0.0f));
-    cmatrix_add_element(&matrix, 1, 1, cnum_make(4.0f, -1.0f));
+    cmatrix_add_element(&matrix, 0, 0, cnum_make(REAL_C(1.0), REAL_C(1.0)));
+    cmatrix_add_element(&matrix, 0, 1, cnum_make(REAL_C(2.0), REAL_C(0.0)));
+    cmatrix_add_element(&matrix, 1, 0, cnum_make(REAL_C(3.0), REAL_C(0.0)));
+    cmatrix_add_element(&matrix, 1, 1, cnum_make(REAL_C(4.0), -REAL_C(1.0)));
 
     cnum_t determinant = cmatrix_determinant(&matrix);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -1.0f, determinant.re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 3.0f, determinant.im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(1.0), determinant.re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(3.0), determinant.im);
 
     cmatrix_free(&matrix);
 }
@@ -364,8 +365,8 @@ void test_cmatrix_determinant_of_a_unit_matrix_is_one(void)
 {
     cmatrix_t matrix = cmatrix_create_unit_matrix(4);
     cnum_t determinant = cmatrix_determinant(&matrix);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, determinant.re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, determinant.im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), determinant.re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), determinant.im);
     cmatrix_free(&matrix);
 }
 
@@ -373,15 +374,15 @@ void test_cmatrix_determinant_of_a_singular_matrix_is_zero(void)
 {
     // The second row is two times the first row.
     cmatrix_t matrix = cmatrix_alloc(2, 2);
-    cmatrix_add_element(&matrix, 0, 0, cnum_make(1.0f, 1.0f));
-    cmatrix_add_element(&matrix, 0, 1, cnum_make(2.0f, 0.0f));
-    cmatrix_add_element(&matrix, 1, 0, cnum_make(2.0f, 2.0f));
-    cmatrix_add_element(&matrix, 1, 1, cnum_make(4.0f, 0.0f));
+    cmatrix_add_element(&matrix, 0, 0, cnum_make(REAL_C(1.0), REAL_C(1.0)));
+    cmatrix_add_element(&matrix, 0, 1, cnum_make(REAL_C(2.0), REAL_C(0.0)));
+    cmatrix_add_element(&matrix, 1, 0, cnum_make(REAL_C(2.0), REAL_C(2.0)));
+    cmatrix_add_element(&matrix, 1, 1, cnum_make(REAL_C(4.0), REAL_C(0.0)));
 
     cnum_t determinant = cmatrix_determinant(&matrix);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, determinant.re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, determinant.im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), determinant.re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), determinant.im);
 
     cmatrix_free(&matrix);
 }
@@ -393,7 +394,7 @@ void test_cmatrix_determinant_into(void)
 
     cnum_t determinant = cmatrix_determinant_into(&matrix, &scratch);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, determinant.re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), determinant.re);
     // The matrix itself does not change.
     TEST_ASSERT_EQUAL(true, cmatrix_is_unit(&matrix));
 
@@ -406,14 +407,14 @@ void test_cmatrix_inverse(void)
     // The inverse of [[i, 0], [0, i]] is [[-i, 0], [0, -i]], because i times
     // -i is 1.
     cmatrix_t matrix = cmatrix_create_zero_matrix(2, 2);
-    cmatrix_add_element(&matrix, 0, 0, cnum_make(0.0f, 1.0f));
-    cmatrix_add_element(&matrix, 1, 1, cnum_make(0.0f, 1.0f));
+    cmatrix_add_element(&matrix, 0, 0, cnum_make(REAL_C(0.0), REAL_C(1.0)));
+    cmatrix_add_element(&matrix, 1, 1, cnum_make(REAL_C(0.0), REAL_C(1.0)));
 
     cmatrix_t inverse = cmatrix_inverse(&matrix);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, cmatrix_get_element(&inverse, 0, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -1.0f, cmatrix_get_element(&inverse, 0, 0).im);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -1.0f, cmatrix_get_element(&inverse, 1, 1).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), cmatrix_get_element(&inverse, 0, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(1.0), cmatrix_get_element(&inverse, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(1.0), cmatrix_get_element(&inverse, 1, 1).im);
 
     cmatrix_free(&matrix);
     cmatrix_free(&inverse);
@@ -422,15 +423,15 @@ void test_cmatrix_inverse(void)
 void test_cmatrix_a_matrix_multiplied_by_its_inverse_gives_the_unit_matrix(void)
 {
     cmatrix_t matrix = cmatrix_alloc(3, 3);
-    float real[9] = {4, 1, 0, 1, 3, 1, 0, 1, 5};
-    float imaginary[9] = {0, 1, 0, -1, 0, 2, 0, -2, 0};
+    real_t real[9] = {4, 1, 0, 1, 3, 1, 0, 1, 5};
+    real_t imaginary[9] = {0, 1, 0, -1, 0, 2, 0, -2, 0};
     fill(&matrix, real, imaginary);
 
     cmatrix_t inverse = cmatrix_inverse(&matrix);
     cmatrix_t product = cmatrix_multiply(&matrix, &inverse);
     cmatrix_t unit = cmatrix_create_unit_matrix(3);
 
-    TEST_ASSERT_EQUAL(true, cmatrix_is_near(&product, &unit, 0.001f));
+    TEST_ASSERT_EQUAL(true, cmatrix_is_near(&product, &unit, REAL_C(0.001)));
 
     cmatrix_free(&matrix);
     cmatrix_free(&inverse);
@@ -443,14 +444,14 @@ void test_cmatrix_inverse_with_a_zero_in_the_pivot_position(void)
     // The first element on the diagonal is zero, but the matrix has an
     // inverse. The elimination must exchange the two rows.
     cmatrix_t matrix = cmatrix_create_zero_matrix(2, 2);
-    cmatrix_add_element(&matrix, 0, 1, cnum_make(0.0f, 1.0f));
-    cmatrix_add_element(&matrix, 1, 0, cnum_make(0.0f, 1.0f));
+    cmatrix_add_element(&matrix, 0, 1, cnum_make(REAL_C(0.0), REAL_C(1.0)));
+    cmatrix_add_element(&matrix, 1, 0, cnum_make(REAL_C(0.0), REAL_C(1.0)));
 
     cmatrix_t inverse = cmatrix_inverse(&matrix);
     cmatrix_t product = cmatrix_multiply(&matrix, &inverse);
     cmatrix_t unit = cmatrix_create_unit_matrix(2);
 
-    TEST_ASSERT_EQUAL(true, cmatrix_is_near(&product, &unit, 0.001f));
+    TEST_ASSERT_EQUAL(true, cmatrix_is_near(&product, &unit, REAL_C(0.001)));
 
     cmatrix_free(&matrix);
     cmatrix_free(&inverse);
@@ -485,8 +486,8 @@ void test_cmatrix_inverse_into_reports_a_singular_matrix(void)
 
 void test_cmatrix_copy(void)
 {
-    float real[4] = {1, 2, 3, 4};
-    float imaginary[4] = {5, 6, 7, 8};
+    real_t real[4] = {1, 2, 3, 4};
+    real_t imaginary[4] = {5, 6, 7, 8};
     cmatrix_t source = cmatrix_alloc(2, 2);
     cmatrix_t dest = cmatrix_alloc(2, 2);
     fill(&source, real, imaginary);
@@ -502,8 +503,8 @@ void test_cmatrix_copy(void)
 void test_cmatrix_printf(void)
 {
     cmatrix_t matrix = cmatrix_alloc(1, 2);
-    cmatrix_add_element(&matrix, 0, 0, cnum_make(1.0f, 2.0f));
-    cmatrix_add_element(&matrix, 0, 1, cnum_make(3.0f, -4.0f));
+    cmatrix_add_element(&matrix, 0, 0, cnum_make(REAL_C(1.0), REAL_C(2.0)));
+    cmatrix_add_element(&matrix, 0, 1, cnum_make(REAL_C(3.0), -REAL_C(4.0)));
 
     cmatrix_printf(&matrix, capture_printf);
 
@@ -530,16 +531,16 @@ void test_cmatrix_add_into_and_subtract_into(void)
     cmatrix_t a = cmatrix_alloc(1, 1);
     cmatrix_t b = cmatrix_alloc(1, 1);
     cmatrix_t dest = cmatrix_alloc(1, 1);
-    cmatrix_add_element(&a, 0, 0, cnum_make(1.0f, 2.0f));
-    cmatrix_add_element(&b, 0, 0, cnum_make(3.0f, 4.0f));
+    cmatrix_add_element(&a, 0, 0, cnum_make(REAL_C(1.0), REAL_C(2.0)));
+    cmatrix_add_element(&b, 0, 0, cnum_make(REAL_C(3.0), REAL_C(4.0)));
 
     cmatrix_add_into(&a, &b, &dest);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 4.0f, cmatrix_get_element(&dest, 0, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 6.0f, cmatrix_get_element(&dest, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(4.0), cmatrix_get_element(&dest, 0, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(6.0), cmatrix_get_element(&dest, 0, 0).im);
 
     cmatrix_subtract_into(&a, &b, &dest);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -2.0f, cmatrix_get_element(&dest, 0, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -2.0f, cmatrix_get_element(&dest, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(2.0), cmatrix_get_element(&dest, 0, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(2.0), cmatrix_get_element(&dest, 0, 0).im);
 
     cmatrix_free(&a);
     cmatrix_free(&b);
@@ -575,23 +576,23 @@ void test_the_operations_that_write_into_a_matrix_need_no_heap(void)
 
     cmatrix_set_unit(&a);
     cmatrix_set_unit(&b);
-    cmatrix_multiply_scalar_into(&b, cnum_make(0.0f, 1.0f), &b);
+    cmatrix_multiply_scalar_into(&b, cnum_make(REAL_C(0.0), REAL_C(1.0)), &b);
 
     cmatrix_add_into(&a, &b, &dest);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, cmatrix_get_element(&dest, 0, 0).re);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, cmatrix_get_element(&dest, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), cmatrix_get_element(&dest, 0, 0).re);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), cmatrix_get_element(&dest, 0, 0).im);
 
     cmatrix_multiply_into(&a, &b, &dest);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, cmatrix_get_element(&dest, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), cmatrix_get_element(&dest, 0, 0).im);
 
     cmatrix_transpose_into(&a, &dest);
     TEST_ASSERT_EQUAL(true, cmatrix_is_unit(&dest));
 
     cmatrix_conjugate_transpose_into(&b, &dest);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -1.0f, cmatrix_get_element(&dest, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(1.0), cmatrix_get_element(&dest, 0, 0).im);
 
     TEST_ASSERT_EQUAL(true, cmatrix_inverse_into(&b, &dest, &scratch));
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, -1.0f, cmatrix_get_element(&dest, 0, 0).im);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, -REAL_C(1.0), cmatrix_get_element(&dest, 0, 0).im);
 
     cmatrix_free(&a);
     cmatrix_free(&b);

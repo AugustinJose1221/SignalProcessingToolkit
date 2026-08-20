@@ -70,7 +70,7 @@ typedef struct{
         matrix_t k;                 // Kalman gain matrix (nx x ny)
 
         kalman_scratch_t scratch;   // Intermediate results
-        float* mempool;             // Start of the memory that holds all the matrices
+        real_t* mempool;             // Start of the memory that holds all the matrices
         bool singular;              // The last update found a singular matrix
         bool dynamic_alloc;
 }kalman_t;
@@ -94,7 +94,7 @@ to kalman_free when you no longer need it.
 ### `kalman_static_alloc`
 
 ```c
-kalman_t kalman_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, float* mempool);
+kalman_t kalman_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, real_t* mempool);
 ```
 
 Give a filter that uses the memory at mempool. That memory must hold as many

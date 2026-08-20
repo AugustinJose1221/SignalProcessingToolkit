@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "cspline.h"
 #include <stdlib.h>
 #include "Mock_binarysearch.h"
@@ -23,12 +24,12 @@ void test_cspline_alloc(void)
 
 void test_cspline_static_alloc(void)
 {
-    float bank0[3];
-    float bank1[3];
-    float bank2[3];
-    float bank3[3];
-    float bank4[3];
-    float* membank[5] = {bank0, bank1, bank2, bank3, bank4};
+    real_t bank0[3];
+    real_t bank1[3];
+    real_t bank2[3];
+    real_t bank3[3];
+    real_t bank4[3];
+    real_t* membank[5] = {bank0, bank1, bank2, bank3, bank4};
     cspline_t cspline = cspline_static_alloc(3, membank);
     TEST_ASSERT_EQUAL(3, cspline.size);
     TEST_ASSERT_EQUAL(false, cspline.dynamic_alloc);
@@ -51,12 +52,12 @@ void test_cspline_alloc_mempool(void)
 
 void test_cspline_static_alloc_mempool(void)
 {
-    float mempool0[5];
-    float mempool1[5];
-    float mempool2[5];
-    float mempool3[5];
-    float mempool4[5];
-    float *membank[5]={mempool0, mempool1, mempool2, mempool3, mempool4};
+    real_t mempool0[5];
+    real_t mempool1[5];
+    real_t mempool2[5];
+    real_t mempool3[5];
+    real_t mempool4[5];
+    real_t *membank[5]={mempool0, mempool1, mempool2, mempool3, mempool4};
     cspline_mempool_t mempool = cspline_static_alloc_mempool(membank);
     TEST_ASSERT_EQUAL(false, mempool.dynamic_alloc);
     TEST_ASSERT_EQUAL(mempool0, mempool.d);
@@ -68,8 +69,8 @@ void test_cspline_static_alloc_mempool(void)
 
 void test_cspline_init(void)
 {
-    float x[3] = {1, 2, 3};
-    float y[3] = {1, 2, 3};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {1, 2, 3};
     cspline_t cspline = cspline_alloc(3);
     cspline_mempool_t mempool = cspline_alloc_mempool(3);
     cspline_init(&cspline, mempool, x, y);
@@ -87,13 +88,13 @@ void test_cspline_update_size(void)
 
 void test_cspline_get_interpolated_point(void)
 {
-    float x[3] = {1, 2, 3};
-    float y[3] = {1, 2, 3};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {1, 2, 3};
     cspline_t cspline = cspline_alloc(3);
     cspline_mempool_t mempool = cspline_alloc_mempool(3);
     cspline_init(&cspline, mempool, x, y);
     binarysearch_get_index_IgnoreAndReturn(2);
-    float interpolated_point = cspline_get_interpolated_point(&cspline, 5);
+    real_t interpolated_point = cspline_get_interpolated_point(&cspline, 5);
     TEST_ASSERT_EQUAL(5, interpolated_point);
     cspline_free(cspline);
     cspline_free_mempool(mempool);
@@ -104,12 +105,12 @@ void test_cspline_free_mempool(void)
     cspline_mempool_t mempool = cspline_alloc_mempool(3);
     cspline_free_mempool(mempool);
 
-    float mempool0[5];
-    float mempool1[5];
-    float mempool2[5];
-    float mempool3[5];
-    float mempool4[5];
-    float *membank[5]={mempool0, mempool1, mempool2, mempool3, mempool4};
+    real_t mempool0[5];
+    real_t mempool1[5];
+    real_t mempool2[5];
+    real_t mempool3[5];
+    real_t mempool4[5];
+    real_t *membank[5]={mempool0, mempool1, mempool2, mempool3, mempool4};
     mempool = cspline_static_alloc_mempool(membank);
     cspline_free_mempool(mempool);
 }
@@ -127,8 +128,8 @@ void test_cspline_free_releases_the_memory_of_a_dynamic_spline(void)
 
     for(uint32_t index = 0; index < cspline.size; index++)
     {
-        cspline.x[index] = (float)index;
-        cspline.y[index] = (float)index;
+        cspline.x[index] = (real_t)index;
+        cspline.y[index] = (real_t)index;
     }
 
     cspline_free(cspline);
@@ -136,19 +137,19 @@ void test_cspline_free_releases_the_memory_of_a_dynamic_spline(void)
 
 void test_cspline_free_keeps_the_memory_of_a_static_spline(void)
 {
-    float bank0[3] = {1, 2, 3};
-    float bank1[3] = {4, 5, 6};
-    float bank2[3];
-    float bank3[3];
-    float bank4[3];
-    float* membank[5] = {bank0, bank1, bank2, bank3, bank4};
+    real_t bank0[3] = {1, 2, 3};
+    real_t bank1[3] = {4, 5, 6};
+    real_t bank2[3];
+    real_t bank3[3];
+    real_t bank4[3];
+    real_t* membank[5] = {bank0, bank1, bank2, bank3, bank4};
 
     cspline_t cspline = cspline_static_alloc(3, membank);
 
     cspline_free(cspline);
 
     // The memory belongs to the caller. It must still hold the values.
-    TEST_ASSERT_EQUAL_FLOAT(1.0f, bank0[0]);
-    TEST_ASSERT_EQUAL_FLOAT(6.0f, bank1[2]);
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0), bank0[0]);
+    TEST_ASSERT_EQUAL_REAL(REAL_C(6.0), bank1[2]);
     TEST_ASSERT_EQUAL_PTR(bank0, cspline.x);
 }

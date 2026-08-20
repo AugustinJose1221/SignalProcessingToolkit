@@ -16,7 +16,7 @@ The Hilbert transform. Declared in `sptk/transform/hilbert.h`.
 ### `hilbert_analytic_signal`
 
 ```c
-void hilbert_analytic_signal(fft_t* fft, const float* signal, cnum_t* analytic);
+void hilbert_analytic_signal(fft_t* fft, const real_t* signal, cnum_t* analytic);
 ```
 
 Give the analytic signal of a real signal.
@@ -28,7 +28,7 @@ no memory.
 ### `hilbert_amplitude`
 
 ```c
-void hilbert_amplitude(const cnum_t* analytic, float* amplitude, uint32_t size);
+void hilbert_amplitude(const cnum_t* analytic, real_t* amplitude, uint32_t size);
 ```
 
 Write the instantaneous amplitude of each point into the amplitude list. The
@@ -38,7 +38,7 @@ zero.
 ### `hilbert_phase`
 
 ```c
-void hilbert_phase(const cnum_t* analytic, float* phase, uint32_t size);
+void hilbert_phase(const cnum_t* analytic, real_t* phase, uint32_t size);
 ```
 
 Write the instantaneous phase of each point into the phase list. The phase
@@ -47,7 +47,7 @@ lies between -pi and pi.
 ### `hilbert_frequency`
 
 ```c
-void hilbert_frequency(const cnum_t* analytic, float* frequency, uint32_t size, float sample_rate);
+void hilbert_frequency(const cnum_t* analytic, real_t* frequency, uint32_t size, real_t sample_rate);
 ```
 
 Write the instantaneous frequency of each point into the frequency list.

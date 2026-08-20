@@ -4,9 +4,11 @@
 #include <stdint.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/linalg/cnum.h>
 #include <sptk/transform/fft.h>
 #else
+#include "real.h"
 #include "cnum.h"
 #include "fft.h"
 #endif
@@ -38,16 +40,16 @@
 // The signal and the work buffer must hold as many values as the size of the
 // transform. The function writes the result into the work buffer, thus it gets
 // no memory.
-void hilbert_analytic_signal(fft_t* fft, const float* signal, cnum_t* analytic);
+void hilbert_analytic_signal(fft_t* fft, const real_t* signal, cnum_t* analytic);
 
 // Write the instantaneous amplitude of each point into the amplitude list. The
 // amplitude follows the envelope of the signal, and it is never less than
 // zero.
-void hilbert_amplitude(const cnum_t* analytic, float* amplitude, uint32_t size);
+void hilbert_amplitude(const cnum_t* analytic, real_t* amplitude, uint32_t size);
 
 // Write the instantaneous phase of each point into the phase list. The phase
 // lies between -pi and pi.
-void hilbert_phase(const cnum_t* analytic, float* phase, uint32_t size);
+void hilbert_phase(const cnum_t* analytic, real_t* phase, uint32_t size);
 
 // Write the instantaneous frequency of each point into the frequency list.
 //
@@ -58,7 +60,7 @@ void hilbert_phase(const cnum_t* analytic, float* phase, uint32_t size);
 // The list holds one value less than the signal, because a change needs two
 // points. The caller gives the sample rate in samples for each second, and the
 // result is in hertz.
-void hilbert_frequency(const cnum_t* analytic, float* frequency, uint32_t size,
-                       float sample_rate);
+void hilbert_frequency(const cnum_t* analytic, real_t* frequency, uint32_t size,
+                       real_t sample_rate);
 
 #endif//HILBERT_H

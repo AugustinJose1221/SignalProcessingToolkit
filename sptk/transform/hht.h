@@ -4,10 +4,12 @@
 #include <stdint.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/linalg/cnum.h>
 #include <sptk/transform/fft.h>
 #include <sptk/decompose/imf.h>
 #else
+#include "real.h"
 #include "cnum.h"
 #include "fft.h"
 #include "imf.h"
@@ -41,7 +43,7 @@
 // The size must be the same as the size of the transform, and it must be a
 // power of two.
 void hht_transform_imf(fft_t* fft, imf_t* imf, cnum_t* work,
-                       float* amplitude, float* frequency, float sample_rate);
+                       real_t* amplitude, real_t* frequency, real_t sample_rate);
 
 // Give the amplitude and the frequency for a list of intrinsic mode
 // functions, one after the other.
@@ -51,7 +53,7 @@ void hht_transform_imf(fft_t* fft, imf_t* imf, cnum_t* work,
 // frequency list must hold count*(size-1) values. The work buffer must hold
 // size complex numbers.
 void hht_transform(fft_t* fft, imf_t* imf, uint32_t count, cnum_t* work,
-                   float* amplitude, float* frequency, float sample_rate);
+                   real_t* amplitude, real_t* frequency, real_t sample_rate);
 
 // Give the mean frequency of one intrinsic mode function, where each point
 // counts as much as the square of its amplitude.
@@ -59,7 +61,7 @@ void hht_transform(fft_t* fft, imf_t* imf, uint32_t count, cnum_t* work,
 // A point with a small amplitude holds a phase that noise moves easily. This
 // mean gives such a point little weight, thus it describes the function better
 // than a plain mean does.
-float hht_mean_frequency(const float* amplitude, const float* frequency,
+real_t hht_mean_frequency(const real_t* amplitude, const real_t* frequency,
                          uint32_t size);
 
 #endif//HHT_H

@@ -98,7 +98,7 @@ over the data, and it gets no memory.
 ### `fft_forward_real`
 
 ```c
-void fft_forward_real(fft_t* fft, const float* input, cnum_t* output);
+void fft_forward_real(fft_t* fft, const real_t* input, cnum_t* output);
 ```
 
 Change a signal of float values into the frequency domain.
@@ -115,7 +115,7 @@ result with less code.
 ### `fft_magnitude`
 
 ```c
-void fft_magnitude(const cnum_t* data, float* magnitude, uint32_t size);
+void fft_magnitude(const cnum_t* data, real_t* magnitude, uint32_t size);
 ```
 
 Write the size of each element of the data into the magnitude list. The size
@@ -125,7 +125,7 @@ must hold as many values as the given size.
 ### `fft_power`
 
 ```c
-void fft_power(const cnum_t* data, float* power, uint32_t size);
+void fft_power(const cnum_t* data, real_t* power, uint32_t size);
 ```
 
 Write the square of the size of each element into the power list. This
@@ -135,7 +135,7 @@ lists must hold as many values as the given size.
 ### `fft_bin_frequency`
 
 ```c
-float fft_bin_frequency(uint32_t index, uint32_t size, float sample_rate);
+real_t fft_bin_frequency(uint32_t index, uint32_t size, real_t sample_rate);
 ```
 
 Give the frequency in hertz that the bin with the given index holds. The

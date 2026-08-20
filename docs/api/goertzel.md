@@ -17,11 +17,11 @@ Detection of one frequency. Declared in `sptk/transform/goertzel.h`.
 
 ```c
 typedef struct{
-    float coefficient;          // Comes from the frequency and the block size
-    float sine;                 // Holds the phase of the result
-    float cosine;               // Holds the phase of the result
-    float first;                // The state of one sample ago
-    float second;               // The state of two samples ago
+    real_t coefficient;          // Comes from the frequency and the block size
+    real_t sine;                 // Holds the phase of the result
+    real_t cosine;               // Holds the phase of the result
+    real_t first;                // The state of one sample ago
+    real_t second;               // The state of two samples ago
     uint32_t block_size;        // The number of samples of one block
     uint32_t count;             // The number of samples that came in
 }goertzel_t;
@@ -32,7 +32,7 @@ typedef struct{
 ### `goertzel_init`
 
 ```c
-goertzel_t goertzel_init(float frequency, float sample_rate, uint32_t block_size);
+goertzel_t goertzel_init(real_t frequency, real_t sample_rate, uint32_t block_size);
 ```
 
 Give a detector for one frequency.
@@ -47,7 +47,7 @@ thus a caller on a target with no heap can hold it anywhere.
 ### `goertzel_process_sample`
 
 ```c
-void goertzel_process_sample(goertzel_t* goertzel, float sample);
+void goertzel_process_sample(goertzel_t* goertzel, real_t sample);
 ```
 
 Give one sample to the detector.
@@ -55,7 +55,7 @@ Give one sample to the detector.
 ### `goertzel_process_block`
 
 ```c
-void goertzel_process_block(goertzel_t* goertzel, const float* input, uint32_t size);
+void goertzel_process_block(goertzel_t* goertzel, const real_t* input, uint32_t size);
 ```
 
 Give a block of samples to the detector.
@@ -72,7 +72,7 @@ call goertzel_reset before the next block.
 ### `goertzel_magnitude_squared`
 
 ```c
-float goertzel_magnitude_squared(goertzel_t* goertzel);
+real_t goertzel_magnitude_squared(goertzel_t* goertzel);
 ```
 
 Give the square of the size of the answer at the frequency of the detector.
@@ -82,7 +82,7 @@ goertzel_magnitude. Use it to compare the strength of two frequencies.
 ### `goertzel_magnitude`
 
 ```c
-float goertzel_magnitude(goertzel_t* goertzel);
+real_t goertzel_magnitude(goertzel_t* goertzel);
 ```
 
 Give the size of the answer at the frequency of the detector.
@@ -90,7 +90,7 @@ Give the size of the answer at the frequency of the detector.
 ### `goertzel_phase`
 
 ```c
-float goertzel_phase(goertzel_t* goertzel);
+real_t goertzel_phase(goertzel_t* goertzel);
 ```
 
 Give the phase of the answer in radians, between -pi and pi.

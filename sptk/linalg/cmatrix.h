@@ -5,9 +5,11 @@
 #include <stdbool.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/linalg/cnum.h>
 #include <sptk/core/callback.h>
 #else
+#include "real.h"
 #include "cnum.h"
 #include "callback.h"
 #endif
@@ -60,7 +62,7 @@ bool cmatrix_is_equal(cmatrix_t* a, cmatrix_t* b);
 // by more than the tolerance. Use this function after a calculation with
 // several steps, where the result is near the correct value but not equal to
 // it.
-bool cmatrix_is_near(cmatrix_t* a, cmatrix_t* b, float tolerance);
+bool cmatrix_is_near(cmatrix_t* a, cmatrix_t* b, real_t tolerance);
 // True if the matrix has as many rows as columns.
 bool cmatrix_is_square(cmatrix_t* matrix);
 // True if every element of the matrix is 0.

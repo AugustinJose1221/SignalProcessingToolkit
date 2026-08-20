@@ -10,12 +10,12 @@
 
 #define DCBLOCK_PI      3.14159265358979323846
 
-bool dcblock_is_valid_cutoff(float cutoff)
+bool dcblock_is_valid_cutoff(real_t cutoff)
 {
-    return (cutoff >= DCBLOCK_MIN_CUTOFF) && (cutoff < 0.5f);
+    return (cutoff >= DCBLOCK_MIN_CUTOFF) && (cutoff < REAL_C(0.5));
 }
 
-dcblock_t dcblock_init(float cutoff)
+dcblock_t dcblock_init(real_t cutoff)
 {
     dcblock_t dcblock;
 
@@ -24,12 +24,12 @@ dcblock_t dcblock_init(float cutoff)
 
     if(dcblock_is_valid_cutoff(cutoff))
     {
-        // One pole, worked out in double. For a low cutoff this number is very
-        // small, and that is exactly what a float cannot hold: at a cutoff of
-        // 0.000016, which is 0.5 Hz against 32 kHz, the pole is 0.0001 and the
-        // number that a high pass would need beside it is 0.9999. A double
-        // holds both and their difference.
-        dcblock.pole = 2.0 * DCBLOCK_PI * (double)cutoff;
+        // One pole. For a low cutoff this number is very small, and that is
+        // the point: a high pass would have to hold 0.9999 beside it and then
+        // subtract the two, and at a cutoff of 0.000016, which is 0.5 Hz
+        // against 32 kHz, seven digits cannot carry that difference. A single
+        // pole never forms it.
+        dcblock.pole = 2.0 * DCBLOCK_PI * (real_t)cutoff;
 
         if(dcblock.pole > 1.0)
         {
@@ -47,7 +47,7 @@ dcblock_t dcblock_init(float cutoff)
     return dcblock;
 }
 
-float dcblock_process_sample(dcblock_t* dcblock, float sample)
+real_t dcblock_process_sample(dcblock_t* dcblock, real_t sample)
 {
     ASSERT(dcblock != NULL);
 
@@ -56,18 +56,18 @@ float dcblock_process_sample(dcblock_t* dcblock, float sample)
     // larger than the signal for a long time.
     if(!dcblock->started)
     {
-        dcblock->level = (double)sample;
+        dcblock->level = (real_t)sample;
         dcblock->started = true;
     }
     else
     {
-        dcblock->level += dcblock->pole * ((double)sample - dcblock->level);
+        dcblock->level += dcblock->pole * ((real_t)sample - dcblock->level);
     }
 
-    return (float)((double)sample - dcblock->level);
+    return (real_t)((real_t)sample - dcblock->level);
 }
 
-void dcblock_process_block(dcblock_t* dcblock, const float* input, float* output,
+void dcblock_process_block(dcblock_t* dcblock, const real_t* input, real_t* output,
                            uint32_t size)
 {
     ASSERT(dcblock != NULL);
@@ -80,18 +80,18 @@ void dcblock_process_block(dcblock_t* dcblock, const float* input, float* output
     }
 }
 
-float dcblock_get_level(const dcblock_t* dcblock)
+real_t dcblock_get_level(const dcblock_t* dcblock)
 {
     ASSERT(dcblock != NULL);
 
-    return (float)dcblock->level;
+    return (real_t)dcblock->level;
 }
 
-void dcblock_set_level(dcblock_t* dcblock, float level)
+void dcblock_set_level(dcblock_t* dcblock, real_t level)
 {
     ASSERT(dcblock != NULL);
 
-    dcblock->level = (double)level;
+    dcblock->level = (real_t)level;
     dcblock->started = true;
 }
 

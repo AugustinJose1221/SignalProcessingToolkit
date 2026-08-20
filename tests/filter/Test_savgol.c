@@ -1,10 +1,11 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "savgol.h"
 #include "matrix.h"
 #include <stdlib.h>
 #include <math.h>
 
-#define TOLERANCE   0.001f
+#define TOLERANCE   REAL_C(0.001)
 
 void setUp(void)
 {
@@ -29,7 +30,7 @@ void test_savgol_alloc(void)
 
 void test_savgol_static_alloc(void)
 {
-    float coefficient[7];
+    real_t coefficient[7];
     savgol_t savgol = savgol_static_alloc(7, coefficient);
 
     TEST_ASSERT_EQUAL(7, savgol.window);
@@ -71,11 +72,11 @@ void test_savgol_the_known_coefficients_of_a_window_of_five(void)
     savgol_t savgol = savgol_alloc(5);
     TEST_ASSERT_EQUAL(true, savgol_design(&savgol, 2, 0));
 
-    float expected[5] = {-3.0f/35.0f, 12.0f/35.0f, 17.0f/35.0f, 12.0f/35.0f, -3.0f/35.0f};
+    real_t expected[5] = {-REAL_C(3.0)/REAL_C(35.0), REAL_C(12.0)/REAL_C(35.0), REAL_C(17.0)/REAL_C(35.0), REAL_C(12.0)/REAL_C(35.0), -REAL_C(3.0)/REAL_C(35.0)};
 
     for(uint32_t index = 0; index < 5; index++)
     {
-        TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, expected[index],
+        TEST_ASSERT_REAL_WITHIN(TOLERANCE, expected[index],
                                  savgol_get_coefficient(&savgol, index));
     }
 
@@ -93,13 +94,13 @@ void test_savgol_the_coefficients_add_up_to_one(void)
         savgol_t savgol = savgol_alloc(windows[which]);
         TEST_ASSERT_EQUAL(true, savgol_design(&savgol, 3, 0));
 
-        float sum = 0.0f;
+        real_t sum = REAL_C(0.0);
         for(uint32_t index = 0; index < windows[which]; index++)
         {
             sum += savgol_get_coefficient(&savgol, index);
         }
 
-        TEST_ASSERT_FLOAT_WITHIN(0.01f, 1.0f, sum);
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0), sum);
         savgol_free(&savgol);
     }
 }
@@ -111,15 +112,15 @@ void test_savgol_keeps_a_polynomial_of_its_own_order_unchanged(void)
     savgol_t savgol = savgol_alloc(7);
     TEST_ASSERT_EQUAL(true, savgol_design(&savgol, 2, 0));
 
-    float window[7];
+    real_t window[7];
     for(uint32_t index = 0; index < 7; index++)
     {
-        float x = (float)index - 3.0f;
-        window[index] = 2.0f + (3.0f*x) + (4.0f*x*x);
+        real_t x = (real_t)index - REAL_C(3.0);
+        window[index] = REAL_C(2.0) + (REAL_C(3.0)*x) + (REAL_C(4.0)*x*x);
     }
 
     // The value of that polynomial at the middle, where x is zero, is 2.
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 2.0f, savgol_apply(&savgol, window));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(2.0), savgol_apply(&savgol, window));
 
     savgol_free(&savgol);
 }
@@ -129,14 +130,14 @@ void test_savgol_the_first_derivative_of_a_straight_line_is_its_slope(void)
     savgol_t savgol = savgol_alloc(7);
     TEST_ASSERT_EQUAL(true, savgol_design(&savgol, 2, 1));
 
-    float window[7];
+    real_t window[7];
     for(uint32_t index = 0; index < 7; index++)
     {
-        float x = (float)index - 3.0f;
-        window[index] = 10.0f + (2.5f*x);
+        real_t x = (real_t)index - REAL_C(3.0);
+        window[index] = REAL_C(10.0) + (REAL_C(2.5)*x);
     }
 
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 2.5f, savgol_apply(&savgol, window));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(2.5), savgol_apply(&savgol, window));
 
     savgol_free(&savgol);
 }
@@ -147,14 +148,14 @@ void test_savgol_the_second_derivative_of_a_square(void)
     savgol_t savgol = savgol_alloc(9);
     TEST_ASSERT_EQUAL(true, savgol_design(&savgol, 2, 2));
 
-    float window[9];
+    real_t window[9];
     for(uint32_t index = 0; index < 9; index++)
     {
-        float x = (float)index - 4.0f;
-        window[index] = 3.0f * x * x;
+        real_t x = (real_t)index - REAL_C(4.0);
+        window[index] = REAL_C(3.0) * x * x;
     }
 
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 6.0f, savgol_apply(&savgol, window));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(6.0), savgol_apply(&savgol, window));
 
     savgol_free(&savgol);
 }
@@ -164,9 +165,9 @@ void test_savgol_the_derivative_of_a_signal_that_does_not_change_is_zero(void)
     savgol_t savgol = savgol_alloc(5);
     TEST_ASSERT_EQUAL(true, savgol_design(&savgol, 2, 1));
 
-    float window[5] = {7.0f, 7.0f, 7.0f, 7.0f, 7.0f};
+    real_t window[5] = {REAL_C(7.0), REAL_C(7.0), REAL_C(7.0), REAL_C(7.0), REAL_C(7.0)};
 
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, savgol_apply(&savgol, window));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(0.0), savgol_apply(&savgol, window));
 
     savgol_free(&savgol);
 }
@@ -177,15 +178,15 @@ void test_savgol_takes_noise_out_and_keeps_the_peak(void)
     // This filter must keep the height of the peak much better, and it must
     // still take the noise away.
     const uint32_t size = 41;
-    float clean[41];
-    float noisy[41];
-    float smoothed[41];
-    float noise[8] = {0.2f, -0.18f, 0.15f, -0.21f, 0.19f, -0.16f, 0.22f, -0.2f};
+    real_t clean[41];
+    real_t noisy[41];
+    real_t smoothed[41];
+    real_t noise[8] = {REAL_C(0.2), -REAL_C(0.18), REAL_C(0.15), -REAL_C(0.21), REAL_C(0.19), -REAL_C(0.16), REAL_C(0.22), -REAL_C(0.2)};
 
     for(uint32_t index = 0; index < size; index++)
     {
-        float x = ((float)index - 20.0f) / 5.0f;
-        clean[index] = 10.0f * expf(-x*x);
+        real_t x = ((real_t)index - REAL_C(20.0)) / REAL_C(5.0);
+        clean[index] = REAL_C(10.0) * REAL_EXP(-x*x);
         noisy[index] = clean[index] + noise[index % 8];
     }
 
@@ -193,18 +194,18 @@ void test_savgol_takes_noise_out_and_keeps_the_peak(void)
     TEST_ASSERT_EQUAL(true, savgol_design(&savgol, 3, 0));
     savgol_process_block(&savgol, noisy, smoothed, size);
 
-    float before = 0.0f;
-    float after = 0.0f;
+    real_t before = REAL_C(0.0);
+    real_t after = REAL_C(0.0);
     for(uint32_t index = 0; index < size; index++)
     {
-        before += fabsf(noisy[index] - clean[index]);
-        after += fabsf(smoothed[index] - clean[index]);
+        before += REAL_ABS(noisy[index] - clean[index]);
+        after += REAL_ABS(smoothed[index] - clean[index]);
     }
 
     // The result must lie nearer to the clean signal.
     TEST_ASSERT_TRUE(after < before);
     // The height of the peak must stay, inside a small error.
-    TEST_ASSERT_FLOAT_WITHIN(0.3f, 10.0f, smoothed[20]);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.3), REAL_C(10.0), smoothed[20]);
 
     savgol_free(&savgol);
 }
@@ -214,12 +215,12 @@ void test_savgol_process_block_writes_every_value(void)
     savgol_t savgol = savgol_alloc(5);
     TEST_ASSERT_EQUAL(true, savgol_design(&savgol, 2, 0));
 
-    float input[10];
-    float output[10];
+    real_t input[10];
+    real_t output[10];
     for(uint32_t index = 0; index < 10; index++)
     {
-        input[index] = 3.0f;
-        output[index] = -1.0f;
+        input[index] = REAL_C(3.0);
+        output[index] = -REAL_C(1.0);
     }
 
     savgol_process_block(&savgol, input, output, 10);
@@ -228,7 +229,7 @@ void test_savgol_process_block_writes_every_value(void)
     // at the two ends where the window reaches outside the signal.
     for(uint32_t index = 0; index < 10; index++)
     {
-        TEST_ASSERT_FLOAT_WITHIN(0.01f, 3.0f, output[index]);
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(3.0), output[index]);
     }
 
     savgol_free(&savgol);
@@ -236,7 +237,7 @@ void test_savgol_process_block_writes_every_value(void)
 
 void test_savgol_a_static_filter_gives_the_same_result_as_a_dynamic_one(void)
 {
-    float coefficient[7];
+    real_t coefficient[7];
 
     savgol_t dynamic_savgol = savgol_alloc(7);
     savgol_t static_savgol = savgol_static_alloc(7, coefficient);
@@ -246,7 +247,7 @@ void test_savgol_a_static_filter_gives_the_same_result_as_a_dynamic_one(void)
 
     for(uint32_t index = 0; index < 7; index++)
     {
-        TEST_ASSERT_FLOAT_WITHIN(TOLERANCE,
+        TEST_ASSERT_REAL_WITHIN(TOLERANCE,
                                  savgol_get_coefficient(&dynamic_savgol, index),
                                  savgol_get_coefficient(&static_savgol, index));
     }

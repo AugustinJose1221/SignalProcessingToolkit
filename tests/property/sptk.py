@@ -11,11 +11,22 @@ import subprocess
 import sys
 
 REPOSITORY = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+# The library holds every number in real_t, which is a float or a double
+# depending on how it is built. The tests must agree with the build, thus the
+# same variable that chooses the width for the C build chooses it here.
+#
+# Set SPTK_REAL_64 in the environment to test the 64 bit build.
+REAL_64 = os.environ.get("SPTK_REAL_64", "") not in ("", "0", "false", "False")
+REAL_T = ctypes.c_double if REAL_64 else ctypes.c_float
+WIDTH = "64" if REAL_64 else "32"
+
 BUILD_DIRECTORY = os.path.join(REPOSITORY, "build", "property")
-LIBRARY_PATH = os.path.join(BUILD_DIRECTORY, "libsptk.so")
+LIBRARY_PATH = os.path.join(BUILD_DIRECTORY, "libsptk%s.so" % WIDTH)
 
 # The same list of sources as SIGNALPROC_SOURCES in CMakeLists.txt.
 SOURCES = [
+    "sptk/core/real.c",
     "sptk/core/ringbuf.c",
     "sptk/linalg/cmatrix.c",
     "sptk/linalg/cnum.c",
@@ -53,8 +64,11 @@ def build_library():
     command = [
         "gcc", "-shared", "-fPIC", "-std=c99", "-g", "-O1",
         "-I", REPOSITORY,
-        "-o", LIBRARY_PATH,
-    ] + [os.path.join(REPOSITORY, source) for source in SOURCES] + ["-lm"]
+    ]
+    if REAL_64:
+        command.append("-DSPTK_REAL_64")
+    command += ["-o", LIBRARY_PATH]
+    command += [os.path.join(REPOSITORY, source) for source in SOURCES] + ["-lm"]
 
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
@@ -64,7 +78,7 @@ def build_library():
 
 class Ringbuf(ctypes.Structure):
     _fields_ = [
-        ("data", ctypes.POINTER(ctypes.c_float)),
+        ("data", ctypes.POINTER(REAL_T)),
         ("size", ctypes.c_uint32),
         ("head", ctypes.c_uint32),
         ("count", ctypes.c_uint32),
@@ -75,7 +89,7 @@ class Ringbuf(ctypes.Structure):
 class Medfilt(ctypes.Structure):
     _fields_ = [
         ("window", Ringbuf),
-        ("sorted", ctypes.POINTER(ctypes.c_float)),
+        ("sorted", ctypes.POINTER(REAL_T)),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -84,7 +98,7 @@ class Matrix(ctypes.Structure):
     _fields_ = [
         ("m", ctypes.c_uint32),
         ("n", ctypes.c_uint32),
-        ("elem", ctypes.POINTER(ctypes.c_float)),
+        ("elem", ctypes.POINTER(REAL_T)),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -92,7 +106,7 @@ class Matrix(ctypes.Structure):
 class Vector(ctypes.Structure):
     _fields_ = [
         ("size", ctypes.c_uint32),
-        ("data", ctypes.POINTER(ctypes.c_float)),
+        ("data", ctypes.POINTER(REAL_T)),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -100,22 +114,22 @@ class Vector(ctypes.Structure):
 class CSpline(ctypes.Structure):
     _fields_ = [
         ("size", ctypes.c_uint32),
-        ("x", ctypes.POINTER(ctypes.c_float)),
-        ("y", ctypes.POINTER(ctypes.c_float)),
-        ("b", ctypes.POINTER(ctypes.c_float)),
-        ("c", ctypes.POINTER(ctypes.c_float)),
-        ("d", ctypes.POINTER(ctypes.c_float)),
+        ("x", ctypes.POINTER(REAL_T)),
+        ("y", ctypes.POINTER(REAL_T)),
+        ("b", ctypes.POINTER(REAL_T)),
+        ("c", ctypes.POINTER(REAL_T)),
+        ("d", ctypes.POINTER(REAL_T)),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
 
 class CSplineMempool(ctypes.Structure):
     _fields_ = [
-        ("dx", ctypes.POINTER(ctypes.c_float)),
-        ("dp", ctypes.POINTER(ctypes.c_float)),
-        ("d", ctypes.POINTER(ctypes.c_float)),
-        ("b", ctypes.POINTER(ctypes.c_float)),
-        ("q", ctypes.POINTER(ctypes.c_float)),
+        ("dx", ctypes.POINTER(REAL_T)),
+        ("dp", ctypes.POINTER(REAL_T)),
+        ("d", ctypes.POINTER(REAL_T)),
+        ("b", ctypes.POINTER(REAL_T)),
+        ("q", ctypes.POINTER(REAL_T)),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -140,13 +154,13 @@ class Kalman(ctypes.Structure):
     ] + [(name, Matrix) for name in
          ("_x", "x", "y", "u", "a", "b", "p", "q", "r", "c", "k")] + [
         ("scratch", KalmanScratch),
-        ("mempool", ctypes.POINTER(ctypes.c_float)),
+        ("mempool", ctypes.POINTER(REAL_T)),
         ("singular", ctypes.c_bool),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
 
-FLOAT_POINTER = ctypes.POINTER(ctypes.c_float)
+FLOAT_POINTER = ctypes.POINTER(REAL_T)
 
 
 def load_library():
@@ -157,25 +171,25 @@ def load_library():
     library.matrix_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
     library.matrix_alloc.restype = Matrix
     library.matrix_add_element.argtypes = [ctypes.POINTER(Matrix), ctypes.c_uint32,
-                                           ctypes.c_uint32, ctypes.c_float]
+                                           ctypes.c_uint32, REAL_T]
     library.matrix_add_element.restype = None
     library.matrix_get_element.argtypes = [ctypes.POINTER(Matrix), ctypes.c_uint32,
                                            ctypes.c_uint32]
-    library.matrix_get_element.restype = ctypes.c_float
+    library.matrix_get_element.restype = REAL_T
     for name in ("matrix_add", "matrix_subtract", "matrix_multiply"):
         function = getattr(library, name)
         function.argtypes = [ctypes.POINTER(Matrix), ctypes.POINTER(Matrix)]
         function.restype = Matrix
-    library.matrix_multiply_scalar.argtypes = [ctypes.POINTER(Matrix), ctypes.c_float]
+    library.matrix_multiply_scalar.argtypes = [ctypes.POINTER(Matrix), REAL_T]
     library.matrix_multiply_scalar.restype = Matrix
     for name in ("matrix_transpose", "matrix_inverse"):
         function = getattr(library, name)
         function.argtypes = [ctypes.POINTER(Matrix)]
         function.restype = Matrix
     library.matrix_determinant.argtypes = [ctypes.POINTER(Matrix)]
-    library.matrix_determinant.restype = ctypes.c_float
+    library.matrix_determinant.restype = REAL_T
     library.matrix_trace.argtypes = [ctypes.POINTER(Matrix)]
-    library.matrix_trace.restype = ctypes.c_float
+    library.matrix_trace.restype = REAL_T
     for name in ("matrix_is_equal", "matrix_is_multipliable"):
         function = getattr(library, name)
         function.argtypes = [ctypes.POINTER(Matrix), ctypes.POINTER(Matrix)]
@@ -199,14 +213,14 @@ def load_library():
     library.vector_alloc.argtypes = [ctypes.c_uint32]
     library.vector_alloc.restype = Vector
     library.vector_add_point_at_index.argtypes = [ctypes.POINTER(Vector),
-                                                  ctypes.c_uint32, ctypes.c_float]
+                                                  ctypes.c_uint32, REAL_T]
     library.vector_add_point_at_index.restype = None
     library.vector_get.argtypes = [ctypes.POINTER(Vector), ctypes.c_uint32]
-    library.vector_get.restype = ctypes.c_float
+    library.vector_get.restype = REAL_T
     library.vector_dot_product.argtypes = [ctypes.POINTER(Vector), ctypes.POINTER(Vector)]
-    library.vector_dot_product.restype = ctypes.c_float
+    library.vector_dot_product.restype = REAL_T
     library.vector_norm.argtypes = [ctypes.POINTER(Vector)]
-    library.vector_norm.restype = ctypes.c_float
+    library.vector_norm.restype = REAL_T
     library.vector_free.argtypes = [ctypes.POINTER(Vector)]
     library.vector_free.restype = None
 
@@ -219,8 +233,8 @@ def load_library():
                                      FLOAT_POINTER, FLOAT_POINTER]
     library.cspline_init.restype = None
     library.cspline_get_interpolated_point.argtypes = [ctypes.POINTER(CSpline),
-                                                       ctypes.c_float]
-    library.cspline_get_interpolated_point.restype = ctypes.c_float
+                                                       REAL_T]
+    library.cspline_get_interpolated_point.restype = REAL_T
     library.cspline_free.argtypes = [CSpline]
     library.cspline_free.restype = None
     library.cspline_free_mempool.argtypes = [CSplineMempool]
@@ -249,7 +263,7 @@ def load_library():
     library.kalman_free.restype = None
 
     # utils
-    library.binarysearch_get_index.argtypes = [FLOAT_POINTER, ctypes.c_float,
+    library.binarysearch_get_index.argtypes = [FLOAT_POINTER, REAL_T,
                                                ctypes.c_uint32]
     library.binarysearch_get_index.restype = ctypes.c_uint32
     for name in ("peakdetect_get_peaks", "valleydetect_get_valley"):
@@ -261,10 +275,10 @@ def load_library():
     # medfilt
     library.medfilt_alloc.argtypes = [ctypes.c_uint32]
     library.medfilt_alloc.restype = Medfilt
-    library.medfilt_process_sample.argtypes = [ctypes.POINTER(Medfilt), ctypes.c_float]
-    library.medfilt_process_sample.restype = ctypes.c_float
+    library.medfilt_process_sample.argtypes = [ctypes.POINTER(Medfilt), REAL_T]
+    library.medfilt_process_sample.restype = REAL_T
     library.medfilt_get_median.argtypes = [ctypes.POINTER(Medfilt)]
-    library.medfilt_get_median.restype = ctypes.c_float
+    library.medfilt_get_median.restype = REAL_T
     library.medfilt_count.argtypes = [ctypes.POINTER(Medfilt)]
     library.medfilt_count.restype = ctypes.c_uint32
     library.medfilt_free.argtypes = [ctypes.POINTER(Medfilt)]
@@ -275,19 +289,19 @@ def load_library():
                  "stats_rms", "stats_min", "stats_max", "stats_median"):
         function = getattr(library, name)
         function.argtypes = [FLOAT_POINTER, ctypes.c_uint32]
-        function.restype = ctypes.c_float
+        function.restype = REAL_T
     library.stats_percentile.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
-                                         ctypes.c_float]
-    library.stats_percentile.restype = ctypes.c_float
+                                         REAL_T]
+    library.stats_percentile.restype = REAL_T
     library.stats_mad.argtypes = [FLOAT_POINTER, ctypes.c_uint32, FLOAT_POINTER]
-    library.stats_mad.restype = ctypes.c_float
+    library.stats_mad.restype = REAL_T
 
     return library
 
 
 def float_array(values):
-    """Give a C array of float that holds the given values."""
-    return (ctypes.c_float * len(values))(*values)
+    """Give a C array of real_t that holds the given values."""
+    return (REAL_T * len(values))(*values)
 
 
 def make_matrix(library, rows):

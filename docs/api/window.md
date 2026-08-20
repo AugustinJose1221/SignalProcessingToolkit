@@ -33,7 +33,7 @@ window_build_with; a window that does not takes window_build.
 ### `window_build`
 
 ```c
-void window_build(float* window, uint32_t size, window_kind_t kind);
+void window_build(real_t* window, uint32_t size, window_kind_t kind);
 ```
 
 Write the values of a window into the list, which must hold as many float
@@ -48,7 +48,7 @@ A size of 1 gives the single value 1.
 ### `window_build_with`
 
 ```c
-void window_build_with(float* window, uint32_t size, window_kind_t kind, float parameter);
+void window_build_with(real_t* window, uint32_t size, window_kind_t kind, real_t parameter);
 ```
 
 Write the values of a window that takes a parameter.
@@ -72,7 +72,7 @@ stand in for window_build.
 ### `window_value`
 
 ```c
-float window_value(uint32_t index, uint32_t size, window_kind_t kind, float parameter);
+real_t window_value(uint32_t index, uint32_t size, window_kind_t kind, real_t parameter);
 ```
 
 Give one value of a window, without building the whole of it. This suits a
@@ -82,7 +82,7 @@ into another list as it goes.
 ### `window_kaiser_beta`
 
 ```c
-float window_kaiser_beta(float stop_band_decibel);
+real_t window_kaiser_beta(real_t stop_band_decibel);
 ```
 
 Give the beta of a Kaiser window for a FILTER whose stop band must lie the
@@ -107,7 +107,7 @@ that, and take this function only for designing a filter.
 ### `window_coherent_gain`
 
 ```c
-float window_coherent_gain(const float* window, uint32_t size);
+real_t window_coherent_gain(const real_t* window, uint32_t size);
 ```
 
 Give the coherent gain of a window, which is the mean of its values.
@@ -119,7 +119,7 @@ height of the tone. A rectangular window gives 1, a Hann window gives 0.5.
 ### `window_noise_gain`
 
 ```c
-float window_noise_gain(const float* window, uint32_t size);
+real_t window_noise_gain(const real_t* window, uint32_t size);
 ```
 
 Give the noise gain of a window, which is the root of the mean of the
@@ -132,7 +132,7 @@ rectangular window gives 1, a Hann window gives about 0.61.
 ### `window_noise_bandwidth`
 
 ```c
-float window_noise_bandwidth(const float* window, uint32_t size);
+real_t window_noise_bandwidth(const real_t* window, uint32_t size);
 ```
 
 Give the equivalent noise bandwidth of a window, in bins.
@@ -144,7 +144,7 @@ density of noise divides by this, and by the width of a bin.
 ### `window_apply`
 
 ```c
-void window_apply(const float* window, const float* input, float* output, uint32_t size);
+void window_apply(const real_t* window, const real_t* input, real_t* output, uint32_t size);
 ```
 
 Multiply a block of samples by a window. The input and the output may be the

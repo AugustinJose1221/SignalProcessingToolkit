@@ -233,21 +233,25 @@ The figures are what each filter added BEYOND its own shape:
 
 | level | 0 | 1 000 | 100 000 | 8 300 000 |
 | --- | --- | --- | --- | --- |
-| `iir`, one section | 0.0 | 0.0 | 0.2 | 98.9 |
-| `iir`, two sections | 0.0 | 0.0 | 0.1 | 137.8 |
-| `dcblock` | 0.0 | 0.0 | 0.0 | 0.0 |
+| `iir`, one section, 32 bits | 0.0 | 0.0 | 0.2 | 98.9 |
+| `iir`, two sections, 32 bits | 0.0 | 0.0 | 0.1 | 137.8 |
+| `dcblock`, 32 bits | 0.0 | 0.0 | 0.0 | 0.1 |
+| either, 64 bits | 0.0 | 0.0 | 0.0 | 0.0 |
 
 A hundred counts of false signal against a wave of a thousand is a tenth of the
 answer, and it comes from nothing but the size of the number. It grows with the
 order of the filter, because each section lifts the error of the one before it.
 
-**It follows the level in double.** A double holds about sixteen digits, thus
-the level costs six and ten are left, where a float had one.
+**It is one pole, and that is what saves it.** A single pole holds no two
+nearly equal numbers to subtract, thus it has nothing to lose. At the default
+width it is some eight hundred times better than a section; at 64 bits the
+section has digits to spare and the two are alike, and this one is then simply
+the gentler filter.
 
 **It holds a far lower cutoff.** `IIR_MIN_CUTOFF` is 0.001 of the sample rate
 and under that a section gives a wrong answer without saying so. This module
-holds 0.000001, a thousand times lower, because one pole in double has no
-cancelling sums in it. At 32 kHz that is 0.03 Hz, which no section could reach
+holds 0.000001, a thousand times lower, because one pole has no cancelling sums
+in it. At 32 kHz that is 0.03 Hz, which no section could reach
 at that rate.
 
 **It primes itself on the first sample.** A filter that starts from zero sees

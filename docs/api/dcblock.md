@@ -16,14 +16,14 @@ Taking the level of a signal away. Declared in `sptk/filter/dcblock.h`.
 ### `DCBLOCK_MIN_CUTOFF`
 
 ```c
-#define DCBLOCK_MIN_CUTOFF      0.000001f
+#define DCBLOCK_MIN_CUTOFF      REAL_C(0.000001)
 ```
 
 The smallest cutoff that this module holds, as a part of the sample rate.
 
-It is a thousand times lower than IIR_MIN_CUTOFF. The reason is the double:
-there are no two nearly equal numbers to subtract here, thus nothing to
-lose.
+It is a thousand times lower than IIR_MIN_CUTOFF. The reason is the single
+pole: there are no two nearly equal numbers to subtract here, thus nothing
+to lose.
 
 ## Types
 
@@ -31,8 +31,8 @@ lose.
 
 ```c
 typedef struct{
-    double level;               // The level that the tracker follows now
-    double pole;                // How fast it follows
+    real_t level;               // The level that the tracker follows now
+    real_t pole;                // How fast it follows
     bool started;               // True once the first sample has set the level
 }dcblock_t;
 ```
@@ -42,7 +42,7 @@ typedef struct{
 ### `dcblock_is_valid_cutoff`
 
 ```c
-bool dcblock_is_valid_cutoff(float cutoff);
+bool dcblock_is_valid_cutoff(real_t cutoff);
 ```
 
 True if the tracker can hold the given cutoff.
@@ -50,7 +50,7 @@ True if the tracker can hold the given cutoff.
 ### `dcblock_init`
 
 ```c
-dcblock_t dcblock_init(float cutoff);
+dcblock_t dcblock_init(real_t cutoff);
 ```
 
 Give a tracker for the given cutoff, which is a part of the sample rate.
@@ -66,7 +66,7 @@ dcblock_is_valid_cutoff can tell the caller about first.
 ### `dcblock_process_sample`
 
 ```c
-float dcblock_process_sample(dcblock_t* dcblock, float sample);
+real_t dcblock_process_sample(dcblock_t* dcblock, real_t sample);
 ```
 
 Take the level away from one sample and give what is left.
@@ -74,7 +74,7 @@ Take the level away from one sample and give what is left.
 ### `dcblock_process_block`
 
 ```c
-void dcblock_process_block(dcblock_t* dcblock, const float* input, float* output, uint32_t size);
+void dcblock_process_block(dcblock_t* dcblock, const real_t* input, real_t* output, uint32_t size);
 ```
 
 Take the level away from a whole block. The input and the output may be the
@@ -83,7 +83,7 @@ same list.
 ### `dcblock_get_level`
 
 ```c
-float dcblock_get_level(const dcblock_t* dcblock);
+real_t dcblock_get_level(const dcblock_t* dcblock);
 ```
 
 Give the level that the tracker holds now.
@@ -95,7 +95,7 @@ more slowly than the cutoff.
 ### `dcblock_set_level`
 
 ```c
-void dcblock_set_level(dcblock_t* dcblock, float level);
+void dcblock_set_level(dcblock_t* dcblock, real_t level);
 ```
 
 Set the level directly.

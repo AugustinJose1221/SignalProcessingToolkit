@@ -16,7 +16,7 @@ Filters with a finite impulse response. Declared in `sptk/filter/fir.h`.
 ### `FIR_TRANSITION`
 
 ```c
-#define FIR_TRANSITION      2.0f
+#define FIR_TRANSITION      REAL_C(2.0)
 ```
 
 How wide the change from the pass band to the stop band is, as a number
@@ -34,8 +34,8 @@ reason a low cutoff needs a long filter.
 ```c
 typedef struct{
     uint32_t length;            // The number of coefficients
-    float* coefficient;         // The coefficients
-    float* history;             // The last samples, length of them
+    real_t* coefficient;         // The coefficients
+    real_t* history;             // The last samples, length of them
     uint32_t position;          // Where the next sample goes in the history
     bool dynamic_alloc;         // True if the memory comes from the heap
 }fir_t;
@@ -46,7 +46,7 @@ typedef struct{
 ### `fir_is_valid_cutoff`
 
 ```c
-bool fir_is_valid_cutoff(uint32_t length, float cutoff);
+bool fir_is_valid_cutoff(uint32_t length, real_t cutoff);
 ```
 
 True if a filter of the given length can hold the given cutoff.
@@ -68,7 +68,7 @@ away under it. Thus: make the filter longer, or bring the sample rate down.
 ### `fir_is_valid_band`
 
 ```c
-bool fir_is_valid_band(uint32_t length, float low_cutoff, float high_cutoff);
+bool fir_is_valid_band(uint32_t length, real_t low_cutoff, real_t high_cutoff);
 ```
 
 True if a filter of the given length can hold the given band. Both edges
@@ -88,7 +88,7 @@ Give the filter to fir_free when you no longer need it.
 ### `fir_static_alloc`
 
 ```c
-fir_t fir_static_alloc(uint32_t length, float* coefficient, float* history);
+fir_t fir_static_alloc(uint32_t length, real_t* coefficient, real_t* history);
 ```
 
 Give a filter that uses the memory that the caller holds. Both lists must
@@ -98,7 +98,7 @@ memory from the heap.
 ### `fir_design_low_pass`
 
 ```c
-bool fir_design_low_pass(fir_t* fir, float cutoff);
+bool fir_design_low_pass(fir_t* fir, real_t cutoff);
 ```
 
 Build the coefficients of a filter that lets the low frequencies pass. The
@@ -108,7 +108,7 @@ Give false and leave the filter as it was if fir_is_valid_cutoff is false.
 ### `fir_design_high_pass`
 
 ```c
-bool fir_design_high_pass(fir_t* fir, float cutoff);
+bool fir_design_high_pass(fir_t* fir, real_t cutoff);
 ```
 
 Build the coefficients of a filter that lets the high frequencies pass.
@@ -117,7 +117,7 @@ Give false and leave the filter as it was if fir_is_valid_cutoff is false.
 ### `fir_design_band_pass`
 
 ```c
-bool fir_design_band_pass(fir_t* fir, float low_cutoff, float high_cutoff);
+bool fir_design_band_pass(fir_t* fir, real_t low_cutoff, real_t high_cutoff);
 ```
 
 Build the coefficients of a filter that lets a band of frequencies pass. The
@@ -128,7 +128,7 @@ Give false and leave the filter as it was if fir_is_valid_band is false.
 ### `fir_set_coefficient`
 
 ```c
-void fir_set_coefficient(fir_t* fir, uint32_t index, float value);
+void fir_set_coefficient(fir_t* fir, uint32_t index, real_t value);
 ```
 
 Write one coefficient. Use this function to give the filter a set of
@@ -137,7 +137,7 @@ coefficients that another program calculated.
 ### `fir_get_coefficient`
 
 ```c
-float fir_get_coefficient(fir_t* fir, uint32_t index);
+real_t fir_get_coefficient(fir_t* fir, uint32_t index);
 ```
 
 Give one coefficient.
@@ -145,7 +145,7 @@ Give one coefficient.
 ### `fir_process_sample`
 
 ```c
-float fir_process_sample(fir_t* fir, float sample);
+real_t fir_process_sample(fir_t* fir, real_t sample);
 ```
 
 Give the filtered value of one sample. The filter keeps the sample in its
@@ -154,7 +154,7 @@ history, thus the next call sees it.
 ### `fir_process_block`
 
 ```c
-void fir_process_block(fir_t* fir, const float* input, float* output, uint32_t size);
+void fir_process_block(fir_t* fir, const real_t* input, real_t* output, uint32_t size);
 ```
 
 Filter a block of samples. The input and the output may be the same list.
@@ -171,7 +171,7 @@ that has seen no sample yet.
 ### `fir_get_gain`
 
 ```c
-float fir_get_gain(fir_t* fir, float frequency);
+real_t fir_get_gain(fir_t* fir, real_t frequency);
 ```
 
 Give the size of the answer of the filter at the given frequency, which is a

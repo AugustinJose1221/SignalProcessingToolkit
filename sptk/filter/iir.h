@@ -4,6 +4,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdbool.h>
+#ifndef TEST
+#include <sptk/core/real.h>
+#else
+#include "real.h"
+#endif
 
 // A filter with an infinite impulse response, as a chain of biquad sections.
 //
@@ -41,8 +46,8 @@
 
 typedef struct{
     uint32_t sections;          // The number of biquad sections
-    float* coefficient;         // Five coefficients for each section
-    float* state;               // Two values for each section
+    real_t* coefficient;         // Five coefficients for each section
+    real_t* state;               // Two values for each section
     bool dynamic_alloc;         // True if the memory comes from the heap
 }iir_t;
 
@@ -66,13 +71,13 @@ typedef struct{
 // for the work. A cutoff of 0.5 Hz against 32 kHz is 0.000016 and cannot be
 // held; the same cutoff against 500 Hz is 0.001 and can. Bring the rate down
 // first, as the guide of this area says.
-#define IIR_MIN_CUTOFF      0.001f
+#define IIR_MIN_CUTOFF      REAL_C(0.001)
 
 // True if a design can hold the given cutoff, which is a part of the sample
 // rate. Ask this before a design when the cutoff comes from a measurement or
 // from a setting, because a design that cannot hold its cutoff gives back a
 // filter that looks right and is not.
-bool iir_is_valid_cutoff(float cutoff);
+bool iir_is_valid_cutoff(real_t cutoff);
 
 // Give a filter with the given number of sections. The memory comes from the
 // heap. The filter lets everything pass until a design function or
@@ -84,20 +89,20 @@ iir_t iir_alloc(uint32_t sections);
 // coefficient must hold IIR_COEFFICIENT_SIZE(sections) float values, and the
 // list state must hold IIR_STATE_SIZE(sections) of them. This function takes
 // no memory from the heap.
-iir_t iir_static_alloc(uint32_t sections, float* coefficient, float* state);
+iir_t iir_static_alloc(uint32_t sections, real_t* coefficient, real_t* state);
 
 // Build the coefficients of a filter of Butterworth that lets the low
 // frequencies pass. The order of the filter is two times the number of
 // sections.
 // Give false and leave the filter as it was if the cutoff is outside
 // IIR_MIN_CUTOFF to 0.5.
-bool iir_design_low_pass(iir_t* iir, float cutoff);
+bool iir_design_low_pass(iir_t* iir, real_t cutoff);
 
 // Build the coefficients of a filter of Butterworth that lets the high
 // frequencies pass.
 // Give false and leave the filter as it was if the cutoff is outside
 // IIR_MIN_CUTOFF to 0.5.
-bool iir_design_high_pass(iir_t* iir, float cutoff);
+bool iir_design_high_pass(iir_t* iir, real_t cutoff);
 
 // Build a filter that passes the band between the two cutoffs.
 //
@@ -113,7 +118,7 @@ bool iir_design_high_pass(iir_t* iir, float cutoff);
 //
 // Give false if the number of sections is odd, if either cutoff cannot be
 // held, or if the high cutoff is not above the low one.
-bool iir_design_band_pass(iir_t* iir, float low_cutoff, float high_cutoff);
+bool iir_design_band_pass(iir_t* iir, real_t low_cutoff, real_t high_cutoff);
 
 // Build a filter that stops the band between the two cutoffs and passes
 // everything else.
@@ -124,7 +129,7 @@ bool iir_design_band_pass(iir_t* iir, float low_cutoff, float high_cutoff);
 //
 // Give false if either cutoff cannot be held, or if the high cutoff is not
 // above the low one.
-bool iir_design_band_stop(iir_t* iir, float low_cutoff, float high_cutoff);
+bool iir_design_band_stop(iir_t* iir, real_t low_cutoff, real_t high_cutoff);
 
 // Build a filter that stops one frequency and passes everything else.
 //
@@ -147,7 +152,7 @@ bool iir_design_band_stop(iir_t* iir, float low_cutoff, float high_cutoff);
 //
 // Give false if the frequency cannot be held or if the quality is not above
 // zero.
-bool iir_design_notch(iir_t* iir, float centre, float quality);
+bool iir_design_notch(iir_t* iir, real_t centre, real_t quality);
 
 // Build a filter that passes one frequency and stops everything else.
 //
@@ -161,20 +166,20 @@ bool iir_design_notch(iir_t* iir, float centre, float quality);
 //
 // Give false if the frequency cannot be held or if the quality is not above
 // zero.
-bool iir_design_peak(iir_t* iir, float centre, float quality);
+bool iir_design_peak(iir_t* iir, real_t centre, real_t quality);
 
 // Write the five coefficients of one section. The three coefficients b belong
 // to the input, and the two coefficients a belong to the feedback. The
 // function divides every coefficient by a0, thus the caller may give the
 // coefficients as another program calculated them.
-void iir_set_section(iir_t* iir, uint32_t section, float b0, float b1, float b2,
-                     float a0, float a1, float a2);
+void iir_set_section(iir_t* iir, uint32_t section, real_t b0, real_t b1, real_t b2,
+                     real_t a0, real_t a1, real_t a2);
 
 // Give the filtered value of one sample.
-float iir_process_sample(iir_t* iir, float sample);
+real_t iir_process_sample(iir_t* iir, real_t sample);
 
 // Filter a block of samples. The input and the output may be the same list.
-void iir_process_block(iir_t* iir, const float* input, float* output, uint32_t size);
+void iir_process_block(iir_t* iir, const real_t* input, real_t* output, uint32_t size);
 
 // Set the state of every section to zero. The filter then behaves as a filter
 // that has seen no sample yet.
@@ -183,7 +188,7 @@ void iir_reset(iir_t* iir);
 // Give the size of the answer of the filter at the given frequency, which is a
 // part of the sample rate. A value of 1 says that the frequency passes
 // unchanged, and a value of 0 says that the filter stops it.
-float iir_get_gain(iir_t* iir, float frequency);
+real_t iir_get_gain(iir_t* iir, real_t frequency);
 
 // Release the memory of a filter that came from iir_alloc. This function does
 // nothing for a filter that came from iir_static_alloc.

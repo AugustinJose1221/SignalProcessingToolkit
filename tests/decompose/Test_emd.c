@@ -1,4 +1,5 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "emd.h"
 #include <stdlib.h>
 #include "Mock_peakdetect.h"
@@ -34,12 +35,12 @@ void test_emd_alloc(void)
 
 void test_emd_static_alloc(void)
 {
-    float peak_buffer[3];
-    float valley_buffer[3];
-    float membank[5];
-    float mempool[5];
-    float *membank_ptr[5] = {membank, membank, membank, membank, membank};
-    float *mempool_ptr = mempool;
+    real_t peak_buffer[3];
+    real_t valley_buffer[3];
+    real_t membank[5];
+    real_t mempool[5];
+    real_t *membank_ptr[5] = {membank, membank, membank, membank, membank};
+    real_t *mempool_ptr = mempool;
     cspline_t cspline;
     cspline_mempool_t cspline_mempool;
     cspline_static_alloc_ExpectAndReturn(3, membank_ptr, cspline);
@@ -54,12 +55,12 @@ void test_emd_static_alloc(void)
 
 void test_emd_initialize(void)
 {
-    float x[3] = {1, 2, 3};
-    float y[3] = {4, 5, 6};
-    float residue[3] = {7, 8, 9};
-    float working_buffer[3] = {10, 11, 12};
-    float peak_index_buffer[3] = {13, 14, 15};
-    float valley_index_buffer[3] = {16, 17, 18};
+    real_t x[3] = {1, 2, 3};
+    real_t y[3] = {4, 5, 6};
+    real_t residue[3] = {7, 8, 9};
+    real_t working_buffer[3] = {10, 11, 12};
+    real_t peak_index_buffer[3] = {13, 14, 15};
+    real_t valley_index_buffer[3] = {16, 17, 18};
     imf_t imf[3];
     emd_t emd;
     emd.valley_buffer = valley_index_buffer;

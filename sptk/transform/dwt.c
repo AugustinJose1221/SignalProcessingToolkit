@@ -18,38 +18,38 @@ dwt_t dwt_init(dwt_wavelet_t wavelet)
     {
         // The four coefficients of Daubechies. The value of the square root of
         // three decides them.
-        float root = sqrtf(3.0f);
-        float divisor = 4.0f * sqrtf(2.0f);
+        real_t root = REAL_SQRT(REAL_C(3.0));
+        real_t divisor = REAL_C(4.0) * REAL_SQRT(REAL_C(2.0));
 
         dwt.length = 4;
-        dwt.low[0] = (1.0f + root) / divisor;
-        dwt.low[1] = (3.0f + root) / divisor;
-        dwt.low[2] = (3.0f - root) / divisor;
-        dwt.low[3] = (1.0f - root) / divisor;
+        dwt.low[0] = (REAL_C(1.0) + root) / divisor;
+        dwt.low[1] = (REAL_C(3.0) + root) / divisor;
+        dwt.low[2] = (REAL_C(3.0) - root) / divisor;
+        dwt.low[3] = (REAL_C(1.0) - root) / divisor;
     }
     else
     {
         // The two coefficients of Haar, which give the mean and the difference
         // of two samples.
-        float value = 1.0f / sqrtf(2.0f);
+        real_t value = REAL_C(1.0) / REAL_SQRT(REAL_C(2.0));
 
         dwt.length = 2;
         dwt.low[0] = value;
         dwt.low[1] = value;
-        dwt.low[2] = 0.0f;
-        dwt.low[3] = 0.0f;
+        dwt.low[2] = REAL_C(0.0);
+        dwt.low[3] = REAL_C(0.0);
     }
 
     // The filter of the detail comes from the filter of the approximation:
     // turn the order around and change the sign of every second one.
     for(uint32_t index = 0; index < dwt.length; index++)
     {
-        float sign = ((index % 2) == 0) ? 1.0f : -1.0f;
+        real_t sign = ((index % 2) == 0) ? REAL_C(1.0) : -REAL_C(1.0);
         dwt.high[index] = sign * dwt.low[dwt.length - 1 - index];
     }
     for(uint32_t index = dwt.length; index < DWT_MAX_COEFFICIENT_COUNT; index++)
     {
-        dwt.high[index] = 0.0f;
+        dwt.high[index] = REAL_C(0.0);
     }
 
     return dwt;
@@ -76,8 +76,8 @@ bool dwt_is_valid_size(uint32_t size, uint32_t levels)
     return true;
 }
 
-void dwt_forward(dwt_t* dwt, const float* signal, uint32_t size,
-                 float* approximation, float* detail)
+void dwt_forward(dwt_t* dwt, const real_t* signal, uint32_t size,
+                 real_t* approximation, real_t* detail)
 {
     ASSERT(dwt != NULL);
     ASSERT(signal != NULL);
@@ -90,8 +90,8 @@ void dwt_forward(dwt_t* dwt, const float* signal, uint32_t size,
 
     for(uint32_t index = 0; index < half; index++)
     {
-        float low_sum = 0.0f;
-        float high_sum = 0.0f;
+        real_t low_sum = REAL_C(0.0);
+        real_t high_sum = REAL_C(0.0);
 
         for(uint32_t tap = 0; tap < dwt->length; tap++)
         {
@@ -108,8 +108,8 @@ void dwt_forward(dwt_t* dwt, const float* signal, uint32_t size,
     }
 }
 
-void dwt_inverse(dwt_t* dwt, const float* approximation, const float* detail,
-                 uint32_t size, float* signal)
+void dwt_inverse(dwt_t* dwt, const real_t* approximation, const real_t* detail,
+                 uint32_t size, real_t* signal)
 {
     ASSERT(dwt != NULL);
     ASSERT(approximation != NULL);
@@ -122,7 +122,7 @@ void dwt_inverse(dwt_t* dwt, const float* approximation, const float* detail,
 
     for(uint32_t index = 0; index < size; index++)
     {
-        signal[index] = 0.0f;
+        signal[index] = REAL_C(0.0);
     }
 
     // Each value of the approximation and of the detail spreads back over the
@@ -139,8 +139,8 @@ void dwt_inverse(dwt_t* dwt, const float* approximation, const float* detail,
     }
 }
 
-void dwt_forward_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels,
-                       float* work)
+void dwt_forward_multi(dwt_t* dwt, real_t* signal, uint32_t size, uint32_t levels,
+                       real_t* work)
 {
     ASSERT(dwt != NULL);
     ASSERT(signal != NULL);
@@ -166,8 +166,8 @@ void dwt_forward_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels
     }
 }
 
-void dwt_inverse_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels,
-                       float* work)
+void dwt_inverse_multi(dwt_t* dwt, real_t* signal, uint32_t size, uint32_t levels,
+                       real_t* work)
 {
     ASSERT(dwt != NULL);
     ASSERT(signal != NULL);
@@ -195,16 +195,16 @@ void dwt_inverse_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels
     }
 }
 
-void dwt_threshold(float* data, uint32_t size, float limit)
+void dwt_threshold(real_t* data, uint32_t size, real_t limit)
 {
     ASSERT(data != NULL);
-    ASSERT(limit >= 0.0f);
+    ASSERT(limit >= REAL_C(0.0));
 
     for(uint32_t index = 0; index < size; index++)
     {
-        if(fabsf(data[index]) < limit)
+        if(REAL_ABS(data[index]) < limit)
         {
-            data[index] = 0.0f;
+            data[index] = REAL_C(0.0);
         }
     }
 }

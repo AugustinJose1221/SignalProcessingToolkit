@@ -5,8 +5,10 @@
 #include <stdbool.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/core/ringbuf.h>
 #else
+#include "real.h"
 #include "ringbuf.h"
 #endif
 
@@ -62,8 +64,8 @@
 
 typedef struct{
     ringbuf_t window;           // The samples of the window
-    double total;               // The running sum of the samples
-    double square_total;        // The running sum of the squares
+    real_t total;               // The running sum of the samples
+    real_t square_total;        // The running sum of the squares
     uint32_t since_refresh;     // Samples since the totals were built again
 }movavg_t;
 
@@ -77,7 +79,7 @@ movavg_t movavg_alloc(uint32_t size);
 
 // Give a filter that uses the memory at data, which must hold as many float
 // values as the given size. This function takes no memory from the heap.
-movavg_t movavg_static_alloc(uint32_t size, float* data);
+movavg_t movavg_static_alloc(uint32_t size, real_t* data);
 
 // Forget every sample and every total.
 void movavg_reset(movavg_t* movavg);
@@ -87,21 +89,21 @@ void movavg_reset(movavg_t* movavg);
 // While the window is still filling, the mean is taken over the samples that
 // have arrived and not over the whole size. Thus the answer is right from the
 // first sample and does not start low.
-float movavg_process_sample(movavg_t* movavg, float sample);
+real_t movavg_process_sample(movavg_t* movavg, real_t sample);
 
 // Filter a whole block. The input and the output may be the same list.
-void movavg_process_block(movavg_t* movavg, const float* input, float* output,
+void movavg_process_block(movavg_t* movavg, const real_t* input, real_t* output,
                           uint32_t size);
 
 // Give the mean of the window without putting a sample in.
-float movavg_get_mean(const movavg_t* movavg);
+real_t movavg_get_mean(const movavg_t* movavg);
 
 // Give the root of the mean of the squares of the window.
 //
 // This follows the level of the signal and not how much it moves. For a signal
 // that sits at 100 and wanders by 1 it gives about 100, where the deviation
 // gives 1. Take this one for the energy or the power of a signal.
-float movavg_get_rms(const movavg_t* movavg);
+real_t movavg_get_rms(const movavg_t* movavg);
 
 // Give the standard deviation of the window.
 //
@@ -118,7 +120,7 @@ float movavg_get_rms(const movavg_t* movavg);
 // Reading the window and taking the mean away from each sample first has no
 // such trouble. It costs a pass over the window, thus call it when the answer
 // is wanted and not for every sample.
-float movavg_get_deviation(const movavg_t* movavg);
+real_t movavg_get_deviation(const movavg_t* movavg);
 
 // Give how many samples the window holds now.
 uint32_t movavg_count(const movavg_t* movavg);

@@ -24,7 +24,7 @@ The number of float elements that ekf_static_alloc needs in the memory pool.
 ### `EKF_DEFAULT_DERIVATIVE_STEP`
 
 ```c
-#define EKF_DEFAULT_DERIVATIVE_STEP     0.001f
+#define EKF_DEFAULT_DERIVATIVE_STEP     REAL_C(0.001)
 ```
 
 The step of the central difference that the filter uses when the caller sets
@@ -79,10 +79,10 @@ typedef struct{
 
         ekf_state_function_t state_function;
         ekf_measurement_function_t measurement_function;
-        float derivative_step;
+        real_t derivative_step;
 
         ekf_scratch_t scratch;
-        float* mempool;
+        real_t* mempool;
         bool singular;              // The last update found a singular matrix
         bool dynamic_alloc;
 }ekf_t;
@@ -102,7 +102,7 @@ matrix holds zero. Give the filter to ekf_free when you no longer need it.
 ### `ekf_static_alloc`
 
 ```c
-ekf_t ekf_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, float* mempool);
+ekf_t ekf_static_alloc(uint32_t ni, uint32_t nx, uint32_t ny, real_t* mempool);
 ```
 
 Give a filter that uses the memory at mempool. That memory must hold as many
@@ -130,7 +130,7 @@ this function before the first update step.
 ### `ekf_set_derivative_step`
 
 ```c
-void ekf_set_derivative_step(ekf_t* ekf, float step);
+void ekf_set_derivative_step(ekf_t* ekf, real_t step);
 ```
 
 Set the step of the central difference. A larger value suits a state whose

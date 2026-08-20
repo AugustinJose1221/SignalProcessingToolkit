@@ -16,7 +16,7 @@ Measures of a list of samples. Declared in `sptk/util/stats.h`.
 ### `STATS_MAD_TO_DEVIATION`
 
 ```c
-#define STATS_MAD_TO_DEVIATION      1.4826f
+#define STATS_MAD_TO_DEVIATION      REAL_C(1.4826)
 ```
 
 What the median absolute deviation must be multiplied by to estimate the
@@ -30,7 +30,7 @@ deviation is 0.6745 of the deviation.
 ### `stats_sum`
 
 ```c
-float stats_sum(const float* data, uint32_t size);
+real_t stats_sum(const real_t* data, uint32_t size);
 ```
 
 Give the sum of the samples.
@@ -38,7 +38,7 @@ Give the sum of the samples.
 ### `stats_mean`
 
 ```c
-float stats_mean(const float* data, uint32_t size);
+real_t stats_mean(const real_t* data, uint32_t size);
 ```
 
 Give the mean of the samples.
@@ -46,7 +46,7 @@ Give the mean of the samples.
 ### `stats_variance`
 
 ```c
-float stats_variance(const float* data, uint32_t size);
+real_t stats_variance(const real_t* data, uint32_t size);
 ```
 
 Give the variance of the samples, divided by the number of samples.
@@ -57,7 +57,7 @@ the thing the list was drawn FROM, multiply by size/(size-1).
 ### `stats_deviation`
 
 ```c
-float stats_deviation(const float* data, uint32_t size);
+real_t stats_deviation(const real_t* data, uint32_t size);
 ```
 
 Give the standard deviation, which is the root of the variance.
@@ -65,7 +65,7 @@ Give the standard deviation, which is the root of the variance.
 ### `stats_rms`
 
 ```c
-float stats_rms(const float* data, uint32_t size);
+real_t stats_rms(const real_t* data, uint32_t size);
 ```
 
 Give the root of the mean of the squares.
@@ -78,7 +78,7 @@ for how much the signal moves.
 ### `stats_min`
 
 ```c
-float stats_min(const float* data, uint32_t size);
+real_t stats_min(const real_t* data, uint32_t size);
 ```
 
 Give the smallest sample.
@@ -86,7 +86,7 @@ Give the smallest sample.
 ### `stats_max`
 
 ```c
-float stats_max(const float* data, uint32_t size);
+real_t stats_max(const real_t* data, uint32_t size);
 ```
 
 Give the largest sample.
@@ -94,7 +94,7 @@ Give the largest sample.
 ### `stats_median`
 
 ```c
-float stats_median(float* data, uint32_t size);
+real_t stats_median(real_t* data, uint32_t size);
 ```
 
 Give the median of the samples.
@@ -109,7 +109,7 @@ and the function gives their mean.
 ### `stats_percentile`
 
 ```c
-float stats_percentile(float* data, uint32_t size, float part);
+real_t stats_percentile(real_t* data, uint32_t size, real_t part);
 ```
 
 Give the sample below which the given part of the list stands. A part of 0.5
@@ -123,7 +123,7 @@ the same measure.
 ### `stats_mad`
 
 ```c
-float stats_mad(const float* data, uint32_t size, float* work);
+real_t stats_mad(const real_t* data, uint32_t size, real_t* work);
 ```
 
 Give the median absolute deviation: the median of how far each sample stands

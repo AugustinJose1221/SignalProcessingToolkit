@@ -1,12 +1,13 @@
 #include "unity.h"
+#include "real_assert.h"
 #include "window.h"
 #include <stdlib.h>
 #include <math.h>
 
-#define TOLERANCE   0.001f
+#define TOLERANCE   REAL_C(0.001)
 #define SIZE        64u
 
-static float buffer[SIZE];
+static real_t buffer[SIZE];
 
 void setUp(void)
 {
@@ -23,25 +24,25 @@ void tearDown(void)
 // The test works this out with a plain transform of its own and not with the
 // fft module, so that a fault in one module cannot hide a fault in the other.
 // The window is padded, thus the shape between the bins can be seen.
-static float highest_side_lobe(window_kind_t kind, float parameter)
+static real_t highest_side_lobe(window_kind_t kind, real_t parameter)
 {
     const uint32_t pad = 2048u;
-    float window[SIZE];
-    float magnitude[1024];
+    real_t window[SIZE];
+    real_t magnitude[1024];
 
     window_build_with(window, SIZE, kind, parameter);
 
     for(uint32_t bin = 0; bin < (pad / 2u); bin++)
     {
-        float real = 0.0f;
-        float imaginary = 0.0f;
+        real_t real = REAL_C(0.0);
+        real_t imaginary = REAL_C(0.0);
         for(uint32_t n = 0; n < SIZE; n++)
         {
-            float angle = (-2.0f * 3.14159265f * (float)bin * (float)n) / (float)pad;
-            real += window[n] * cosf(angle);
-            imaginary += window[n] * sinf(angle);
+            real_t angle = (-REAL_C(2.0) * REAL_C(3.14159265) * (real_t)bin * (real_t)n) / (real_t)pad;
+            real += window[n] * REAL_COS(angle);
+            imaginary += window[n] * REAL_SIN(angle);
         }
-        magnitude[bin] = sqrtf((real * real) + (imaginary * imaginary));
+        magnitude[bin] = REAL_SQRT((real * real) + (imaginary * imaginary));
     }
 
     // The main lobe ends where the magnitude stops falling.
@@ -51,7 +52,7 @@ static float highest_side_lobe(window_kind_t kind, float parameter)
         start++;
     }
 
-    float highest = 0.0f;
+    real_t highest = REAL_C(0.0);
     for(uint32_t bin = start; bin < (pad / 2u); bin++)
     {
         if(magnitude[bin] > highest)
@@ -60,7 +61,7 @@ static float highest_side_lobe(window_kind_t kind, float parameter)
         }
     }
 
-    return 20.0f * log10f(highest / magnitude[0]);
+    return REAL_C(20.0) * REAL_LOG10(highest / magnitude[0]);
 }
 
 void test_window_is_valid_kind(void)
@@ -84,7 +85,7 @@ void test_window_rectangular_is_all_ones(void)
 
     for(uint32_t index = 0; index < SIZE; index++)
     {
-        TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, buffer[index]);
+        TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), buffer[index]);
     }
 }
 
@@ -92,11 +93,11 @@ void test_window_hann_falls_to_nothing_at_both_ends(void)
 {
     window_build(buffer, SIZE, WINDOW_HANN);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, buffer[0]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, buffer[SIZE - 1u]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), buffer[0]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), buffer[SIZE - 1u]);
     // The middle of a window of an even size stands beside the peak, thus it
     // is near one and not exactly one.
-    TEST_ASSERT_TRUE(buffer[SIZE / 2u] > 0.99f);
+    TEST_ASSERT_TRUE(buffer[SIZE / 2u] > REAL_C(0.99));
 }
 
 void test_window_hamming_does_not_fall_to_nothing(void)
@@ -104,8 +105,8 @@ void test_window_hamming_does_not_fall_to_nothing(void)
     window_build(buffer, SIZE, WINDOW_HAMMING);
 
     // This is what parts a Hamming window from a Hann one: its ends hold 0.08.
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.08f, buffer[0]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.08f, buffer[SIZE - 1u]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.08), buffer[0]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.08), buffer[SIZE - 1u]);
 }
 
 void test_every_window_is_symmetric(void)
@@ -115,11 +116,11 @@ void test_every_window_is_symmetric(void)
 
     for(uint32_t k = 0; k < 6u; k++)
     {
-        window_build_with(buffer, SIZE, kind[k], 5.0f);
+        window_build_with(buffer, SIZE, kind[k], REAL_C(5.0));
 
         for(uint32_t index = 0; index < (SIZE / 2u); index++)
         {
-            TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, buffer[index],
+            TEST_ASSERT_REAL_WITHIN(TOLERANCE, buffer[index],
                                      buffer[SIZE - 1u - index]);
         }
     }
@@ -127,156 +128,156 @@ void test_every_window_is_symmetric(void)
 
 void test_window_of_one_sample_holds_one(void)
 {
-    float single = 2.0f;
+    real_t single = REAL_C(2.0);
 
     window_build(&single, 1u, WINDOW_HANN);
 
     // A window of one sample cannot fall at its ends, thus it must not give
     // zero. Zero would take the whole signal away.
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, single);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), single);
 }
 
 void test_window_value_outside_the_window_is_nothing(void)
 {
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f,
-                             window_value(SIZE, SIZE, WINDOW_HANN, 0.0f));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0),
+                             window_value(SIZE, SIZE, WINDOW_HANN, REAL_C(0.0)));
 }
 
 void test_window_tukey_at_nothing_is_rectangular(void)
 {
-    window_build_with(buffer, SIZE, WINDOW_TUKEY, 0.0f);
+    window_build_with(buffer, SIZE, WINDOW_TUKEY, REAL_C(0.0));
 
     for(uint32_t index = 0; index < SIZE; index++)
     {
-        TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, buffer[index]);
+        TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), buffer[index]);
     }
 }
 
 void test_window_tukey_at_one_is_hann(void)
 {
-    float hann[SIZE];
+    real_t hann[SIZE];
 
-    window_build_with(buffer, SIZE, WINDOW_TUKEY, 1.0f);
+    window_build_with(buffer, SIZE, WINDOW_TUKEY, REAL_C(1.0));
     window_build(hann, SIZE, WINDOW_HANN);
 
     for(uint32_t index = 0; index < SIZE; index++)
     {
-        TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, hann[index], buffer[index]);
+        TEST_ASSERT_REAL_WITHIN(TOLERANCE, hann[index], buffer[index]);
     }
 }
 
 void test_window_tukey_holds_its_middle(void)
 {
-    window_build_with(buffer, SIZE, WINDOW_TUKEY, 0.5f);
+    window_build_with(buffer, SIZE, WINDOW_TUKEY, REAL_C(0.5));
 
     // Half of the window falls, thus the middle half stays at one.
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, buffer[SIZE / 2u]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, buffer[0]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), buffer[SIZE / 2u]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), buffer[0]);
 }
 
 void test_window_kaiser_at_nothing_is_rectangular(void)
 {
-    window_build_with(buffer, SIZE, WINDOW_KAISER, 0.0f);
+    window_build_with(buffer, SIZE, WINDOW_KAISER, REAL_C(0.0));
 
     for(uint32_t index = 0; index < SIZE; index++)
     {
-        TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, buffer[index]);
+        TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), buffer[index]);
     }
 }
 
 void test_window_kaiser_falls_further_as_beta_grows(void)
 {
-    float small[SIZE];
-    float large[SIZE];
+    real_t small[SIZE];
+    real_t large[SIZE];
 
-    window_build_with(small, SIZE, WINDOW_KAISER, 2.0f);
-    window_build_with(large, SIZE, WINDOW_KAISER, 8.0f);
+    window_build_with(small, SIZE, WINDOW_KAISER, REAL_C(2.0));
+    window_build_with(large, SIZE, WINDOW_KAISER, REAL_C(8.0));
 
     TEST_ASSERT_TRUE(large[0] < small[0]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, large[SIZE / 2u]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), large[SIZE / 2u]);
 }
 
 void test_window_kaiser_beta_follows_the_rule(void)
 {
     // The rule of Kaiser, at the two values that the header names.
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 5.653f, window_kaiser_beta(60.0f));
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, window_kaiser_beta(20.0f));
-    TEST_ASSERT_TRUE(window_kaiser_beta(100.0f) > window_kaiser_beta(60.0f));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(5.653), window_kaiser_beta(REAL_C(60.0)));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(0.0), window_kaiser_beta(REAL_C(20.0)));
+    TEST_ASSERT_TRUE(window_kaiser_beta(REAL_C(100.0)) > window_kaiser_beta(REAL_C(60.0)));
 
     // The sign of the level must not matter.
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, window_kaiser_beta(60.0f),
-                             window_kaiser_beta(-60.0f));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), window_kaiser_beta(REAL_C(60.0)),
+                             window_kaiser_beta(-REAL_C(60.0)));
 }
 
 void test_window_coherent_gain(void)
 {
     window_build(buffer, SIZE, WINDOW_RECTANGULAR);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, window_coherent_gain(buffer, SIZE));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), window_coherent_gain(buffer, SIZE));
 
     // A Hann window halves the height of a tone. This is the number that a
     // reading must be divided by, and forgetting it is the usual fault.
     window_build(buffer, SIZE, WINDOW_HANN);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.5f, window_coherent_gain(buffer, SIZE));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(0.5), window_coherent_gain(buffer, SIZE));
 }
 
 void test_window_noise_gain(void)
 {
     window_build(buffer, SIZE, WINDOW_RECTANGULAR);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, window_noise_gain(buffer, SIZE));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), window_noise_gain(buffer, SIZE));
 
     window_build(buffer, SIZE, WINDOW_HANN);
-    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.6076f, window_noise_gain(buffer, SIZE));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(0.6076), window_noise_gain(buffer, SIZE));
 }
 
 void test_window_noise_bandwidth(void)
 {
     window_build(buffer, SIZE, WINDOW_RECTANGULAR);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, window_noise_bandwidth(buffer, SIZE));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), window_noise_bandwidth(buffer, SIZE));
 
     // A Hann window gives 1.5 bins. This is the known value of the window.
     window_build(buffer, SIZE, WINDOW_HANN);
-    TEST_ASSERT_FLOAT_WITHIN(0.03f, 1.5f, window_noise_bandwidth(buffer, SIZE));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.03), REAL_C(1.5), window_noise_bandwidth(buffer, SIZE));
 
     window_build(buffer, SIZE, WINDOW_BLACKMAN);
-    TEST_ASSERT_FLOAT_WITHIN(0.03f, 1.73f, window_noise_bandwidth(buffer, SIZE));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.03), REAL_C(1.73), window_noise_bandwidth(buffer, SIZE));
 }
 
 void test_window_apply(void)
 {
-    float input[4] = {2.0f, 2.0f, 2.0f, 2.0f};
-    float window[4] = {0.0f, 0.5f, 0.5f, 0.0f};
-    float output[4];
+    real_t input[4] = {REAL_C(2.0), REAL_C(2.0), REAL_C(2.0), REAL_C(2.0)};
+    real_t window[4] = {REAL_C(0.0), REAL_C(0.5), REAL_C(0.5), REAL_C(0.0)};
+    real_t output[4];
 
     window_apply(window, input, output, 4u);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, output[0]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, output[1]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, output[2]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, output[3]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), output[0]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), output[1]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), output[2]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), output[3]);
 }
 
 void test_window_apply_can_write_over_its_input(void)
 {
-    float signal[4] = {2.0f, 2.0f, 2.0f, 2.0f};
-    float window[4] = {0.0f, 0.5f, 0.5f, 0.0f};
+    real_t signal[4] = {REAL_C(2.0), REAL_C(2.0), REAL_C(2.0), REAL_C(2.0)};
+    real_t window[4] = {REAL_C(0.0), REAL_C(0.5), REAL_C(0.5), REAL_C(0.0)};
 
     window_apply(window, signal, signal, 4u);
 
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 0.0f, signal[0]);
-    TEST_ASSERT_FLOAT_WITHIN(TOLERANCE, 1.0f, signal[1]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), signal[0]);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(1.0), signal[1]);
 }
 
 void test_the_side_lobes_are_where_the_table_says(void)
 {
     // The table in the header sets out what each window is for. If these
     // numbers move, that table is no longer true and the reader is misled.
-    TEST_ASSERT_FLOAT_WITHIN(2.0f, -13.3f,
-                             highest_side_lobe(WINDOW_RECTANGULAR, 0.0f));
-    TEST_ASSERT_FLOAT_WITHIN(2.0f, -31.5f, highest_side_lobe(WINDOW_HANN, 0.0f));
-    TEST_ASSERT_FLOAT_WITHIN(2.0f, -42.4f, highest_side_lobe(WINDOW_HAMMING, 0.0f));
-    TEST_ASSERT_FLOAT_WITHIN(2.0f, -58.1f, highest_side_lobe(WINDOW_BLACKMAN, 0.0f));
-    TEST_ASSERT_FLOAT_WITHIN(3.0f, -92.1f,
-                             highest_side_lobe(WINDOW_BLACKMAN_HARRIS, 0.0f));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(2.0), -REAL_C(13.3),
+                             highest_side_lobe(WINDOW_RECTANGULAR, REAL_C(0.0)));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(2.0), -REAL_C(31.5), highest_side_lobe(WINDOW_HANN, REAL_C(0.0)));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(2.0), -REAL_C(42.4), highest_side_lobe(WINDOW_HAMMING, REAL_C(0.0)));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(2.0), -REAL_C(58.1), highest_side_lobe(WINDOW_BLACKMAN, REAL_C(0.0)));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(3.0), -REAL_C(92.1),
+                             highest_side_lobe(WINDOW_BLACKMAN_HARRIS, REAL_C(0.0)));
 }
 
 void test_the_side_lobes_of_kaiser_are_not_the_stop_band_of_its_rule(void)
@@ -284,7 +285,7 @@ void test_the_side_lobes_of_kaiser_are_not_the_stop_band_of_its_rule(void)
     // The header warns that these two numbers are far apart, and this test
     // holds that warning true. A beta for a stop band of 60 dB gives a window
     // whose own side lobes stand near 42 dB down, not 60.
-    float beta = window_kaiser_beta(60.0f);
+    real_t beta = window_kaiser_beta(REAL_C(60.0));
 
-    TEST_ASSERT_FLOAT_WITHIN(2.0f, -41.6f, highest_side_lobe(WINDOW_KAISER, beta));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(2.0), -REAL_C(41.6), highest_side_lobe(WINDOW_KAISER, beta));
 }

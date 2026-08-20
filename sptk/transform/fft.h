@@ -5,8 +5,10 @@
 #include <stdbool.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/linalg/cnum.h>
 #else
+#include "real.h"
 #include "cnum.h"
 #endif
 
@@ -81,17 +83,17 @@ void fft_inverse(fft_t* fft, cnum_t* data);
 // first half. Thus only the bins from 0 to size/2 hold new information. This
 // function is not the faster method that uses that mirror. It gives the same
 // result with less code.
-void fft_forward_real(fft_t* fft, const float* input, cnum_t* output);
+void fft_forward_real(fft_t* fft, const real_t* input, cnum_t* output);
 
 // Write the size of each element of the data into the magnitude list. The size
 // of an element says how strong that frequency is in the signal. Both lists
 // must hold as many values as the given size.
-void fft_magnitude(const cnum_t* data, float* magnitude, uint32_t size);
+void fft_magnitude(const cnum_t* data, real_t* magnitude, uint32_t size);
 
 // Write the square of the size of each element into the power list. This
 // function takes no square root, thus it is faster than fft_magnitude. Both
 // lists must hold as many values as the given size.
-void fft_power(const cnum_t* data, float* power, uint32_t size);
+void fft_power(const cnum_t* data, real_t* power, uint32_t size);
 
 // Give the frequency in hertz that the bin with the given index holds. The
 // sample rate is the number of samples in one second.
@@ -99,7 +101,7 @@ void fft_power(const cnum_t* data, float* power, uint32_t size);
 // A bin above size/2 holds a frequency above half the sample rate. Such a bin
 // mirrors a lower bin, and this function gives the negative frequency for it,
 // which is the frequency that the mirror holds.
-float fft_bin_frequency(uint32_t index, uint32_t size, float sample_rate);
+real_t fft_bin_frequency(uint32_t index, uint32_t size, real_t sample_rate);
 
 // Release the memory of a transform that came from fft_alloc. This function
 // does nothing for a transform that came from fft_static_alloc, thus a call

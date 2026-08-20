@@ -29,8 +29,8 @@ The largest number of coefficients that a wavelet of this module holds.
 typedef struct{
     dwt_wavelet_t wavelet;      // Which wavelet the transform uses
     uint32_t length;            // The number of coefficients of that wavelet
-    float low[DWT_MAX_COEFFICIENT_COUNT];   // The filter of the approximation
-    float high[DWT_MAX_COEFFICIENT_COUNT];  // The filter of the detail
+    real_t low[DWT_MAX_COEFFICIENT_COUNT];   // The filter of the approximation
+    real_t high[DWT_MAX_COEFFICIENT_COUNT];  // The filter of the detail
 }dwt_t;
 ```
 
@@ -59,7 +59,7 @@ samples.
 ### `dwt_forward`
 
 ```c
-void dwt_forward(dwt_t* dwt, const float* signal, uint32_t size, float* approximation, float* detail);
+void dwt_forward(dwt_t* dwt, const real_t* signal, uint32_t size, real_t* approximation, real_t* detail);
 ```
 
 Take one level of the transform.
@@ -71,7 +71,7 @@ the three lists must not be the same memory.
 ### `dwt_inverse`
 
 ```c
-void dwt_inverse(dwt_t* dwt, const float* approximation, const float* detail, uint32_t size, float* signal);
+void dwt_inverse(dwt_t* dwt, const real_t* approximation, const real_t* detail, uint32_t size, real_t* signal);
 ```
 
 Take one level of the inverse transform.
@@ -82,7 +82,7 @@ writes size values into the signal. The size must be even.
 ### `dwt_forward_multi`
 
 ```c
-void dwt_forward_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels, float* work);
+void dwt_forward_multi(dwt_t* dwt, real_t* signal, uint32_t size, uint32_t levels, real_t* work);
 ```
 
 Take several levels of the transform, one after the other.
@@ -99,7 +99,7 @@ memory.
 ### `dwt_inverse_multi`
 
 ```c
-void dwt_inverse_multi(dwt_t* dwt, float* signal, uint32_t size, uint32_t levels, float* work);
+void dwt_inverse_multi(dwt_t* dwt, real_t* signal, uint32_t size, uint32_t levels, real_t* work);
 ```
 
 Take several levels of the inverse transform. The list holds the result of
@@ -109,7 +109,7 @@ buffer must hold as many values as the signal.
 ### `dwt_threshold`
 
 ```c
-void dwt_threshold(float* data, uint32_t size, float limit);
+void dwt_threshold(real_t* data, uint32_t size, real_t limit);
 ```
 
 Set every value of the list whose size is below the limit to zero.

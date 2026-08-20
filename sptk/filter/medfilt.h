@@ -5,8 +5,10 @@
 #include <stdbool.h>
 
 #ifndef TEST
+#include <sptk/core/real.h>
 #include <sptk/core/ringbuf.h>
 #else
+#include "real.h"
 #include "ringbuf.h"
 #endif
 
@@ -68,7 +70,7 @@
 
 typedef struct{
     ringbuf_t window;           // The samples in the order they arrived
-    float* sorted;              // The same samples, in order of value
+    real_t* sorted;              // The same samples, in order of value
     bool dynamic_alloc;         // True if the memory comes from the heap
 }medfilt_t;
 
@@ -79,7 +81,7 @@ medfilt_t medfilt_alloc(uint32_t size);
 // Give a filter that uses the memory of the caller. Both lists must hold as
 // many float values as the given size. This function takes no memory from the
 // heap.
-medfilt_t medfilt_static_alloc(uint32_t size, float* window, float* sorted);
+medfilt_t medfilt_static_alloc(uint32_t size, real_t* window, real_t* sorted);
 
 // Forget every sample.
 void medfilt_reset(medfilt_t* medfilt);
@@ -88,14 +90,14 @@ void medfilt_reset(medfilt_t* medfilt);
 //
 // While the window is still filling, the median is taken over the samples that
 // have arrived and not over the whole size.
-float medfilt_process_sample(medfilt_t* medfilt, float sample);
+real_t medfilt_process_sample(medfilt_t* medfilt, real_t sample);
 
 // Filter a whole block. The input and the output may be the same list.
-void medfilt_process_block(medfilt_t* medfilt, const float* input, float* output,
+void medfilt_process_block(medfilt_t* medfilt, const real_t* input, real_t* output,
                            uint32_t size);
 
 // Give the median of the window without putting a sample in.
-float medfilt_get_median(medfilt_t* medfilt);
+real_t medfilt_get_median(medfilt_t* medfilt);
 
 // Give the value below which the given part of the window stands. A part of
 // 0.5 gives the median, 0.25 the first quarter.
@@ -103,7 +105,7 @@ float medfilt_get_median(medfilt_t* medfilt);
 // The window is already held in order, thus this costs nothing more than the
 // median does. It suits a caller that watches how far a signal spreads as well
 // as where its middle stands.
-float medfilt_get_percentile(medfilt_t* medfilt, float part);
+real_t medfilt_get_percentile(medfilt_t* medfilt, real_t part);
 
 // Give how many samples the window holds now.
 uint32_t medfilt_count(const medfilt_t* medfilt);
