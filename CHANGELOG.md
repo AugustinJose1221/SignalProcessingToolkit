@@ -1,3 +1,16 @@
+## 0.6.1 (2026-08-23)
+
+### Fix
+
+- **property**: Ask the bindings for a buffer instead of building one
+
+The property tests that examine the peak and the valley detection built the
+buffers they hand to the library as `ctypes.c_float`. That was right while the
+library held every number in a float and wrong the moment it could hold one in
+a double, thus five tests could not run at all in a 64 bit build. They now ask
+`sptk.real_buffer` for the memory, and no test names a type of `ctypes` any
+more.
+
 ## 0.6.0 (2026-08-23)
 
 **Every signature that held a float now holds a real_t.** This breaks every
