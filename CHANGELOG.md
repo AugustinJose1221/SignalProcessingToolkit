@@ -1,3 +1,18 @@
+## 0.6.2 (2026-08-23)
+
+### Fix
+
+- **filter**: Make the lowest cutoff follow the width of the build
+
+`IIR_MIN_CUTOFF` and `DCBLOCK_MIN_CUTOFF` were each one number, written when
+the library had one width. When the width became a choice they stayed where
+they were, thus a build at 64 bits was refused filters that it can hold
+exactly. A high pass at 0.5 Hz against 32 kHz is a cutoff of 0.000016: out of
+reach at 32 bits, and nothing at all at 64.
+
+Both limits are now a thousand times lower at 64 bits, and the guides hold the
+measurement that sets each one.
+
 ## 0.6.1 (2026-08-23)
 
 ### Fix
