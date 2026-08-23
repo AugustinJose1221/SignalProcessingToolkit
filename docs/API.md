@@ -82,6 +82,7 @@ name and shape of every function.
 | [`cmatrix`](api/cmatrix.md) | Matrices of complex numbers |
 | [`pmatrix`](api/pmatrix.md) | Matrices with a parameter |
 | [`cnum`](api/cnum.md) | Complex numbers |
+| [`quaternion`](api/quaternion.md) | Which way something points |
 | [`vector`](api/vector.md) | Vectors of float values |
 | [`vector2d`](api/vector2d.md) | Vectors with two values |
 

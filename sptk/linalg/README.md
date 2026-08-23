@@ -118,3 +118,46 @@ lower half and ignoring the upper half, which would be a different matrix from
 the one that was given. The tolerance follows the size of the elements, because
 a covariance built by arithmetic is symmetric in principle and not in its last
 digits.
+
+
+## quaternion
+
+Which way something is pointing, held as four numbers.
+
+**Why not three angles.** At one attitude two of the three axes line up, and
+from that moment the three no longer describe three separate turns: the third
+number is lost. This is gimbal lock, and it is not a rounding trouble that a
+wider number would fix — the description itself has a hole in it. The hole is
+not in an odd corner either: for roll, pitch and yaw it stands at a pitch of
+straight up, which is where an aircraft, a robot arm and a camera all go on
+purpose.
+
+**Why not a rotation matrix.** A matrix has no hole either and is the right
+thing to hold when a rotation is about to be applied to many vectors. But it
+holds nine numbers keeping six rules between them, and arithmetic wears those
+rules away: after a few thousand small turns the rows are no longer quite at
+right angles and what was a rotation has quietly become a rotation with a
+stretch in it. Four numbers keep **one** rule, and `quaternion_normalise` puts
+it back in one line. A test carries an attitude through 100 000 steps and finds
+its length still 1.
+
+**The half angle, and the trap it sets.** A turn of an angle about an axis
+gives `w = cos(angle/2)` and the axis times `sin(angle/2)`. Thus turning by a
+whole circle gives `w = -1` and not `1`, and **a quaternion and its negative
+are the same attitude**. Any code that compares two attitudes must allow for
+that; `quaternion_is_same_attitude` does, and a great deal of trouble comes
+from code that does not.
+
+**The order of two turns matters.** `quaternion_multiply(a, b)` gives `b`
+followed by `a`, which is the same order as multiplying two rotation matrices.
+
+**Reading a matrix back needs care.** There are four forms of the answer, each
+dividing by a root, and a root near nothing loses most of its digits.
+`quaternion_from_matrix` reads whichever of the four is largest, thus it is
+accurate at every attitude; reading one form always would lose its accuracy
+near a half turn, which is an ordinary attitude and not a corner case.
+
+**`quaternion_slerp` turns at a steady rate.** Adding two attitudes and
+normalising is the obvious shortcut and it hurries through the middle. It also
+takes the short way round, which needs the sign allowed for: without that, two
+attitudes a few degrees apart could be interpolated the long way round.
