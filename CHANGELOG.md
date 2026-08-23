@@ -1,3 +1,62 @@
+## 0.8.0 (2026-08-24)
+
+Three pieces that belong together: a factor that shapes a spread, a filter that
+uses it to follow a state through a model that bends, and a way of holding
+which direction something points that has no hole in it.
+
+**`matrix_cholesky`** gives the lower triangle whose product with its own
+transpose gives the matrix back. Its use is that a covariance says how far a
+set of numbers spreads, and the factor is the SHAPE of that spread: a step of
+unit length multiplied by it lands on the edge of the spread, whichever way it
+points. A test holds exactly that, taking unit steps all the way round a circle.
+
+**`ukf`**, the unscented Kalman filter, follows a state through a model that
+bends without taking a derivative at all. It puts a handful of chosen points
+through the model itself and looks at where they land. Measured, a spread put
+through a square, where the true middle of what comes out is the middle squared
+plus the spread:
+
+| middle in | spread in | truth | `ukf` | a straight line |
+| --- | --- | --- | --- | --- |
+| 0.0 | 9.0 | 9.0 | 9.0 | 0.0 |
+| 3.0 | 1.0 | 10.0 | 10.0 | 9.0 |
+
+The header says what that does not mean as plainly as what it does: for a
+smooth model with many measurements both this and `ekf` settle to the same
+answer, and `ekf` often gets there with slightly less work. The gain is in one
+step through a bend, and in needing no derivative.
+
+**How small alpha may be follows the width of the build.** The weights of the
+points are about `1/(alpha*alpha*nx)` and must add to 1, thus a small alpha
+makes very large weights adding to a very small number. At 32 bits and an alpha
+of 0.001, which the literature gives, the weights come out 6 percent wrong
+before the filter has done anything. `UKF_DEFAULT_ALPHA` therefore follows the
+width, and `ukf_is_valid_spread` says whether a given alpha can be held.
+
+**`quaternion`** holds which way something is pointing as four numbers. Three
+angles have a hole in them at a pitch of straight up, which is where an
+aircraft, a robot arm and a camera all go on purpose, and it is not a rounding
+trouble that a wider number would fix. A rotation matrix has no hole and holds
+nine numbers keeping six rules that arithmetic wears away; four numbers keep
+one rule, and a test carries an attitude through 100 000 steps and finds its
+length still 1.
+
+**An example for both.** `attitude.c` gives the filter a real model: an
+attitude from a gyroscope and an accelerometer. It reports the tilt apart from
+the total, because an accelerometer can answer the first and can say nothing
+about the second. The gyroscope alone drifts to 25 degrees of tilt in thirty
+seconds where the filter holds it under one.
+
+### Feat
+
+- **matrix**: Add the factor of Cholesky
+- **quaternion**: Add which way something points
+- **ukf**: Add the unscented Kalman filter
+
+### Fix
+
+- **ukf**: Give the turned gain a matrix of its own shape
+
 ## 0.7.1 (2026-08-23)
 
 ### Docs
