@@ -1,0 +1,142 @@
+# resample
+
+This file comes from the comments in the headers. Do not change it by hand.
+To make it again, give:
+
+```bash
+python3 scripts/api_doc.py
+```
+
+Changing the rate of a signal. Declared in `sptk/filter/resample.h`.
+
+[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+
+## Types
+
+### `resample_t`
+
+```c
+typedef struct{
+    fir_t filter;               // The filter that keeps the aliases out
+    ringbuf_t history;          // The last samples at the input rate
+    uint32_t factor;            // How many samples in for each one out
+    uint32_t phase;             // Where the next output falls
+    bool dynamic_alloc;         // True if the memory comes from the heap
+}resample_t;
+```
+
+## Functions
+
+### `resample_advised_length`
+
+```c
+uint32_t resample_advised_length(uint32_t factor);
+```
+
+How many coefficients a filter needs for a given factor, as a rule of thumb.
+
+This gives a turn of about a fifth of the new rate, and a stop band about
+60 dB down. It is a starting point and not a law: a caller who needs a
+sharper edge gives a longer filter, and one who can accept a softer edge
+saves work with a shorter one.
+
+### `resample_is_valid_factor`
+
+```c
+bool resample_is_valid_factor(uint32_t factor);
+```
+
+True if this factor can be used. It must be 2 or more; a factor of 1 changes
+nothing and a factor of 0 means nothing.
+
+### `resample_alloc_decimator`
+
+```c
+resample_t resample_alloc_decimator(uint32_t factor, uint32_t length);
+```
+
+Give a decimator that keeps one sample for each factor, with a filter of the
+given length. The memory comes from the heap.
+
+Give resample_advised_length(factor) for the length unless there is a reason
+to give another. The length must be odd, so that the filter has a middle and
+delays every frequency by the same time.
+
+### `resample_alloc_interpolator`
+
+```c
+resample_t resample_alloc_interpolator(uint32_t factor, uint32_t length);
+```
+
+Give an interpolator that makes factor samples for each one, with a filter
+of the given length. The memory comes from the heap.
+
+### `resample_reset`
+
+```c
+void resample_reset(resample_t* resample);
+```
+
+Forget every sample. The filter keeps its coefficients.
+
+### `resample_decimate`
+
+```c
+bool resample_decimate(resample_t* resample, real_t sample, real_t* output);
+```
+
+Put one sample into a decimator.
+
+Give true when an output sample is ready, and write it into output. That
+happens once for each factor samples put in.
+
+### `resample_interpolate`
+
+```c
+uint32_t resample_interpolate(resample_t* resample, real_t sample, real_t* output);
+```
+
+Put one sample into an interpolator and write the factor samples that come
+out of it.
+
+The output must hold as many values as the factor. Give how many were
+written, which is always the factor.
+
+### `resample_decimate_block`
+
+```c
+uint32_t resample_decimate_block(resample_t* resample, const real_t* input, real_t* output, uint32_t size);
+```
+
+Run a whole block through a decimator. The output must have room for
+size/factor samples. Give how many were written.
+
+### `resample_interpolate_block`
+
+```c
+uint32_t resample_interpolate_block(resample_t* resample, const real_t* input, real_t* output, uint32_t size);
+```
+
+Run a whole block through an interpolator. The output must have room for
+size*factor samples. Give how many were written.
+
+### `resample_delay`
+
+```c
+uint32_t resample_delay(const resample_t* resample);
+```
+
+How many samples the answer comes behind the input, counted at the OUTPUT
+rate.
+
+A filter with a middle delays every frequency by half its length. For a
+decimator that is half the length divided by the factor, because the output
+samples are further apart.
+
+### `resample_free`
+
+```c
+void resample_free(resample_t* resample);
+```
+
+Release the memory of a resampler that came from one of the alloc functions.
