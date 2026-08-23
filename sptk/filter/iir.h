@@ -51,27 +51,34 @@ typedef struct{
     bool dynamic_alloc;         // True if the memory comes from the heap
 }iir_t;
 
-// The smallest cutoff that a design in single precision can hold.
+// The smallest cutoff that a design can hold, which follows the width of the
+// build.
 //
 // A section keeps its poles near the circle when the cutoff is low, and how
-// near decides how much precision the coefficients need. A float holds about
-// seven digits. Below this cutoff those digits run out: the coefficients round
-// to values that no longer describe the filter that was asked for, and the
-// filter gives a wrong answer WITHOUT SAYING SO.
+// near decides how much precision the coefficients need. When the digits run
+// out the coefficients round to values that no longer describe the filter that
+// was asked for, and the filter gives a wrong answer WITHOUT SAYING SO.
 //
-// Measured, at the gain that should be 1.0 at zero frequency:
+// Measured, at the gain that should be 1.0 at zero frequency, with the check
+// taken out so that every cutoff could be tried:
 //
-//     cutoff    0.0100   0.0020   0.0010   0.0005   0.0001
-//     gain      1.0000   1.0014   0.9959   0.9909   0.6849
+//     cutoff     0.001   0.0001    1e-5    1e-6    1e-7
+//     32 bits    0.996    0.685   0.000   0.000   0.000
+//     64 bits    1.000    1.000   1.000   1.000   1.001
 //
-// Thus 0.002 and above is safe, 0.001 costs about one percent, and below
-// 0.0005 the answer means nothing. The limit stands at 0.001.
+// Thus the limit is a thousand times lower at 64 bits, and the same filter
+// that no 32 bit build can hold is exact there. A high pass at 0.5 Hz against
+// 32 kHz is a cutoff of 0.000016: out of reach at 32 bits, and nothing at all
+// at 64.
 //
-// A cutoff below this is nearly always a sign that the sample rate is too high
-// for the work. A cutoff of 0.5 Hz against 32 kHz is 0.000016 and cannot be
-// held; the same cutoff against 500 Hz is 0.001 and can. Bring the rate down
-// first, as the guide of this area says.
+// A cutoff below the limit of the build is usually a sign that the sample rate
+// is too high for the work. Bring the rate down first, as the guide of this
+// area says, or build at 64 bits.
+#if defined(SPTK_REAL_64)
+#define IIR_MIN_CUTOFF      REAL_C(0.000001)
+#else
 #define IIR_MIN_CUTOFF      REAL_C(0.001)
+#endif
 
 // True if a design can hold the given cutoff, which is a part of the sample
 // rate. Ask this before a design when the cutoff comes from a measurement or
