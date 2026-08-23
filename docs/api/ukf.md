@@ -24,13 +24,14 @@ How many points the filter places for a state of the given size.
 ### `UKF_MEMPOOL_SIZE`
 
 ```c
-#define UKF_MEMPOOL_SIZE(ni, nx, ny)    ((5*(nx)*(nx)) + (3*(nx)*(ny)) \
+#define UKF_MEMPOOL_SIZE(ni, nx, ny)    ((5*(nx)*(nx)) + (4*(nx)*(ny)) \
 ```
 
 The number of float elements that ukf_static_alloc needs in the memory pool.
 Counted from what ukf_build_matrices really takes, in the same order:
   nx by nx : p, q, factor, nxnx_a, nxnx_b
-  nx by ny : k, nxny_a, nxny_b
+  nx by ny : k, nxny_a, nxny_b, and nynx_a, which is ny by nx and holds the
+             same number of elements
   ny by ny : r, nyny_a, nyny_b, and the augmented matrix, which is ny by 2ny
   points   : the points and where they moved to, the same for the
              measurement, and the two lists of weights
@@ -95,6 +96,7 @@ typedef struct{
         matrix_t moved;             // Where each point went (nx x 2nx+1)
         matrix_t nxny_a;
         matrix_t nxny_b;
+        matrix_t nynx_a;            // The gain turned round (ny x nx)
         matrix_t nyny_a;
         matrix_t nyny_b;
         matrix_t measured;          // What each point measured (ny x 2nx+1)
