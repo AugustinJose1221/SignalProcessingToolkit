@@ -82,3 +82,39 @@ type of function.
 operations for a vector of two values, so that the caller does not name the
 size at each call. Its result is a `vector_t`, thus every function of `vector`
 takes it.
+
+
+## The factor of Cholesky
+
+`matrix_cholesky` gives the lower triangle L for which L times its own
+transpose gives the matrix back. Only a symmetric matrix that is positive
+definite has one.
+
+**What it is for.** A covariance matrix says how far a set of numbers spreads
+and how their spreads lean on each other. Its factor is the **shape** of that
+spread: a set of directions, each as long as the spread reaches that way.
+Multiply a step of unit length by the factor and the step lands on the edge of
+the spread, whichever way it points. A test holds exactly that, taking unit
+steps all the way round a circle and checking each shaped step lands on the
+edge.
+
+That is what the unscented Kalman filter needs to place its points, and it is
+how a set of unrelated random numbers is made to spread the way a given
+covariance says.
+
+It is also the fast way to solve a set of equations whose matrix is a
+covariance: about half the work of a general elimination, because it uses the
+symmetry instead of ignoring it.
+
+**When it does not exist, and why that matters.** Positive definite means the
+spread is real: no direction in which it is zero or negative. A covariance
+worked out by a long chain of arithmetic can lose that, and when it does the
+failure is the first sign that something upstream has gone wrong. The function
+gives a matrix of all zeros then, as `matrix_inverse` does for a singular
+matrix.
+
+**It refuses a matrix that is not symmetric** rather than quietly using the
+lower half and ignoring the upper half, which would be a different matrix from
+the one that was given. The tolerance follows the size of the elements, because
+a covariance built by arithmetic is symmetric in principle and not in its last
+digits.
