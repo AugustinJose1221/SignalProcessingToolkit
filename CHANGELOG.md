@@ -1,3 +1,56 @@
+## 0.6.0 (2026-08-23)
+
+**Every signature that held a float now holds a real_t.** This breaks every
+caller, and the change is mechanical: a program that spelled `float` for a
+value of the library spells `real_t` instead.
+
+The library spelled `float` in six hundred places and `double` in three
+modules. That made the width of a number a decision taken module by module, and
+it made the accuracy of the library a thing a caller could not choose. Both are
+now one decision, taken one time for the whole build:
+
+```bash
+cmake -S . -B build                        # 32 bits, the default
+cmake -S . -B build -DSPTK_REAL_64=ON      # 64 bits
+```
+
+The option is `PUBLIC`, because a program and a library that disagreed about
+the width would not fail to build and would give nonsense.
+
+**Write every number with `REAL_C`.** A number written as `0.5` in a 32 bit
+build quietly makes the arithmetic around it run in 64 bits and then throws the
+extra away; measured on one line, that turned three instructions into six. A
+number written as `0.5f` in a 64 bit build is rounded to seven digits before
+the wider arithmetic ever sees it. `REAL_C(0.5)` writes the right one.
+
+**Give `real_sin` and not `sinf` to `pmatrix`.** That module holds a function
+for each of its elements. A caller could give it `sinf` directly, and after
+this change that still builds and gives nonsense at 64 bits, because a function
+that takes a float is called through a pointer that takes a `real_t`. The
+functions `real_sin`, `real_cos`, `real_tan`, `real_sqrt`, `real_exp`,
+`real_log` and `real_abs` have addresses that always agree with `real_t`.
+
+**What the narrower width costs is written down.** The three modules that held
+a double now hold a `real_t` like everything else. The tests record the cost
+rather than hide it, and each one holds a different number for each width:
+
+| measurement | 32 bits | 64 bits |
+| --- | --- | --- |
+| `stats_variance`, five samples at eight million, true value 2 | 2.25 | 2.00 |
+| `movavg` deviation, the same samples, true value 1.414 | 1.50 | 1.414 |
+
+The `dcblock` module keeps its worth at both widths, and the measurement now
+says why more clearly: what it gains over a section comes from being one pole
+and not from any wider number.
+
+**Both widths are examined.** The unit tests, the property based tests, the
+builds, the examples, the benchmark and the compiler warnings all run at both
+widths in the workflow. A fault can live in one width and not in the other.
+
+### Feat
+
+- **real**: Hold every number in one type whose width the build chooses
+
 ## 0.5.0 (2026-08-19)
 
 Six modules join the library, and two faults that gave a wrong answer without
