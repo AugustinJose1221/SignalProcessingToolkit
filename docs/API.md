@@ -40,6 +40,7 @@ name and shape of every function.
 | [`movavg`](api/movavg.md) | The mean of the last samples |
 | [`medfilt`](api/medfilt.md) | The median of the last samples |
 | [`dcblock`](api/dcblock.md) | Taking the level of a signal away |
+| [`hampel`](api/hampel.md) | Replacing only the samples that are wrong |
 
 ## Estimation
 

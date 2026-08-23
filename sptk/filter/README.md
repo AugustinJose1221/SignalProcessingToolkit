@@ -268,6 +268,41 @@ Where a band must go, put this first to bring the signal near zero and then use
 **The level is worth reading on its own.** `dcblock_get_level` gives the slow
 part of the signal, which carries the drift and the wander of a contact.
 
+
+## hampel
+
+Find the samples that are wrong and replace **only those**.
+
+**Why a median alone is not enough.** A median filter removes a spike and also
+changes every other sample it touches. Give it a clean signal and it gives back
+a different clean signal: every peak narrower than half its window is gone and
+the rest is flattened. That is a heavy price for a fault that happens once a
+second.
+
+This filter asks one question of each sample: how far does it stand from the
+middle of its neighbours, measured against how far they usually stand from it?
+A sample far outside is replaced by the middle; every other sample is passed
+through **exactly** as it arrived. A recording with three bad samples in a
+minute comes back with three samples changed.
+
+**The spread is a median absolute deviation, and that is the whole of why it
+works.** A standard deviation is moved by the very samples it is meant to
+catch. This is called masking: one enormous spike raises the deviation so far
+that a smaller fault beside it slips through the threshold built to catch
+faults. Two tests hold that story — one shows this filter catching both a fault
+of 100 000 and a fault of 50 three samples later, the other works the same
+window out by hand and shows a three-deviation rule letting the small one
+through.
+
+**The answer comes late.** A sample can only be judged against its neighbours
+on both sides, thus `hampel_delay` samples must pass before the answer for one
+arrives. `hampel_process_block` puts that right and gives an output as long as
+its input.
+
+**Read `hampel_replaced_count`.** It is the measure of how much was wrong with
+the signal. A recording where one sample in fifty is replaced is a recording to
+look at rather than to trust.
+
 ## What a design cannot do, and how it says so
 
 Every design function gives a `bool`. It is `false` when the filter that was
