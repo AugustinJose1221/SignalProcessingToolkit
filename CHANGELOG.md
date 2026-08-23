@@ -1,3 +1,56 @@
+## 0.7.0 (2026-08-23)
+
+Six modules join the library. Each one answers a question that a caller could
+previously only answer by writing the arithmetic by hand, and each one carries
+the trap that makes that arithmetic easy to get wrong.
+
+**`correlate`** — how alike two signals are at each lag. Three questions are
+one question with different signals put into it: how long is the delay between
+two recordings, does this signal repeat and how often, and is this shape in
+that signal. `correlate_best_lag` is the whole of finding a period in one call,
+and it gives a strength that can be judged rather than only compared.
+
+**`psd`** — how much power at each frequency, by the method of Welch. The
+scaling is the part that is usually wrong, and it is the reason this is a
+module and not a page of notes. Three corrections are needed, and with all
+three a wave of amplitude A has an area under the curve of `A*A/2` whatever the
+block, the window or the overlap.
+
+**`hampel`** — replacing only the samples that are wrong. A median filter
+removes a spike and changes every other sample it touches; this changes only
+the samples it has a reason to change. The spread is a median absolute
+deviation and not a standard one, because a standard deviation is moved by the
+very samples it is meant to catch.
+
+**`adaptive`** — a filter that finds its own coefficients. It takes away noise
+that a second sensor measures on its own, which works where no filter of
+frequency can, because the noise and the signal may hold the same frequencies.
+
+**`resample`** — changing the rate of a signal. Keeping every fourth sample
+looks like the whole of it and is the half that goes wrong: a frequency above
+the new rate does not disappear, it comes back at a frequency it never had and
+nothing afterwards can find out. Only the samples that are kept are worked out,
+thus the filtering costs the output rate and not the input rate.
+
+**`filtfilt`** — filtering with no delay, by running the filter both ways. The
+peak of a heartbeat stays where it was. Both prices are stated: the whole
+signal must be in hand, and the gain is squared.
+
+Every module states what it cannot do as plainly as what it can, and the tests
+hold those statements rather than leaving them as claims in a comment: that a
+reference holding the signal makes an adaptive filter remove the signal, that
+throwing samples away without a filter makes a false tone, that a three
+deviation rule lets a small fault through when a large one stands beside it.
+
+### Feat
+
+- **adaptive**: Add a filter that finds its own coefficients
+- **correlate**: Add how alike two signals are at each lag
+- **filtfilt**: Add filtering with no delay by running the filter both ways
+- **hampel**: Add replacing only the samples that are wrong
+- **psd**: Add the power at each frequency by the method of Welch
+- **resample**: Add changing the rate of a signal
+
 ## 0.6.2 (2026-08-23)
 
 ### Fix
