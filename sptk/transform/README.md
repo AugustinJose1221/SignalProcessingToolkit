@@ -8,6 +8,7 @@ question decides which one you want.
 | --- | --- | --- |
 | `fft` | Which frequencies does this block hold? | Memory for the whole block |
 | `window` | How do I stop one tone smearing over the others? | One multiplication for each sample |
+| `psd` | How much power at each frequency, measured steadily? | One transform for each block |
 | `correlate` | How long is the delay, does this repeat, is this shape in there? | Size times lags, or three transforms |
 | `goertzel` | How much of *this one* frequency does it hold? | Three float values |
 | `hilbert` | What is the amplitude and the frequency at each moment? | One transform each way |
@@ -58,6 +59,46 @@ for a stop band of 60 dB gives a window whose own side lobes stand only 42 dB
 down. The header holds a table of both.
 
 The module gets no memory. It writes into a list that the caller holds.
+
+## psd
+
+How much power a signal holds at each frequency, by the method of Welch.
+
+**One transform of a long signal is a poor measurement.** Making the signal
+twice as long gives twice as many bins, each still as noisy: the answer becomes
+finer and no more certain. Welch cuts the signal into overlapping blocks,
+transforms each, and takes the mean. The bins are coarser and the noise in each
+falls as the number of blocks grows:
+
+| | frequency | steadiness |
+| --- | --- | --- |
+| fewer, longer blocks | fine | noisy |
+| more, shorter blocks | coarse | steady |
+
+**The scaling is the part that is usually wrong.** A density is power for each
+hertz, thus its numbers must not change when the block, the window or the
+overlap changes. Three corrections get there, and leaving any out gives an
+answer that looks reasonable and is wrong by a factor nobody notices:
+
+- **the window** makes the signal smaller. The correction is the sum of the
+  SQUARES of the window and not the sum of it, because power follows the
+  square. Using the wrong one is out by about a quarter for a Hann window.
+- **the sample rate** turns power for each bin into power for each hertz.
+- **the other half of the spectrum** holds the same power again at the negative
+  frequencies, thus every bin but the first and the last is doubled.
+
+With all three, a wave of amplitude A has an area under the curve of `A*A/2`,
+whatever the block, the window or the overlap. Three tests hold exactly that,
+each varying one of the three.
+
+**Read the area, not the height.** The number for one bin means little on its
+own. `psd_band_power` adds the density over a band, which gives the power the
+signal holds between those two frequencies.
+
+**Overlap by half the block.** A window throws away the samples at the ends of
+every block; overlapping uses them again in the next one. More than half costs
+work and gains little, because blocks that overlap heavily hold much the same
+samples and their noise no longer averages away.
 
 ## correlate
 
