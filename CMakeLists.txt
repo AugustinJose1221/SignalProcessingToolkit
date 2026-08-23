@@ -67,7 +67,17 @@ if(BUILD_EXAMPLE)
         examples/ekf.c
         examples/goertzel.c
         examples/dwt.c
-        examples/savgol.c)
+        examples/savgol.c
+        examples/resample.c
+        examples/psd.c
+        examples/correlate.c
+        examples/adaptive.c
+        examples/clean.c
+        examples/filtfilt.c
+        examples/kalman.c
+        examples/stream.c
+        examples/calibrate.c
+        examples/linalg.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()

@@ -27,6 +27,16 @@ comment that says so.
 | `RUN_HHT_EXAMPLE` | [hht.c](hht.c) | An accelerometer on a motor | How fast does the motor turn at each moment? |
 | `RUN_EMD_EXAMPLE` | [emd.c](emd.c) | — | Taking a signal apart into intrinsic mode functions |
 | `RUN_MATRIX_EXAMPLE` | [matrix.c](matrix.c) | — | The operations of the matrix module |
+| `RUN_RESAMPLE_EXAMPLE` | [resample.c](resample.c) | A vibration sensor on a bearing | How do I log at a lower rate without inventing a tone? |
+| `RUN_PSD_EXAMPLE` | [psd.c](psd.c) | An accelerometer on a pump | Which band holds the energy, and is the bearing failing? |
+| `RUN_CORRELATE_EXAMPLE` | [correlate.c](correlate.c) | Two microphones | Which way did that sound come from? |
+| `RUN_ADAPTIVE_EXAMPLE` | [adaptive.c](adaptive.c) | Two microphones, one at a fan | How do I hear a voice over a fan? |
+| `RUN_CLEAN_EXAMPLE` | [clean.c](clean.c) | A load cell on a filling line | The level drifts and some samples are nonsense. What order do I clean in? |
+| `RUN_FILTFILT_EXAMPLE` | [filtfilt.c](filtfilt.c) | A pressure sensor on a hydraulic line | How wide was the pulse, and when exactly? |
+| `RUN_KALMAN_EXAMPLE` | [kalman.c](kalman.c) | A distance sensor on a rail | Where is the trolley, and how fast is it going? |
+| `RUN_STREAM_EXAMPLE` | [stream.c](stream.c) | A converter giving blocks | How do I keep a window that crosses the blocks? |
+| `RUN_CALIBRATE_EXAMPLE` | [calibrate.c](calibrate.c) | A thermistor | What temperature is this resistance? |
+| `RUN_LINALG_EXAMPLE` | [linalg.c](linalg.c) | A robot joint, two coils | — |
 
 ## What each example shows
 
@@ -74,3 +84,66 @@ the step between two readings.
 the frequency of the shaking rises. A Fourier transform would give a wide band
 and would say nothing about the moment. This transform gives the speed at each
 moment, and the example says what the single mean number hides.
+
+**resample.c — logging a bearing sensor at a lower rate.** The sensor reads at
+32 kHz and the log holds 500 samples a second. Keeping every 64th sample does
+not lose the 4100 Hz rattle: it MOVES it, to 100 Hz, where it looks exactly
+like a reading of the machine. The example runs the same signal both ways and
+prints the power at 100 Hz: 1.12 the careless way and 0.00 the careful way.
+
+**psd.c — watching a pump for a failing bearing.** The rattle grows from 0.0008
+to 0.0451 while the shaft is unchanged, which is enough to set a threshold on.
+The example then measures the same signal three ways, with different blocks,
+windows and overlaps, and gets the same answer each time. That is what the
+scaling is for: leave out any one of its three corrections and the three lines
+would disagree by a factor that nobody would notice.
+
+**correlate.c — which way a sound came from.** Two microphones 0.34 m apart. The
+lag where the two recordings are most alike is the delay, and the delay is the
+angle. The last of its four cases is the one that matters: a room full of echo
+gives a delay that looks reasonable and a strength of 0.27, and only the
+strength says the answer means nothing.
+
+**adaptive.c — hearing a voice over a fan.** A second microphone at the fan
+hears the noise alone. No filter of frequency could help, because the fan
+covers the whole band the voice lives in. The example also runs the case that
+fails quietly: when the reference microphone can hear the voice too, the filter
+removes the voice as well, and the part of it that survives falls from 1.00 to
+0.17 with nothing in the numbers to say so.
+
+**clean.c — a load cell that drifts and is knocked.** Three faults need three
+answers, and the ORDER is not free to choose. The example runs the same chain
+both ways: bad samples out first finds 12 of them, and smoothing first finds 0,
+because the mean has already spread each knock over its whole window and there
+is no single bad sample left to find.
+
+**filtfilt.c — measuring a pressure pulse.** One pass of a filter moved the peak
+by 19 samples; running it both ways left it where it was. The example then
+prints what the filter really does at four frequencies, one pass against two,
+because running it twice squares its gain and a design that does not allow for
+that takes out more than it meant to.
+
+**kalman.c — a trolley on a rail.** The sensor measures distance and nothing
+measures speed, yet the filter gives a speed, because it is told that a
+position changes by the speed times the time. Differencing two readings gives a
+speed wrong by 0.335 m/s; the filter gives one wrong by 0.047. The example runs
+three settings of the process noise to show that it is a trade and not a value
+to look up.
+
+**stream.c — a window that crosses the blocks.** A converter gives 320 samples
+every 10 ms. The detector fires in block 19 and the event it found stands in
+block 18, thus a program holding only the block in hand could not have found it
+at all. The ring buffer moves nothing when a sample arrives, where copying the
+window to the front of an array would move 500 values for every 320 that come.
+
+**calibrate.c — a thermistor.** A table of 12 points, and every reading falls
+between them. Straight lines between the points are wrong by 0.54 C on the
+mean; a cubic spline is wrong by 0.05 C. Both pass through every point of the
+table exactly, and they differ only between the points, which is where every
+reading falls.
+
+**linalg.c — three jobs that need more than a matrix of plain numbers.** A
+robot joint whose rotation matrix has FUNCTIONS for its elements, two coupled
+coils whose impedance is complex and where the phase is the whole of the
+answer, and two readings compared by the angle between them. It also shows
+where a module writes to, by handing it a function that writes nowhere.

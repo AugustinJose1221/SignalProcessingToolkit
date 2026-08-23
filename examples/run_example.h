@@ -28,6 +28,16 @@
 #define RUN_GOERTZEL_EXAMPLE        7
 #define RUN_DWT_EXAMPLE             8
 #define RUN_SAVGOL_EXAMPLE          9
+#define RUN_RESAMPLE_EXAMPLE        10
+#define RUN_PSD_EXAMPLE             11
+#define RUN_CORRELATE_EXAMPLE       12
+#define RUN_ADAPTIVE_EXAMPLE        13
+#define RUN_CLEAN_EXAMPLE           14
+#define RUN_FILTFILT_EXAMPLE        15
+#define RUN_KALMAN_EXAMPLE          16
+#define RUN_STREAM_EXAMPLE          17
+#define RUN_CALIBRATE_EXAMPLE       18
+#define RUN_LINALG_EXAMPLE          19
 
 #define RUN_EXAMPLE     RUN_NONE
 
