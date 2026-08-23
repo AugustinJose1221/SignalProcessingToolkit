@@ -394,6 +394,44 @@ factor of 4, it passes 0.95 to 1.00 in the band and stops to 0.002, which is
 needs about 2000 coefficients. As 8 then 8 it needs two filters of about 40,
 and the two together cost far less than the one.
 
+
+## filtfilt
+
+Filtering with no delay at all, by running the filter both ways.
+
+**Every filter delays what it passes**, and one with feedback delays each
+frequency by a different amount. That is why the shape of a signal changes
+after filtering even when nothing was taken out of the band it lives in: the
+parts arrive at slightly different times and no longer line up. The peak of a
+heartbeat moves; the edge of a step leans; a pulse is no longer the same width.
+
+Run the filter forwards, turn the answer round, run it again. The second pass
+delays every frequency by exactly what the first did and in the opposite
+direction, thus the two cancel exactly.
+
+**Two prices, and both must be paid knowingly.**
+
+The whole signal must be in hand. There is no way to run a filter backwards
+over a signal that has not arrived. This is for a recording, not for a signal
+as it comes in, at any delay.
+
+The filter is applied twice, thus its gain is **squared**. A cutoff is where a
+filter passes 0.707; run twice it passes 0.5, which is a different cutoff. The
+band is narrower than the one designed and the edges are twice as steep. Design
+for it — `filtfilt_iir_gain` gives what the filter really does.
+
+**It needs no memory.** Both passes run over the caller's own output list, and
+the input and the output may be the same list.
+
+**The two ends.** A filter starting from nothing answers the first sample as a
+step, and running both ways would put that swing at **both** ends. Two things
+are done: the filter is first settled at the value it is about to meet, by
+being fed it until its answer stops moving; and the signal is then carried
+outwards past each end, turned about the end sample so that it begins with no
+step and no corner. Settling alone is not enough, and carrying alone is not
+either — a filter with a low cutoff takes thousands of samples to answer a
+step where the carried part is a few dozen.
+
 ## What a design cannot do, and how it says so
 
 Every design function gives a `bool`. It is `false` when the filter that was

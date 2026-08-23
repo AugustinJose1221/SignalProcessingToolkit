@@ -43,6 +43,7 @@ name and shape of every function.
 | [`hampel`](api/hampel.md) | Replacing only the samples that are wrong |
 | [`adaptive`](api/adaptive.md) | A filter that finds its own coefficients |
 | [`resample`](api/resample.md) | Changing the rate of a signal |
+| [`filtfilt`](api/filtfilt.md) | Filtering with no delay |
 
 ## Estimation
 
