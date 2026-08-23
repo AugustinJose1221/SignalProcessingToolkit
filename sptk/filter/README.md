@@ -303,6 +303,56 @@ its input.
 the signal. A recording where one sample in fifty is replaced is a recording to
 look at rather than to trust.
 
+
+## adaptive
+
+A filter that finds its own coefficients while it runs. Every other filter here
+is designed once and then applied; this one is given no design at all, only an
+answer to aim at.
+
+**Taking away noise that is measured somewhere else.** This is the use that
+matters and the one a fixed filter cannot serve. A microphone near an engine, a
+coil near a transformer, a lead near a motor: a second sensor sees the noise
+**alone**. The noise reaches the first sensor changed in size and delayed, by
+an amount nobody knows and which does not stay still. Give the noisy signal as
+what to aim at and the second sensor as the reference.
+
+**Take `adaptive_error`, not `adaptive_process_sample`.** The output is the
+noise the filter has learned; the error is the signal with that noise gone.
+
+This works where no filter of frequency can, because the noise and the signal
+may hold exactly the same frequencies. A test holds that: random noise, which
+covers every frequency, is cut to under a fiftieth while 99.7 percent of the
+signal survives.
+
+**The reference must not hold the signal.** If it does, the filter learns to
+take the signal away too, because that also makes the error smaller. This is
+the one way to use it that fails quietly: the error falls, everything looks
+well, and the answer has had the signal removed. Measured, the part of the
+signal that survives:
+
+| reference | signal surviving |
+| --- | --- |
+| the noise alone | 0.997 |
+| the noise with the signal in it | 0.293 |
+
+**Reach for `ADAPTIVE_NORMALISED`.** The plain rule moves each coefficient by
+the rate times the error times the reference, thus how far it moves follows how
+**loud** the reference is: a rate that settles for a quiet reference makes the
+filter run away for a loud one, and the safe rate depends on a signal the
+designer has not heard yet. The normalised rule divides by the energy in the
+filter, and any rate between 0 and 2 is then stable for any signal. Take 0.1 to
+0.5.
+
+**The rate is a trade, not a setting to get right.** A high rate follows a
+change quickly and rattles about the answer; a low rate settles closer and
+takes longer. Over the same run, a rate of 0.5 left about a fifth of the noise
+and a rate of 0.02 about a hundredth.
+
+**The coefficients are worth reading.** They are the answer to what the path
+between the two sensors does, and where the largest one stands is the delay
+between them in samples.
+
 ## What a design cannot do, and how it says so
 
 Every design function gives a `bool`. It is `false` when the filter that was
