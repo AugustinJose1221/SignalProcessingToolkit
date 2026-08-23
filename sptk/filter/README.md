@@ -278,17 +278,20 @@ announces itself in the answer of the filter. Both give back something that
 looks like a filter and behaves like a wrong one. This is why the checks exist.
 
 **A cutoff that is too low for an infinite impulse response.** A section holds
-its poles near the circle when the cutoff is low. A float holds about seven
-digits, and below a cutoff of about 0.001 of the sample rate those digits run
-out: the coefficients round to values that describe a different filter. The
-gain that should be 1 at zero frequency, measured:
+its poles near the circle when the cutoff is low, and when the digits of the
+build run out the coefficients round to values that describe a different
+filter. The gain that should be 1 at zero frequency, measured with the check
+taken out so that every cutoff could be tried:
 
-| cutoff | 0.0100 | 0.0020 | 0.0010 | 0.0005 | 0.0001 |
+| cutoff | 0.001 | 0.0001 | 1e-5 | 1e-6 | 1e-7 |
 | --- | --- | --- | --- | --- | --- |
-| gain | 1.0000 | 1.0014 | 0.9959 | 0.9909 | 0.6849 |
+| 32 bits | 0.996 | 0.685 | 0.000 | 0.000 | 0.000 |
+| 64 bits | 1.000 | 1.000 | 1.000 | 1.000 | 1.001 |
 
-`IIR_MIN_CUTOFF` holds the limit, and `iir_is_valid_cutoff` answers for a
-given cutoff.
+**The limit follows the width of the build**, and it is a thousand times lower
+at 64 bits. A high pass at 0.5 Hz against 32 kHz is a cutoff of 0.000016: out
+of reach at 32 bits, and nothing at all at 64. `IIR_MIN_CUTOFF` holds the limit
+of the build and `iir_is_valid_cutoff` answers for a given cutoff.
 
 **A cutoff that is too low for the length of a finite impulse response.** Such
 a filter turns from passing to stopping over a band about `2/length` wide. A
@@ -301,8 +304,9 @@ reaches 1. For 101 coefficients, where the turn is 0.0198 wide:
 
 `fir_is_valid_cutoff` and `fir_is_valid_band` answer for a given length.
 
-**What to do when a design says false.** A cutoff below the limit nearly always
-means the sample rate is too high for the work. A cutoff of 0.5 Hz against
-32 kHz is 0.000016 and no design can hold it; the same cutoff against 500 Hz is
-0.001 and any of them can. Bring the rate down first, then filter. Making the
-filter longer answers the second case as well, at the cost of delay.
+**What to do when a design says false.** A cutoff below the limit usually means
+the sample rate is too high for the work. A cutoff of 0.5 Hz against 32 kHz is
+0.000016; the same cutoff against 500 Hz is 0.001, which any 32 bit build
+holds. Bring the rate down first, then filter. Building at 64 bits answers the
+first case as well, and making the filter longer answers the second, at the
+cost of delay.

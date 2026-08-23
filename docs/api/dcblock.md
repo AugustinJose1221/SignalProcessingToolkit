@@ -16,14 +16,14 @@ Taking the level of a signal away. Declared in `sptk/filter/dcblock.h`.
 ### `DCBLOCK_MIN_CUTOFF`
 
 ```c
-#define DCBLOCK_MIN_CUTOFF      REAL_C(0.000001)
+#define DCBLOCK_MIN_CUTOFF      REAL_C(0.000000001)
 ```
 
-The smallest cutoff that this module holds, as a part of the sample rate.
+### `DCBLOCK_MIN_CUTOFF`
 
-It is a thousand times lower than IIR_MIN_CUTOFF. The reason is the single
-pole: there are no two nearly equal numbers to subtract here, thus nothing
-to lose.
+```c
+#define DCBLOCK_MIN_CUTOFF      REAL_C(0.000001)
+```
 
 ## Types
 

@@ -36,7 +36,7 @@ digits, and three kinds of work run out of them:
 | --- | --- |
 | A large offset | A reading at 8 000 000 counts with a signal of a few thousand on top spends six of the seven digits on the part that carries nothing |
 | A long sum | Five samples near eight million have a variance of exactly 2; at 32 bits `stats_variance` gives 2.25 |
-| A slow filter | A section lifts its own rounding error by a large factor; `IIR_MIN_CUTOFF` holds the lowest cutoff that 32 bits can carry |
+| A slow filter | A section lifts its own rounding error by a large factor. `IIR_MIN_CUTOFF` follows the width: 0.001 at 32 bits and 0.000001 at 64, a thousand times lower |
 
 The guide of each area gives measured numbers, and the tests hold both widths,
 so that what each one costs is written down and not forgotten.

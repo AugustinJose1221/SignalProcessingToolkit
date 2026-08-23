@@ -62,11 +62,10 @@
 // go, put this first to bring the signal near zero, and then use the iir
 // module, which now has the precision to do its work.
 //
-// It holds a cutoff far below what a section can hold. IIR_MIN_CUTOFF is 0.001
-// of the sample rate, and under that a section gives a wrong answer without
-// saying so. This module holds 0.000001, a thousand times lower, because one
-// pole has no cancelling sums in it. At 32 kHz that is a cutoff of 0.03 Hz,
-// which no section could reach at that rate.
+// It holds a cutoff far below what a section can hold, at either width: a
+// thousand times lower than IIR_MIN_CUTOFF in both builds, because one pole
+// has no cancelling sums in it. At 32 bits that is 0.000001, which at 32 kHz
+// is a cutoff of 0.03 Hz.
 //
 // IT PRIMES ITSELF ON THE FIRST SAMPLE
 //
@@ -85,11 +84,34 @@ typedef struct{
 }dcblock_t;
 
 // The smallest cutoff that this module holds, as a part of the sample rate.
+// It follows the width of the build, as the limit of a section does.
 //
-// It is a thousand times lower than IIR_MIN_CUTOFF. The reason is the single
-// pole: there are no two nearly equal numbers to subtract here, thus nothing
-// to lose.
+// A tracker of one pole moves its level by pole times the distance left to go.
+// As the level nears the signal that distance shrinks, and the step with it.
+// When the step becomes smaller than one step of the number itself, the level
+// STOPS MOVING and stands short of where it belongs.
+//
+// Measured, the level reached after the tracker had settled, where the signal
+// stands at 8 300 000:
+//
+//     cutoff      1e-5        1e-6        1e-7
+//     32 bits   8296021     8260211     7902113
+//     64 bits   8300000     8300000     8300000
+//
+// At 32 bits the tracker stops 0.5 percent short at 1e-6 and 5 percent short
+// at 1e-7. At 64 bits it is exact, and it stays exact down to 1e-9, which was
+// examined as far as the settling time allows: at 1e-9 it reached 7 627 678
+// after two and a half time constants where the shape of the curve asks for
+// 7 627 700, thus what stops it there is the waiting and not the digits.
+//
+// A very low cutoff is slow at either width. The tracker needs about one
+// sample for each part of the cutoff, thus a cutoff of 1e-9 takes a thousand
+// million samples to settle whatever the width.
+#if defined(SPTK_REAL_64)
+#define DCBLOCK_MIN_CUTOFF      REAL_C(0.000000001)
+#else
 #define DCBLOCK_MIN_CUTOFF      REAL_C(0.000001)
+#endif
 
 // True if the tracker can hold the given cutoff.
 bool dcblock_is_valid_cutoff(real_t cutoff);

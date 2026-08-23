@@ -6,6 +6,11 @@
 
 #define PI      REAL_C(3.14159265358979323846)
 
+// A cutoff that no build can hold, whatever its width. Taking it from the
+// limit itself keeps these tests true at both widths: a number written here by
+// hand would be too low at 32 bits and perfectly good at 64.
+#define TOO_LOW     (IIR_MIN_CUTOFF / REAL_C(10.0))
+
 void setUp(void)
 {
 
@@ -330,13 +335,41 @@ void test_iir_is_valid_cutoff(void)
     TEST_ASSERT_EQUAL(true, iir_is_valid_cutoff(REAL_C(0.01)));
     TEST_ASSERT_EQUAL(true, iir_is_valid_cutoff(IIR_MIN_CUTOFF));
 
-    // Under the limit a section in single precision loses its accuracy.
-    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(REAL_C(0.0001)));
-    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(REAL_C(0.0)));
-
     // At and above half the sample rate there is nothing to pass.
     TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(REAL_C(0.5)));
     TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(REAL_C(0.6)));
+    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(REAL_C(0.0)));
+}
+
+void test_the_limit_of_the_cutoff_follows_the_width_of_the_build(void)
+{
+    // The limit is not one number. It is what the digits of the build can
+    // carry, and a wider build carries a lower cutoff.
+#if defined(SPTK_REAL_64)
+    // A thousand times lower. A high pass at 0.5 Hz against 32 kHz is a cutoff
+    // of 0.000016, which is out of reach at 32 bits and easy here.
+    TEST_ASSERT_EQUAL(true, iir_is_valid_cutoff(REAL_C(0.000016)));
+    TEST_ASSERT_EQUAL(true, iir_is_valid_cutoff(REAL_C(0.000001)));
+    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(REAL_C(0.0000001)));
+#else
+    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(REAL_C(0.000016)));
+    TEST_ASSERT_EQUAL(false, iir_is_valid_cutoff(REAL_C(0.0001)));
+    TEST_ASSERT_EQUAL(true, iir_is_valid_cutoff(REAL_C(0.001)));
+#endif
+}
+
+void test_a_design_at_the_limit_still_gives_the_right_gain(void)
+{
+    // The limit is set where the answer is still right. This holds it at
+    // whichever width the build has, thus neither limit can drift away from
+    // what the arithmetic really gives.
+    iir_t iir = iir_alloc(2);
+
+    TEST_ASSERT_EQUAL(true, iir_design_low_pass(&iir, IIR_MIN_CUTOFF));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.02), REAL_C(1.0),
+                            iir_get_gain(&iir, REAL_C(0.0)));
+
+    iir_free(&iir);
 }
 
 void test_iir_design_refuses_a_cutoff_that_is_too_low(void)
@@ -348,26 +381,14 @@ void test_iir_design_refuses_a_cutoff_that_is_too_low(void)
     real_t before = iir_get_gain(&iir, REAL_C(0.02));
 
     // A design that cannot be held must say so and must change nothing.
-    TEST_ASSERT_EQUAL(false, iir_design_low_pass(&iir, REAL_C(0.00001)));
-    TEST_ASSERT_EQUAL(false, iir_design_high_pass(&iir, REAL_C(0.00001)));
+    TEST_ASSERT_EQUAL(false, iir_design_low_pass(&iir, TOO_LOW));
+    TEST_ASSERT_EQUAL(false, iir_design_high_pass(&iir, TOO_LOW));
 
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), before, iir_get_gain(&iir, REAL_C(0.02)));
 
     iir_free(&iir);
 }
 
-void test_iir_design_takes_a_cutoff_at_the_limit(void)
-{
-    iir_t iir = iir_alloc(2);
-
-    TEST_ASSERT_EQUAL(true, iir_design_low_pass(&iir, IIR_MIN_CUTOFF));
-
-    // At the limit the gain at zero frequency must still be near one. This is
-    // the measurement that sets the limit, thus the test holds it.
-    TEST_ASSERT_REAL_WITHIN(REAL_C(0.02), REAL_C(1.0), iir_get_gain(&iir, REAL_C(0.0)));
-
-    iir_free(&iir);
-}
 
 void test_iir_design_notch_stops_one_frequency_and_passes_the_rest(void)
 {
@@ -411,7 +432,7 @@ void test_iir_design_notch_refuses_what_it_cannot_hold(void)
 {
     iir_t iir = iir_alloc(1);
 
-    TEST_ASSERT_EQUAL(false, iir_design_notch(&iir, REAL_C(0.00001), REAL_C(30.0)));
+    TEST_ASSERT_EQUAL(false, iir_design_notch(&iir, TOO_LOW, REAL_C(30.0)));
     TEST_ASSERT_EQUAL(false, iir_design_notch(&iir, REAL_C(0.05), REAL_C(0.0)));
     TEST_ASSERT_EQUAL(false, iir_design_notch(&iir, REAL_C(0.05), -REAL_C(1.0)));
 
@@ -499,7 +520,7 @@ void test_iir_design_band_pass_refuses_a_band_that_is_not_a_band(void)
 
     TEST_ASSERT_EQUAL(false, iir_design_band_pass(&iir, REAL_C(0.20), REAL_C(0.05)));
     TEST_ASSERT_EQUAL(false, iir_design_band_pass(&iir, REAL_C(0.05), REAL_C(0.05)));
-    TEST_ASSERT_EQUAL(false, iir_design_band_pass(&iir, REAL_C(0.00001), REAL_C(0.20)));
+    TEST_ASSERT_EQUAL(false, iir_design_band_pass(&iir, TOO_LOW, REAL_C(0.20)));
 
     iir_free(&iir);
 }
@@ -531,7 +552,7 @@ void test_iir_design_band_stop_refuses_a_band_that_is_not_a_band(void)
     iir_t iir = iir_alloc(1);
 
     TEST_ASSERT_EQUAL(false, iir_design_band_stop(&iir, REAL_C(0.06), REAL_C(0.04)));
-    TEST_ASSERT_EQUAL(false, iir_design_band_stop(&iir, REAL_C(0.00001), REAL_C(0.06)));
+    TEST_ASSERT_EQUAL(false, iir_design_band_stop(&iir, TOO_LOW, REAL_C(0.06)));
 
     iir_free(&iir);
 }

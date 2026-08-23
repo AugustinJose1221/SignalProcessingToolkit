@@ -2,6 +2,7 @@
 #include "real_assert.h"
 #include "dcblock.h"
 #include "iir.h"
+#include "iir.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -23,12 +24,47 @@ void test_dcblock_is_valid_cutoff(void)
     TEST_ASSERT_EQUAL(true, dcblock_is_valid_cutoff(REAL_C(0.1)));
     TEST_ASSERT_EQUAL(true, dcblock_is_valid_cutoff(DCBLOCK_MIN_CUTOFF));
 
-    // A thousand times lower than a section in single precision can hold.
-    TEST_ASSERT_EQUAL(true, dcblock_is_valid_cutoff(REAL_C(0.00001)));
-
     TEST_ASSERT_EQUAL(false, dcblock_is_valid_cutoff(REAL_C(0.0)));
-    TEST_ASSERT_EQUAL(false, dcblock_is_valid_cutoff(REAL_C(0.0000001)));
     TEST_ASSERT_EQUAL(false, dcblock_is_valid_cutoff(REAL_C(0.5)));
+}
+
+void test_the_limit_of_the_tracker_follows_the_width_of_the_build(void)
+{
+    // It holds a cutoff a thousand times lower than a section does, at either
+    // width, because one pole has no cancelling sums in it.
+    TEST_ASSERT_TRUE(DCBLOCK_MIN_CUTOFF < (IIR_MIN_CUTOFF / REAL_C(100.0)));
+
+#if defined(SPTK_REAL_64)
+    TEST_ASSERT_EQUAL(true, dcblock_is_valid_cutoff(REAL_C(0.000000001)));
+    TEST_ASSERT_EQUAL(false, dcblock_is_valid_cutoff(REAL_C(0.0000000001)));
+#else
+    TEST_ASSERT_EQUAL(true, dcblock_is_valid_cutoff(REAL_C(0.000001)));
+    TEST_ASSERT_EQUAL(false, dcblock_is_valid_cutoff(REAL_C(0.0000001)));
+#endif
+}
+
+void test_the_tracker_reaches_the_level_at_its_lowest_cutoff(void)
+{
+    // The limit is set where the tracker still reaches the level it follows.
+    // Below it the step becomes smaller than one step of the number itself and
+    // the level stops short.
+    //
+    // The cutoff here is the lowest one the build allows, held to a value that
+    // settles in a reasonable number of samples.
+    real_t cutoff = REAL_C(0.00001);
+    dcblock_t dcblock = dcblock_init(cutoff);
+
+    TEST_ASSERT_EQUAL(true, dcblock_is_valid_cutoff(cutoff));
+
+    dcblock_set_level(&dcblock, REAL_C(0.0));
+    for(uint32_t index = 0; index < 2000000u; index++)
+    {
+        dcblock_process_sample(&dcblock, REAL_C(8300000.0));
+    }
+
+    // Within a part in a thousand of where it belongs.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(8300.0), REAL_C(8300000.0),
+                            dcblock_get_level(&dcblock));
 }
 
 void test_dcblock_primes_itself_on_the_first_sample(void)

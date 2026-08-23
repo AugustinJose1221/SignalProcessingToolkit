@@ -50,29 +50,14 @@ needs for its state.
 ### `IIR_MIN_CUTOFF`
 
 ```c
-#define IIR_MIN_CUTOFF      REAL_C(0.001)
+#define IIR_MIN_CUTOFF      REAL_C(0.000001)
 ```
 
-The smallest cutoff that a design in single precision can hold.
+### `IIR_MIN_CUTOFF`
 
-A section keeps its poles near the circle when the cutoff is low, and how
-near decides how much precision the coefficients need. A float holds about
-seven digits. Below this cutoff those digits run out: the coefficients round
-to values that no longer describe the filter that was asked for, and the
-filter gives a wrong answer WITHOUT SAYING SO.
-
-Measured, at the gain that should be 1.0 at zero frequency:
-
-    cutoff    0.0100   0.0020   0.0010   0.0005   0.0001
-    gain      1.0000   1.0014   0.9959   0.9909   0.6849
-
-Thus 0.002 and above is safe, 0.001 costs about one percent, and below
-0.0005 the answer means nothing. The limit stands at 0.001.
-
-A cutoff below this is nearly always a sign that the sample rate is too high
-for the work. A cutoff of 0.5 Hz against 32 kHz is 0.000016 and cannot be
-held; the same cutoff against 500 Hz is 0.001 and can. Bring the rate down
-first, as the guide of this area says.
+```c
+#define IIR_MIN_CUTOFF      REAL_C(0.001)
+```
 
 ## Types
 
