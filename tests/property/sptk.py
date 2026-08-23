@@ -304,6 +304,17 @@ def float_array(values):
     return (REAL_T * len(values))(*values)
 
 
+def real_buffer(size):
+    """Give an empty C array of real_t with room for the given number.
+
+    A test that needs somewhere for the library to write must ask for it here
+    and not build it itself. A buffer built as ctypes.c_float would be right
+    for a 32 bit build of the library and wrong for a 64 bit one, and ctypes
+    would refuse it only when the wider build ran.
+    """
+    return (REAL_T * size)()
+
+
 def make_matrix(library, rows):
     """Give a matrix that holds the given rows."""
     m = len(rows)

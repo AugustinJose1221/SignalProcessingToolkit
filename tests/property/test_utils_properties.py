@@ -60,8 +60,8 @@ def test_the_binary_search_finds_a_value_that_is_in_the_list(lib, pair):
 @given(data=signals)
 def test_every_peak_is_larger_than_the_value_on_each_side(lib, data):
     array = sptk.float_array(data)
-    index_buffer = (ctypes.c_float * (len(data) + 2))()
-    peak_buffer = (ctypes.c_float * (len(data) + 2))()
+    index_buffer = sptk.real_buffer(len(data) + 2)
+    peak_buffer = sptk.real_buffer(len(data) + 2)
 
     count = lib.peakdetect_get_peaks(array, index_buffer, peak_buffer, len(data))
 
@@ -76,8 +76,8 @@ def test_every_peak_is_larger_than_the_value_on_each_side(lib, data):
 @given(data=signals)
 def test_every_valley_is_smaller_than_the_value_on_each_side(lib, data):
     array = sptk.float_array(data)
-    index_buffer = (ctypes.c_float * (len(data) + 2))()
-    valley_buffer = (ctypes.c_float * (len(data) + 2))()
+    index_buffer = sptk.real_buffer(len(data) + 2)
+    valley_buffer = sptk.real_buffer(len(data) + 2)
 
     count = lib.valleydetect_get_valley(array, index_buffer, valley_buffer, len(data))
 
@@ -92,8 +92,8 @@ def test_every_valley_is_smaller_than_the_value_on_each_side(lib, data):
 @given(data=signals)
 def test_the_peaks_come_in_the_order_of_the_signal(lib, data):
     array = sptk.float_array(data)
-    index_buffer = (ctypes.c_float * (len(data) + 2))()
-    peak_buffer = (ctypes.c_float * (len(data) + 2))()
+    index_buffer = sptk.real_buffer(len(data) + 2)
+    peak_buffer = sptk.real_buffer(len(data) + 2)
 
     count = lib.peakdetect_get_peaks(array, index_buffer, peak_buffer, len(data))
 
@@ -105,10 +105,10 @@ def test_the_peaks_come_in_the_order_of_the_signal(lib, data):
 @given(data=signals)
 def test_a_point_is_never_a_peak_and_a_valley_at_the_same_time(lib, data):
     array = sptk.float_array(data)
-    peak_index = (ctypes.c_float * (len(data) + 2))()
-    peak_value = (ctypes.c_float * (len(data) + 2))()
-    valley_index = (ctypes.c_float * (len(data) + 2))()
-    valley_value = (ctypes.c_float * (len(data) + 2))()
+    peak_index = sptk.real_buffer(len(data) + 2)
+    peak_value = sptk.real_buffer(len(data) + 2)
+    valley_index = sptk.real_buffer(len(data) + 2)
+    valley_value = sptk.real_buffer(len(data) + 2)
 
     peaks = lib.peakdetect_get_peaks(array, peak_index, peak_value, len(data))
     valleys = lib.valleydetect_get_valley(array, valley_index, valley_value, len(data))
@@ -124,8 +124,8 @@ def test_a_short_signal_has_no_peak_and_no_valley(lib, data):
     # A peak needs a value on each side, thus a signal with one or two values
     # can hold no peak.
     array = sptk.float_array(data)
-    index_buffer = (ctypes.c_float * 4)()
-    value_buffer = (ctypes.c_float * 4)()
+    index_buffer = sptk.real_buffer(4)
+    value_buffer = sptk.real_buffer(4)
 
     assert lib.peakdetect_get_peaks(array, index_buffer, value_buffer,
                                     len(data)) == 0
