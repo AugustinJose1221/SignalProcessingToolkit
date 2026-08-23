@@ -41,6 +41,7 @@ SOURCES = [
     "sptk/transform/hht.c",
     "sptk/transform/hilbert.c",
     "sptk/transform/window.c",
+    "sptk/transform/correlate.c",
     "sptk/filter/fir.c",
     "sptk/filter/iir.c",
     "sptk/filter/savgol.c",
