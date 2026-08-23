@@ -8,6 +8,7 @@ question decides which one you want.
 | --- | --- | --- |
 | `fft` | Which frequencies does this block hold? | Memory for the whole block |
 | `window` | How do I stop one tone smearing over the others? | One multiplication for each sample |
+| `correlate` | How long is the delay, does this repeat, is this shape in there? | Size times lags, or three transforms |
 | `goertzel` | How much of *this one* frequency does it hold? | Three float values |
 | `hilbert` | What is the amplitude and the frequency at each moment? | One transform each way |
 | `hht` | Which frequency at which moment, for a signal that changes? | A decomposition and a transform |
@@ -57,6 +58,59 @@ for a stop band of 60 dB gives a window whose own side lobes stand only 42 dB
 down. The header holds a table of both.
 
 The module gets no memory. It writes into a list that the caller holds.
+
+## correlate
+
+How much one signal is like another when one of them is moved in time. Three
+questions that come up again and again are all this one question with different
+signals put into it.
+
+**How long is the delay** between two recordings of the same thing? Correlate
+the two; the lag where the answer is largest is the delay.
+
+**Does this signal repeat, and how often?** Correlate the signal with itself. A
+signal that repeats every 100 samples has a peak at a lag of 100.
+`correlate_best_lag` is that whole job in one call.
+
+**Is this shape in that signal?** Correlate the signal with the shape.
+
+**The scaling decides what the number means.** The raw sum grows with the
+length of the signal and with how large the samples are, thus two answers
+cannot be set beside each other:
+
+| Scaling | What it gives |
+| --- | --- |
+| `CORRELATE_RAW` | The sum of the products |
+| `CORRELATE_BIASED` | Divided by the number of samples |
+| `CORRELATE_UNBIASED` | Divided by how many samples overlapped at that lag |
+| `CORRELATE_COEFFICIENT` | Between -1 and 1 |
+
+**Take the coefficient when the answer must be judged** and not only compared
+with itself. It is the only one that means the same for every signal: 1 is a
+perfect match, 0 no likeness, -1 the same shape upside down. A threshold on it
+holds from one recording to the next.
+
+**The mean must come off first, and the coefficient takes it off.** A signal
+that never goes below zero correlates well with itself at every lag, because
+the product of two positive numbers is positive whatever the lag. The mean then
+swamps the part that actually repeats.
+
+The coefficient is worked out over the samples that overlap at each lag and no
+others. The shorter way, the sum at each lag divided by the sum at no lag,
+falls away as the lag grows: at a lag of an eighth of the signal it comes out
+an eighth too small, and a threshold on it would then hold for one length of
+signal and not another.
+
+**The fast way, and when it is not.** The plain method costs size times lags:
+for 4096 samples and 4096 lags, 17 million operations. A correlation in time is
+a multiplication in frequency, thus `correlate_auto_by_transform` does the same
+work in three transforms, about 300 thousand operations. Below about 300
+samples the plain method wins, because the transform has a fixed cost that the
+plain method has not.
+
+The fast way serves the three scalings that are sums and not the coefficient,
+because a transform gives the sum at each lag and nothing else. It takes its
+transform and its working memory from the caller, thus it needs no heap.
 
 ## fft
 
