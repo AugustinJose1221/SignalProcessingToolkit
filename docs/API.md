@@ -42,6 +42,7 @@ name and shape of every function.
 | [`dcblock`](api/dcblock.md) | Taking the level of a signal away |
 | [`hampel`](api/hampel.md) | Replacing only the samples that are wrong |
 | [`adaptive`](api/adaptive.md) | A filter that finds its own coefficients |
+| [`resample`](api/resample.md) | Changing the rate of a signal |
 
 ## Estimation
 

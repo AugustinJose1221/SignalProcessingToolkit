@@ -353,6 +353,47 @@ and a rate of 0.02 about a hundredth.
 between the two sensors does, and where the largest one stands is the delay
 between them in samples.
 
+
+## resample
+
+Changing the rate at which a signal is sampled.
+
+**Keeping every fourth sample looks like the whole of it, and it is the half
+that goes wrong.** A signal at 32 kHz may hold frequencies up to 16 kHz. Keep
+every 64th sample and the new rate is 500 Hz, which can hold nothing above 250.
+Every frequency above 250 does not disappear: it comes back at a frequency it
+never had, and once it is there **nothing** can take it out, because it now
+sits on top of the signal and looks exactly like part of it.
+
+A hum at 4 kHz decimated by 64 arrives at 0 Hz and looks like a drift. A noise
+at 300 Hz arrives at 200 Hz and looks like a signal. The reading looks
+reasonable and is wrong.
+
+Two tests hold that story: one shows a tone far above the new rate cut to under
+a hundredth, and the other keeps every fourth sample with no filter and shows
+the same tone coming back at full size.
+
+Going up has the mirror of the problem. Putting zeros between samples leaves
+copies of the signal at every multiple of the old rate, and the filter after
+them takes the copies away.
+
+**Only the samples that are kept are worked out.** A filter that ran at the
+input rate and then threw most of its answers away would do work for nothing:
+decimating by 64 with a filter of 128 coefficients, 8064 multiplications of
+every 8192 would be wasted. This module works out the kept answers only, thus
+the filtering costs the **output** rate and not the input rate. That is the
+whole reason a long filter is affordable here.
+
+**How long a filter.** The filter must pass what is wanted and stop everything
+above half the new rate, and those two edges lie close together when the factor
+is large. `resample_advised_length` gives a length that works — measured for a
+factor of 4, it passes 0.95 to 1.00 in the band and stops to 0.002, which is
+54 dB down.
+
+**A large factor is better done in stages.** From 32 kHz to 500 Hz in one step
+needs about 2000 coefficients. As 8 then 8 it needs two filters of about 40,
+and the two together cost far less than the one.
+
 ## What a design cannot do, and how it says so
 
 Every design function gives a `bool`. It is `false` when the filter that was
