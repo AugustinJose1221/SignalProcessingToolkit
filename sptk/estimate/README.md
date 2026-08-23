@@ -82,3 +82,65 @@ Add a second reading, such as an angle, or a second station.
 `sptk/linalg` gives every matrix operation that both filters use, in the form
 that writes into a matrix that already holds memory. That is why neither filter
 needs a heap while it runs.
+
+
+## ukf
+
+The unscented Kalman filter: following a state through a model that bends,
+without ever taking a derivative.
+
+**Which of the three to take.**
+
+| | |
+| --- | --- |
+| the model is straight | `kalman`. Exact, and the cheapest |
+| it bends gently | `ekf`. One Jacobian, less work than `ukf` |
+| it bends sharply | `ukf` |
+| the derivative is awkward | `ukf`. It needs none |
+
+The last line is often the real reason. `ekf` works its Jacobians out by a
+central difference, which needs the model to be smooth and needs a step chosen
+for it. This filter needs neither, thus a model that is a table, or a piece of
+code with a condition in it, is no trouble.
+
+**What it does that a straight line cannot.** Put a spread through a bend and
+its middle moves. A straight line through the middle cannot show that.
+Measured, a spread put through a square, where the true middle of what comes
+out is the middle squared plus the spread:
+
+| middle in | spread in | truth | `ukf` | a straight line |
+| --- | --- | --- | --- | --- |
+| 0.0 | 9.0 | 9.0 | 9.0 | 0.0 |
+| 1.0 | 4.0 | 5.0 | 5.0 | 1.0 |
+| 3.0 | 1.0 | 10.0 | 10.0 | 9.0 |
+
+This filter is exact there. A straight line misses the spread entirely, and at
+a middle of zero it reports nothing at all where the answer is nine.
+
+**What that does not mean.** It does not beat `ekf` at everything. For a smooth
+model with many measurements both settle to the same answer, and `ekf` often
+gets there with slightly less work: measured on a state that does not move seen
+through a square over sixty readings, the two ended within 3 percent of each
+other and `ekf` was marginally the closer. The gain is in **one** step through
+a bend, which is what matters when readings are few or the model is run far
+forward between them, and in needing no derivative.
+
+**How small alpha may be follows the width of the build.** The weights of the
+points are about `1/(alpha*alpha*nx)` in size and must add up to 1, thus a
+small alpha makes very large weights that add to a very small number. Measured,
+what the weights really add up to for a state of 3:
+
+| alpha | 0.001 | 0.010 | 0.050 | 0.100 |
+| --- | --- | --- | --- | --- |
+| 32 bits | 1.0625 | 1.0000 | 0.9999 | 1.0000 |
+| 64 bits | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+
+At 32 bits and an alpha of 0.001 the weights are 6 percent wrong before the
+filter has done anything. The literature gives 0.001 as the usual choice
+because it assumes a wide number. `UKF_DEFAULT_ALPHA` therefore follows the
+width, and `ukf_is_valid_spread` says whether a given alpha can be held.
+
+**It refuses rather than carrying on.** The points are placed with the factor
+of Cholesky of the covariance, thus the covariance must stay a real spread.
+Arithmetic can take it out of that state, and `ukf_predict` and `ukf_update`
+both give false when it has.

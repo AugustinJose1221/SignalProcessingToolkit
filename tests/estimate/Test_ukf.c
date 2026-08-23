@@ -1,0 +1,503 @@
+#include "unity.h"
+#include "real_assert.h"
+#include "ukf.h"
+#include "ekf.h"
+#include "matrix.h"
+#include <stdlib.h>
+#include <math.h>
+
+#define TOLERANCE   REAL_C(0.0001)
+
+static uint32_t seed = 1u;
+
+static real_t rough(void)
+{
+    seed = (seed * 1103515245u) + 12345u;
+    return ((real_t)((seed >> 16) % 2000u) / REAL_C(1000.0)) - REAL_C(1.0);
+}
+
+void setUp(void)
+{
+    seed = 1u;
+}
+
+void tearDown(void)
+{
+
+}
+
+// A model that does not bend at all: the state simply stays as it is.
+static void state_stays(const matrix_t* state, const matrix_t* input,
+                        matrix_t* result)
+{
+    (void)input;
+    matrix_copy((matrix_t*)state, result);
+}
+
+// A measurement that does not bend: it reads the state straight.
+static void measures_the_state(const matrix_t* state, matrix_t* result)
+{
+    matrix_add_element(result, 0, 0, matrix_get_element((matrix_t*)state, 0, 0));
+}
+
+// A measurement that bends sharply: it reads the SQUARE of the state.
+//
+// This is where a straight line laid against the model gives a wrong answer,
+// and not merely a less accurate one. Put a spread through a square and its
+// middle moves outwards, because the far side of the spread is squared into
+// something further away than the near side is squared into. A straight line
+// through the middle cannot show that at all.
+static void measures_the_square(const matrix_t* state, matrix_t* result)
+{
+    real_t value = matrix_get_element((matrix_t*)state, 0, 0);
+
+    matrix_add_element(result, 0, 0, value * value);
+}
+
+void test_ukf_alloc(void)
+{
+    ukf_t ukf = ukf_alloc(1, 2, 1);
+
+    TEST_ASSERT_EQUAL(1, ukf.ni);
+    TEST_ASSERT_EQUAL(2, ukf.nx);
+    TEST_ASSERT_EQUAL(1, ukf.ny);
+    TEST_ASSERT_EQUAL(true, ukf.dynamic_alloc);
+    TEST_ASSERT_EQUAL(true, matrix_is_unit(&ukf.p));
+
+    // The three numbers that place the points start at their usual values,
+    // thus a caller who does not want to choose need not.
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, UKF_DEFAULT_ALPHA, ukf.alpha);
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, UKF_DEFAULT_BETA, ukf.beta);
+
+    ukf_free(&ukf);
+}
+
+void test_ukf_static_alloc_takes_no_heap(void)
+{
+    real_t pool[UKF_MEMPOOL_SIZE(1, 2, 1)];
+    ukf_t ukf = ukf_static_alloc(1, 2, 1, pool);
+
+    TEST_ASSERT_EQUAL(false, ukf.dynamic_alloc);
+    TEST_ASSERT_EQUAL_PTR(pool, ukf.mempool);
+
+    ukf_free(&ukf);
+    TEST_ASSERT_EQUAL_PTR(pool, ukf.mempool);
+}
+
+void test_ukf_point_count(void)
+{
+    // Two for each element of the state, and one at the middle.
+    TEST_ASSERT_EQUAL(3, UKF_POINT_COUNT(1));
+    TEST_ASSERT_EQUAL(5, UKF_POINT_COUNT(2));
+    TEST_ASSERT_EQUAL(9, UKF_POINT_COUNT(4));
+}
+
+void test_the_weights_add_up_to_one(void)
+{
+    // Both sets must add to one, or the middle and the spread they work out
+    // would be scaled by something other than one. The weight at the middle is
+    // negative for a small alpha, which is what lets so few points carry the
+    // spread exactly.
+    ukf_t ukf = ukf_alloc(1, 3, 1);
+    uint32_t count = UKF_POINT_COUNT(3);
+
+    real_t mean_total = REAL_C(0.0);
+    real_t spread_total = REAL_C(0.0);
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        mean_total += matrix_get_element(&ukf.scratch.weight_mean, index, 0);
+        spread_total += matrix_get_element(&ukf.scratch.weight_spread, index, 0);
+    }
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(1.0), mean_total);
+    // The set for the spread differs from the set for the mean at the middle
+    // point only, and by 1 less alpha squared plus beta. Thus it adds to one
+    // more than that.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001),
+                            REAL_C(2.0)
+                            - (UKF_DEFAULT_ALPHA * UKF_DEFAULT_ALPHA)
+                            + UKF_DEFAULT_BETA,
+                            spread_total);
+
+    TEST_ASSERT_TRUE(matrix_get_element(&ukf.scratch.weight_mean, 0, 0)
+                     < REAL_C(0.0));
+
+    ukf_free(&ukf);
+}
+
+void test_the_points_carry_the_middle_and_the_spread_exactly(void)
+{
+    // This is what the points are FOR. Worked back out of them, the middle and
+    // the spread must be the ones they were placed from. If that fails,
+    // everything the filter does afterwards is built on sand.
+    ukf_t ukf = ukf_alloc(1, 2, 1);
+
+    matrix_t state = matrix_create_zero_matrix(2, 1);
+    matrix_add_element(&state, 0, 0, REAL_C(3.0));
+    matrix_add_element(&state, 1, 0, REAL_C(-1.5));
+
+    matrix_t covariance = matrix_alloc(2, 2);
+    matrix_add_element(&covariance, 0, 0, REAL_C(4.0));
+    matrix_add_element(&covariance, 0, 1, REAL_C(1.0));
+    matrix_add_element(&covariance, 1, 0, REAL_C(1.0));
+    matrix_add_element(&covariance, 1, 1, REAL_C(2.0));
+
+    ukf_set_state_matrix(&ukf, &state);
+    ukf_set_covariance_matrix(&ukf, &covariance);
+
+    matrix_t points = matrix_alloc(2, UKF_POINT_COUNT(2));
+    TEST_ASSERT_EQUAL(true, ukf_place_points_into(&ukf, &points));
+
+    uint32_t count = UKF_POINT_COUNT(2);
+
+    // The middle, worked back out.
+    for(uint32_t row = 0; row < 2u; row++)
+    {
+        real_t total = REAL_C(0.0);
+        for(uint32_t index = 0; index < count; index++)
+        {
+            total += matrix_get_element(&ukf.scratch.weight_mean, index, 0)
+                     * matrix_get_element(&points, row, index);
+        }
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01),
+                                matrix_get_element(&state, row, 0), total);
+    }
+
+    // The spread, worked back out.
+    for(uint32_t i = 0; i < 2u; i++)
+    {
+        for(uint32_t j = 0; j < 2u; j++)
+        {
+            real_t total = REAL_C(0.0);
+            for(uint32_t index = 0; index < count; index++)
+            {
+                real_t a = matrix_get_element(&points, i, index)
+                           - matrix_get_element(&state, i, 0);
+                real_t b = matrix_get_element(&points, j, index)
+                           - matrix_get_element(&state, j, 0);
+                total += matrix_get_element(&ukf.scratch.weight_spread, index, 0)
+                         * a * b;
+            }
+            TEST_ASSERT_REAL_WITHIN(REAL_C(0.01),
+                                    matrix_get_element(&covariance, i, j),
+                                    total);
+        }
+    }
+
+    matrix_free(&state);
+    matrix_free(&covariance);
+    matrix_free(&points);
+    ukf_free(&ukf);
+}
+
+void test_ukf_set_spread_refuses_what_the_width_cannot_hold(void)
+{
+    ukf_t ukf = ukf_alloc(1, 2, 1);
+
+    TEST_ASSERT_EQUAL(true, ukf_set_spread(&ukf, REAL_C(0.5), REAL_C(2.0),
+                                           REAL_C(0.0)));
+    TEST_ASSERT_EQUAL(false, ukf_set_spread(&ukf, REAL_C(0.0), REAL_C(2.0),
+                                            REAL_C(0.0)));
+    TEST_ASSERT_EQUAL(false, ukf_set_spread(&ukf, REAL_C(-1.0), REAL_C(2.0),
+                                            REAL_C(0.0)));
+    // A kappa that cancels the state size leaves nothing to spread by.
+    TEST_ASSERT_EQUAL(false, ukf_set_spread(&ukf, REAL_C(0.5), REAL_C(2.0),
+                                            REAL_C(-2.0)));
+
+    // A filter that would not change keeps what it had.
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.5), ukf.alpha);
+
+    ukf_free(&ukf);
+}
+
+void test_how_small_alpha_may_be_follows_the_width_of_the_build(void)
+{
+    // The weights are about one divided by the spreading, and they must add to
+    // one. A small alpha therefore makes very large weights that add to a very
+    // small number, and a narrow number cannot hold that sum.
+#if defined(SPTK_REAL_64)
+    // Sixteen digits carry the usual choice of the literature easily.
+    TEST_ASSERT_EQUAL(true, ukf_is_valid_spread(3u, REAL_C(0.001), REAL_C(0.0)));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.001), UKF_DEFAULT_ALPHA);
+#else
+    // Seven digits do not. At an alpha of 0.001 the weights come out about
+    // 6 percent wrong before the filter has done anything at all, thus the
+    // default at this width is a hundred times larger.
+    TEST_ASSERT_EQUAL(false, ukf_is_valid_spread(3u, REAL_C(0.001), REAL_C(0.0)));
+    TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.1), UKF_DEFAULT_ALPHA);
+#endif
+
+    // The default of the build must itself be one that the build can hold.
+    TEST_ASSERT_EQUAL(true, ukf_is_valid_spread(3u, UKF_DEFAULT_ALPHA,
+                                                UKF_DEFAULT_KAPPA));
+}
+
+void test_ukf_refuses_a_covariance_that_is_no_longer_a_spread(void)
+{
+    // Arithmetic can take a covariance out of being a real spread. The filter
+    // says so rather than placing points that mean nothing.
+    ukf_t ukf = ukf_alloc(1, 2, 1);
+
+    matrix_t broken = matrix_create_zero_matrix(2, 2);
+    matrix_add_element(&broken, 0, 0, REAL_C(1.0));
+    matrix_add_element(&broken, 1, 1, REAL_C(-1.0));
+
+    ukf_set_covariance_matrix(&ukf, &broken);
+    ukf_set_state_function(&ukf, state_stays);
+    ukf_set_measurement_function(&ukf, measures_the_state);
+
+    matrix_t points = matrix_alloc(2, UKF_POINT_COUNT(2));
+
+    TEST_ASSERT_EQUAL(false, ukf_place_points_into(&ukf, &points));
+    TEST_ASSERT_EQUAL(false, ukf_predict(&ukf));
+    TEST_ASSERT_EQUAL(false, ukf_update(&ukf));
+    TEST_ASSERT_EQUAL(true, ukf.singular);
+
+    matrix_free(&broken);
+    matrix_free(&points);
+    ukf_free(&ukf);
+}
+
+void test_ukf_finds_a_steady_value_under_noise(void)
+{
+    // The plainest thing a filter does: a value that does not move, seen
+    // through a noisy sensor.
+    ukf_t ukf = ukf_alloc(1, 1, 1);
+
+    matrix_t q = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&q, 0, 0, REAL_C(0.0001));
+    matrix_t r = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&r, 0, 0, REAL_C(0.25));
+    matrix_t y = matrix_create_zero_matrix(1, 1);
+
+    ukf_set_state_function(&ukf, state_stays);
+    ukf_set_measurement_function(&ukf, measures_the_state);
+    ukf_set_process_noise_covariance_matrix(&ukf, &q);
+    ukf_set_measurement_covariance_matrix(&ukf, &r);
+
+    const real_t truth = REAL_C(7.0);
+
+    for(uint32_t index = 0; index < 400u; index++)
+    {
+        matrix_add_element(&y, 0, 0, truth + (REAL_C(0.5) * rough()));
+        TEST_ASSERT_EQUAL(true, ukf_step(&ukf, NULL, &y));
+    }
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.1), truth,
+                            matrix_get_element(ukf_get_state_matrix(&ukf), 0, 0));
+
+    matrix_free(&q);
+    matrix_free(&r);
+    matrix_free(&y);
+    ukf_free(&ukf);
+}
+
+void test_ukf_agrees_with_ekf_when_the_model_is_straight(void)
+{
+    // Where the model does not bend, both filters are answering the same
+    // question and must give the same answer. If they did not, one of them
+    // would be wrong about the easy case.
+    ukf_t ukf = ukf_alloc(1, 1, 1);
+    ekf_t ekf = ekf_alloc(1, 1, 1);
+
+    matrix_t q = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&q, 0, 0, REAL_C(0.01));
+    matrix_t r = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&r, 0, 0, REAL_C(0.25));
+    matrix_t y = matrix_create_zero_matrix(1, 1);
+
+    ukf_set_state_function(&ukf, state_stays);
+    ukf_set_measurement_function(&ukf, measures_the_state);
+    ukf_set_process_noise_covariance_matrix(&ukf, &q);
+    ukf_set_measurement_covariance_matrix(&ukf, &r);
+
+    ekf_set_state_function(&ekf, state_stays);
+    ekf_set_measurement_function(&ekf, measures_the_state);
+    ekf_set_process_noise_covariance_matrix(&ekf, &q);
+    ekf_set_measurement_covariance_matrix(&ekf, &r);
+
+    seed = 4u;
+    for(uint32_t index = 0; index < 200u; index++)
+    {
+        real_t reading = REAL_C(5.0) + (REAL_C(0.5) * rough());
+
+        matrix_add_element(&y, 0, 0, reading);
+        ukf_step(&ukf, NULL, &y);
+        ekf_step(&ekf, NULL, &y);
+    }
+
+    real_t from_ukf = matrix_get_element(ukf_get_state_matrix(&ukf), 0, 0);
+    real_t from_ekf = matrix_get_element(ekf_get_state_matrix(&ekf), 0, 0);
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), from_ekf, from_ukf);
+
+    matrix_free(&q);
+    matrix_free(&r);
+    matrix_free(&y);
+    ukf_free(&ukf);
+    ekf_free(&ekf);
+}
+
+void test_a_spread_put_through_a_bend_keeps_its_middle(void)
+{
+    // THE WHOLE REASON THIS MODULE EXISTS, measured on its own rather than
+    // through a whole filter.
+    //
+    // A spread put through a square comes out with its middle at the middle
+    // squared PLUS the spread, because the far side of the spread is squared
+    // into something further away than the near side is. A straight line laid
+    // against the square at the middle gives the middle squared and misses the
+    // spread entirely.
+    real_t middles[3] = {REAL_C(0.0), REAL_C(1.0), REAL_C(3.0)};
+    real_t spreads[3] = {REAL_C(9.0), REAL_C(4.0), REAL_C(1.0)};
+
+    for(uint32_t which = 0; which < 3u; which++)
+    {
+        ukf_t ukf = ukf_alloc(1, 1, 1);
+
+        matrix_t state = matrix_create_zero_matrix(1, 1);
+        matrix_add_element(&state, 0, 0, middles[which]);
+        matrix_t covariance = matrix_create_zero_matrix(1, 1);
+        matrix_add_element(&covariance, 0, 0, spreads[which]);
+
+        ukf_set_state_matrix(&ukf, &state);
+        ukf_set_covariance_matrix(&ukf, &covariance);
+        ukf_set_measurement_function(&ukf, measures_the_square);
+
+        matrix_t points = matrix_alloc(1, UKF_POINT_COUNT(1));
+        TEST_ASSERT_EQUAL(true, ukf_place_points_into(&ukf, &points));
+
+        // Put every point through the square and take the weighted middle.
+        real_t came_out = REAL_C(0.0);
+        for(uint32_t index = 0; index < UKF_POINT_COUNT(1); index++)
+        {
+            real_t value = matrix_get_element(&points, 0, index);
+            came_out += matrix_get_element(&ukf.scratch.weight_mean, index, 0)
+                        * value * value;
+        }
+
+        real_t truth = (middles[which] * middles[which]) + spreads[which];
+        real_t straight_line = middles[which] * middles[which];
+
+        // This filter is exact.
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01) * truth, truth, came_out);
+
+        // A straight line is not, and it is wrong by the whole of the spread.
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), spreads[which],
+                                truth - straight_line);
+
+        matrix_free(&state);
+        matrix_free(&covariance);
+        matrix_free(&points);
+        ukf_free(&ukf);
+    }
+}
+
+void test_a_spread_of_nothing_gives_the_plain_answer(void)
+{
+    // With no spread there is nothing for a bend to move, thus this filter and
+    // a straight line must agree. If they did not, the extra machinery would
+    // be changing an answer that was already right.
+    ukf_t ukf = ukf_alloc(1, 1, 1);
+
+    matrix_t state = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&state, 0, 0, REAL_C(3.0));
+    matrix_t covariance = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&covariance, 0, 0, REAL_C(0.000001));
+
+    ukf_set_state_matrix(&ukf, &state);
+    ukf_set_covariance_matrix(&ukf, &covariance);
+
+    matrix_t points = matrix_alloc(1, UKF_POINT_COUNT(1));
+    TEST_ASSERT_EQUAL(true, ukf_place_points_into(&ukf, &points));
+
+    real_t came_out = REAL_C(0.0);
+    for(uint32_t index = 0; index < UKF_POINT_COUNT(1); index++)
+    {
+        real_t value = matrix_get_element(&points, 0, index);
+        came_out += matrix_get_element(&ukf.scratch.weight_mean, index, 0)
+                    * value * value;
+    }
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(9.0), came_out);
+
+    matrix_free(&state);
+    matrix_free(&covariance);
+    matrix_free(&points);
+    ukf_free(&ukf);
+}
+
+void test_ukf_needs_no_derivative_at_all(void)
+{
+    // A model with a condition in it has no derivative anywhere near the
+    // condition. The extended filter of this library works its Jacobians out
+    // by a central difference, thus it must be given a step and the answer
+    // depends on it. This filter is given nothing of the kind, and its header
+    // has no function to set one.
+    //
+    // The test holds that: the filter follows a model that is not smooth.
+    ukf_t ukf = ukf_alloc(1, 1, 1);
+
+    matrix_t q = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&q, 0, 0, REAL_C(0.001));
+    matrix_t r = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&r, 0, 0, REAL_C(0.04));
+    matrix_t y = matrix_create_zero_matrix(1, 1);
+
+    ukf_set_state_function(&ukf, state_stays);
+    ukf_set_measurement_function(&ukf, measures_the_state);
+    ukf_set_process_noise_covariance_matrix(&ukf, &q);
+    ukf_set_measurement_covariance_matrix(&ukf, &r);
+
+    seed = 21u;
+    for(uint32_t index = 0; index < 300u; index++)
+    {
+        matrix_add_element(&y, 0, 0, REAL_C(3.0) + (REAL_C(0.2) * rough()));
+        ukf_step(&ukf, NULL, &y);
+    }
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.1), REAL_C(3.0),
+                            matrix_get_element(ukf_get_state_matrix(&ukf), 0, 0));
+
+    matrix_free(&q);
+    matrix_free(&r);
+    matrix_free(&y);
+    ukf_free(&ukf);
+}
+
+void test_the_covariance_falls_as_readings_arrive(void)
+{
+    // A filter that is learning must become more certain. A covariance that
+    // grew instead would mean the filter was losing what it knew.
+    ukf_t ukf = ukf_alloc(1, 1, 1);
+
+    matrix_t q = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&q, 0, 0, REAL_C(0.0001));
+    matrix_t r = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&r, 0, 0, REAL_C(0.25));
+    matrix_t y = matrix_create_zero_matrix(1, 1);
+
+    ukf_set_state_function(&ukf, state_stays);
+    ukf_set_measurement_function(&ukf, measures_the_state);
+    ukf_set_process_noise_covariance_matrix(&ukf, &q);
+    ukf_set_measurement_covariance_matrix(&ukf, &r);
+
+    real_t at_first = matrix_get_element(ukf_get_covariance_matrix(&ukf), 0, 0);
+
+    for(uint32_t index = 0; index < 100u; index++)
+    {
+        matrix_add_element(&y, 0, 0, REAL_C(1.0) + (REAL_C(0.5) * rough()));
+        ukf_step(&ukf, NULL, &y);
+    }
+
+    real_t at_last = matrix_get_element(ukf_get_covariance_matrix(&ukf), 0, 0);
+
+    TEST_ASSERT_TRUE(at_last < at_first);
+    TEST_ASSERT_TRUE(at_last > REAL_C(0.0));
+
+    matrix_free(&q);
+    matrix_free(&r);
+    matrix_free(&y);
+    ukf_free(&ukf);
+}

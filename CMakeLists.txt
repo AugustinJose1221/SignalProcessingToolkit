@@ -40,6 +40,7 @@ set(SIGNALPROC_SOURCES
     sptk/filter/filtfilt.c
     sptk/estimate/ekf.c
     sptk/estimate/kalman.c
+    sptk/estimate/ukf.c
     sptk/decompose/emd.c
     sptk/decompose/imf.c
     sptk/util/binarysearch.c

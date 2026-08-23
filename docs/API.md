@@ -53,6 +53,7 @@ name and shape of every function.
 | --- | --- |
 | [`kalman`](api/kalman.md) | The Kalman filter |
 | [`ekf`](api/ekf.md) | The extended Kalman filter |
+| [`ukf`](api/ukf.md) | The unscented Kalman filter |
 
 ## Decomposition
 
