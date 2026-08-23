@@ -1,3 +1,20 @@
+## 0.7.1 (2026-08-23)
+
+### Docs
+
+- **examples**: Add an example for every module that had none
+
+Twenty-two modules of thirty-seven had no example. Ten are added, each standing
+on a real device with a real question, and each showing the trap that makes its
+module easy to use wrongly: a bearing sensor logged at a lower rate, a pump
+watched for a failing bearing, two microphones finding a direction, a voice
+over a fan, a load cell that drifts and is knocked, a pressure pulse measured
+for its width, a trolley on a rail, blocks from a converter, a thermistor, and
+three jobs that need more than a matrix of plain numbers.
+
+Every module of the library now appears in an example, and the workflow builds
+and runs all nineteen at both widths.
+
 ## 0.7.0 (2026-08-23)
 
 Six modules join the library. Each one answers a question that a caller could
