@@ -27,6 +27,7 @@ set(SIGNALPROC_SOURCES
     sptk/transform/hilbert.c
     sptk/transform/window.c
     sptk/transform/correlate.c
+    sptk/transform/psd.c
     sptk/filter/fir.c
     sptk/filter/iir.c
     sptk/filter/savgol.c

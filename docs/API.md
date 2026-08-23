@@ -21,6 +21,7 @@ name and shape of every function.
 | --- | --- |
 | [`fft`](api/fft.md) | The fast Fourier transform |
 | [`window`](api/window.md) | Windows for a transform |
+| [`psd`](api/psd.md) | Power at each frequency |
 | [`correlate`](api/correlate.md) | How alike two signals are |
 | [`goertzel`](api/goertzel.md) | Detection of one frequency |
 | [`hilbert`](api/hilbert.md) | The Hilbert transform |
