@@ -37,6 +37,7 @@ comment that says so.
 | `RUN_STREAM_EXAMPLE` | [stream.c](stream.c) | A converter giving blocks | How do I keep a window that crosses the blocks? |
 | `RUN_CALIBRATE_EXAMPLE` | [calibrate.c](calibrate.c) | A thermistor | What temperature is this resistance? |
 | `RUN_LINALG_EXAMPLE` | [linalg.c](linalg.c) | A robot joint, two coils | — |
+| `RUN_ATTITUDE_EXAMPLE` | [attitude.c](attitude.c) | A gyroscope and an accelerometer | Which way is the board pointing? |
 
 ## What each example shows
 
@@ -147,3 +148,17 @@ robot joint whose rotation matrix has FUNCTIONS for its elements, two coupled
 coils whose impedance is complex and where the phase is the whole of the
 answer, and two readings compared by the angle between them. It also shows
 where a module writes to, by handing it a function that writes nowhere.
+
+**attitude.c — which way a board is pointing.** A gyroscope is smooth and
+drifts; an accelerometer never drifts and is noisy. Neither answers alone. The
+board pitches to straight up, which is exactly where three angles lose a
+number, thus the attitude is held as four. The measurement is where gravity
+lands after the attitude has turned it, which is not a straight operation, thus
+the filter that needs no derivative is the one to reach for.
+
+The example reports the tilt apart from the total, and the split is the point.
+The gyroscope alone drifts to 25 degrees of tilt in thirty seconds; the filter
+holds it at under one. The total grows for both, and that is not a fault of the
+filter: an accelerometer sees gravity and nothing else, thus nothing here can
+say which way the board faces about the vertical. A real device adds a
+magnetometer for that.

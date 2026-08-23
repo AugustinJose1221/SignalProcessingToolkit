@@ -102,6 +102,7 @@ static void ukf_build_matrices(ukf_t* ukf, real_t* mempool)
     ukf->scratch.moved = matrix_static_alloc(nx, points, pool);  pool += nx*points;
     ukf->scratch.nxny_a = matrix_static_alloc(nx, ny, pool);    pool += nx*ny;
     ukf->scratch.nxny_b = matrix_static_alloc(nx, ny, pool);    pool += nx*ny;
+    ukf->scratch.nynx_a = matrix_static_alloc(ny, nx, pool);    pool += ny*nx;
     ukf->scratch.nyny_a = matrix_static_alloc(ny, ny, pool);    pool += ny*ny;
     ukf->scratch.nyny_b = matrix_static_alloc(ny, ny, pool);    pool += ny*ny;
     ukf->scratch.measured = matrix_static_alloc(ny, points, pool);
@@ -387,6 +388,40 @@ static void ukf_spread_between(const matrix_t* first, const matrix_t* first_mean
     }
 }
 
+// Make a covariance exactly symmetric again.
+//
+// A covariance is symmetric in principle: what the first element does to the
+// second is what the second does to the first. The arithmetic that builds it
+// does not know that, and the two halves drift apart in their last digits.
+//
+// That drift is small and it matters, because the factor of Cholesky refuses a
+// matrix that is not symmetric, and refusing is the right thing for it to do.
+// At 64 bits the tolerance it uses is a few parts in a million million, which
+// a few hundred steps of ordinary arithmetic will exceed. The filter then
+// stops on a covariance that is sound in every way that matters.
+//
+// Averaging each pair across the diagonal costs one pass over the matrix and
+// holds the invariant that the rest of the filter relies on. This is why a
+// filter that ran for three hundred steps at 32 bits and stopped at 64 now
+// runs at both.
+static void ukf_make_symmetric(matrix_t* matrix)
+{
+    uint32_t order = matrix->m;
+
+    for(uint32_t i = 0; i < order; i++)
+    {
+        for(uint32_t j = i + 1u; j < order; j++)
+        {
+            real_t between = (matrix_get_element(matrix, i, j)
+                              + matrix_get_element(matrix, j, i))
+                             / REAL_C(2.0);
+
+            matrix_add_element(matrix, i, j, between);
+            matrix_add_element(matrix, j, i, between);
+        }
+    }
+}
+
 // Take one column of a set of points out as a matrix of its own.
 static void ukf_take_point(const matrix_t* points, uint32_t index,
                            uint32_t rows, matrix_t* dest)
@@ -442,6 +477,7 @@ bool ukf_predict(ukf_t* ukf)
 
     matrix_copy(&ukf->scratch.nx1_c, &ukf->x);
     matrix_copy(&ukf->scratch.nxnx_b, &ukf->p);
+    ukf_make_symmetric(&ukf->p);
 
     ukf->singular = false;
 
@@ -510,12 +546,16 @@ bool ukf_update(ukf_t* ukf)
     matrix_copy(&ukf->scratch.nx1_b, &ukf->x);
 
     // Take away the spread that the measurement explained.
+    // The gain turned round is ny by nx and not nx by nx. Those two are the
+    // same shape only when the state and the measurement are the same size,
+    // which is the easy case and not the usual one.
     matrix_multiply_into(&ukf->k, &ukf->scratch.nyny_a, &ukf->scratch.nxny_b);
-    matrix_transpose_into(&ukf->k, &ukf->scratch.nxnx_a);
-    matrix_multiply_into(&ukf->scratch.nxny_b, &ukf->scratch.nxnx_a,
+    matrix_transpose_into(&ukf->k, &ukf->scratch.nynx_a);
+    matrix_multiply_into(&ukf->scratch.nxny_b, &ukf->scratch.nynx_a,
                          &ukf->scratch.nxnx_b);
     matrix_subtract_into(&ukf->p, &ukf->scratch.nxnx_b, &ukf->scratch.nxnx_a);
     matrix_copy(&ukf->scratch.nxnx_a, &ukf->p);
+    ukf_make_symmetric(&ukf->p);
 
     ukf->singular = false;
 

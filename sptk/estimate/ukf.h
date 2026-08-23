@@ -115,9 +115,21 @@
 //
 // The points are placed using the factor of Cholesky of the covariance, thus
 // the covariance must stay a real spread: symmetric, and positive in every
-// direction. Arithmetic can take it out of that state, and when it does this
-// filter says so rather than carrying on with points that mean nothing.
-// ukf_predict and ukf_update both give false then.
+// direction.
+//
+// The filter holds the first half of that itself. A covariance is symmetric in
+// principle, and the arithmetic that builds it does not know that, thus its two
+// halves drift apart in their last digits. Every step therefore averages each
+// pair across the diagonal, which costs one pass and holds the invariant.
+// Without it a filter of four states seen through three measurements ran for
+// three hundred steps at 32 bits and stopped at 64, because the wider build
+// notices a smaller drift.
+//
+// The second half it cannot hold. A covariance can lose its positive spread
+// through a long chain of arithmetic, and when it does this filter says so
+// rather than carrying on with points that mean nothing. ukf_predict and
+// ukf_update both give false then, and that is the first sign that something
+// upstream has gone wrong.
 
 // The state function. It reads the state and the input and writes the state
 // that follows. The three matrices have the orders nx x 1, ni x 1 and nx x 1.
@@ -138,12 +150,13 @@ typedef void (*ukf_measurement_function_t)(const matrix_t* state,
 // The number of float elements that ukf_static_alloc needs in the memory pool.
 // Counted from what ukf_build_matrices really takes, in the same order:
 //   nx by nx : p, q, factor, nxnx_a, nxnx_b
-//   nx by ny : k, nxny_a, nxny_b
+//   nx by ny : k, nxny_a, nxny_b, and nynx_a, which is ny by nx and holds the
+//              same number of elements
 //   ny by ny : r, nyny_a, nyny_b, and the augmented matrix, which is ny by 2ny
 //   points   : the points and where they moved to, the same for the
 //              measurement, and the two lists of weights
 //   columns  : x and four working columns, y and four more, and the input
-#define UKF_MEMPOOL_SIZE(ni, nx, ny)    ((5*(nx)*(nx)) + (3*(nx)*(ny)) \
+#define UKF_MEMPOOL_SIZE(ni, nx, ny)    ((5*(nx)*(nx)) + (4*(nx)*(ny)) \
                                         + (3*(ny)*(ny)) + (2*(ny)*(ny)) \
                                         + (2*(nx)*UKF_POINT_COUNT(nx)) \
                                         + (2*(ny)*UKF_POINT_COUNT(nx)) \
@@ -184,6 +197,7 @@ typedef struct{
         matrix_t moved;             // Where each point went (nx x 2nx+1)
         matrix_t nxny_a;
         matrix_t nxny_b;
+        matrix_t nynx_a;            // The gain turned round (ny x nx)
         matrix_t nyny_a;
         matrix_t nyny_b;
         matrix_t measured;          // What each point measured (ny x 2nx+1)

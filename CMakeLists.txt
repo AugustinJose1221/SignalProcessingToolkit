@@ -79,7 +79,8 @@ if(BUILD_EXAMPLE)
         examples/kalman.c
         examples/stream.c
         examples/calibrate.c
-        examples/linalg.c)
+        examples/linalg.c
+        examples/attitude.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()

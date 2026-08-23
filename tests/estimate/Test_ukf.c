@@ -501,3 +501,121 @@ void test_the_covariance_falls_as_readings_arrive(void)
     matrix_free(&y);
     ukf_free(&ukf);
 }
+
+// A state of two carried by a measurement of one, and a state of four by a
+// measurement of three.
+//
+// EVERY OTHER TEST HERE USES A STATE AND A MEASUREMENT OF THE SAME SIZE, AND
+// THAT HID A FAULT. The gain is nx by ny, thus turned round it is ny by nx.
+// Those two shapes are the same only when nx equals ny, which is the easy case
+// and not the usual one. The filter wrote the turned gain into a matrix of the
+// wrong shape and stopped on an assertion the first time a real model was
+// given to it.
+static void two_states_stay(const matrix_t* state, const matrix_t* input,
+                            matrix_t* result)
+{
+    (void)input;
+    matrix_copy((matrix_t*)state, result);
+}
+
+// One measurement of a state of two: it sees the first element only.
+static void sees_the_first_of_two(const matrix_t* state, matrix_t* result)
+{
+    matrix_add_element(result, 0, 0, matrix_get_element((matrix_t*)state, 0, 0));
+}
+
+// Three measurements of a state of four, none of them straight.
+static void sees_three_of_four(const matrix_t* state, matrix_t* result)
+{
+    real_t a = matrix_get_element((matrix_t*)state, 0, 0);
+    real_t b = matrix_get_element((matrix_t*)state, 1, 0);
+    real_t c = matrix_get_element((matrix_t*)state, 2, 0);
+    real_t d = matrix_get_element((matrix_t*)state, 3, 0);
+
+    matrix_add_element(result, 0, 0, a + (b * b));
+    matrix_add_element(result, 1, 0, c * d);
+    matrix_add_element(result, 2, 0, a - d);
+}
+
+void test_ukf_works_when_the_state_and_the_measurement_differ_in_size(void)
+{
+    // A state of two seen through one measurement.
+    ukf_t small = ukf_alloc(1, 2, 1);
+
+    matrix_t q2 = matrix_create_unit_matrix(2);
+    matrix_multiply_scalar_into(&q2, REAL_C(0.001), &q2);
+    matrix_t r1 = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&r1, 0, 0, REAL_C(0.1));
+    matrix_t y1 = matrix_create_zero_matrix(1, 1);
+
+    ukf_set_state_function(&small, two_states_stay);
+    ukf_set_measurement_function(&small, sees_the_first_of_two);
+    ukf_set_process_noise_covariance_matrix(&small, &q2);
+    ukf_set_measurement_covariance_matrix(&small, &r1);
+
+    seed = 3u;
+    for(uint32_t index = 0; index < 200u; index++)
+    {
+        matrix_add_element(&y1, 0, 0, REAL_C(4.0) + (REAL_C(0.3) * rough()));
+        TEST_ASSERT_EQUAL(true, ukf_step(&small, NULL, &y1));
+    }
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.2), REAL_C(4.0),
+                            matrix_get_element(ukf_get_state_matrix(&small), 0, 0));
+
+    matrix_free(&q2);
+    matrix_free(&r1);
+    matrix_free(&y1);
+    ukf_free(&small);
+
+    // A state of four seen through three measurements, none of them straight.
+    ukf_t larger = ukf_alloc(1, 4, 3);
+
+    matrix_t q4 = matrix_create_unit_matrix(4);
+    matrix_multiply_scalar_into(&q4, REAL_C(0.001), &q4);
+    matrix_t r3 = matrix_create_unit_matrix(3);
+    matrix_multiply_scalar_into(&r3, REAL_C(0.05), &r3);
+    matrix_t y3 = matrix_create_zero_matrix(3, 1);
+    matrix_t start = matrix_create_zero_matrix(4, 1);
+
+    for(uint32_t index = 0; index < 4u; index++)
+    {
+        matrix_add_element(&start, index, 0, REAL_C(0.5));
+    }
+
+    ukf_set_state_function(&larger, two_states_stay);
+    ukf_set_measurement_function(&larger, sees_three_of_four);
+    ukf_set_process_noise_covariance_matrix(&larger, &q4);
+    ukf_set_measurement_covariance_matrix(&larger, &r3);
+    ukf_set_state_matrix(&larger, &start);
+
+    seed = 11u;
+    for(uint32_t index = 0; index < 300u; index++)
+    {
+        // What a state of 1, 1, 2, 2 would measure.
+        matrix_add_element(&y3, 0, 0, REAL_C(2.0) + (REAL_C(0.1) * rough()));
+        matrix_add_element(&y3, 1, 0, REAL_C(4.0) + (REAL_C(0.1) * rough()));
+        matrix_add_element(&y3, 2, 0, REAL_C(-1.0) + (REAL_C(0.1) * rough()));
+
+        TEST_ASSERT_EQUAL(true, ukf_step(&larger, NULL, &y3));
+    }
+
+    // The filter must at least reproduce the measurements it was given, which
+    // is the most that can be asked when four numbers are seen through three.
+    matrix_t predicted = matrix_create_zero_matrix(3, 1);
+    sees_three_of_four(ukf_get_state_matrix(&larger), &predicted);
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.2), REAL_C(2.0),
+                            matrix_get_element(&predicted, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.2), REAL_C(4.0),
+                            matrix_get_element(&predicted, 1, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.2), REAL_C(-1.0),
+                            matrix_get_element(&predicted, 2, 0));
+
+    matrix_free(&q4);
+    matrix_free(&r3);
+    matrix_free(&y3);
+    matrix_free(&start);
+    matrix_free(&predicted);
+    ukf_free(&larger);
+}
