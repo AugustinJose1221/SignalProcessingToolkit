@@ -6,6 +6,8 @@
 #include "defs.h"
 #endif
 
+#include <math.h>
+
 
 
 matrix_t matrix_alloc(uint32_t m, uint32_t n)
@@ -383,6 +385,128 @@ matrix_t matrix_transpose(matrix_t* matrix)
     matrix_transpose_into(matrix, &transpose);
 
     return transpose;
+}
+
+bool matrix_is_symmetric(matrix_t* matrix, real_t tolerance)
+{
+    ASSERT(matrix != NULL);
+
+    if(!matrix_is_square(matrix))
+    {
+        return false;
+    }
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = i + 1u; j < matrix->n; j++)
+        {
+            real_t across = REAL_ABS(matrix_get_element(matrix, i, j)
+                                     - matrix_get_element(matrix, j, i));
+            if(across > tolerance)
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool matrix_cholesky_into(matrix_t* matrix, matrix_t* dest)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(matrix_is_square(matrix));
+    ASSERT((dest->m == matrix->m) && (dest->n == matrix->n));
+
+    uint32_t order = matrix->m;
+
+    // A matrix that is not symmetric has no factor, and taking one anyway
+    // would quietly use the lower half and ignore the upper half. That is a
+    // different matrix from the one the caller gave, thus the function says no
+    // rather than answering a question that was not asked.
+    //
+    // The tolerance follows the size of the elements, because a covariance
+    // built by a long chain of arithmetic is symmetric in principle and not in
+    // its last digits.
+    real_t largest = REAL_C(0.0);
+    for(uint32_t i = 0; i < order; i++)
+    {
+        for(uint32_t j = 0; j < order; j++)
+        {
+            real_t size_of = REAL_ABS(matrix_get_element(matrix, i, j));
+            if(size_of > largest) { largest = size_of; }
+        }
+    }
+
+    if(!matrix_is_symmetric(matrix, (REAL_C(1000.0) * REAL_EPSILON * largest)
+                                    + REAL_SMALLEST))
+    {
+        return false;
+    }
+
+    // The factor is worked out one row at a time, and each element uses only
+    // elements of the same row and of rows above it. Thus the destination may
+    // be the matrix itself: every element that is read has already been
+    // written, or has not been touched yet.
+    for(uint32_t i = 0; i < order; i++)
+    {
+        for(uint32_t j = 0; j <= i; j++)
+        {
+            real_t total = matrix_get_element(matrix, i, j);
+
+            for(uint32_t k = 0; k < j; k++)
+            {
+                total -= matrix_get_element(dest, i, k)
+                         * matrix_get_element(dest, j, k);
+            }
+
+            if(i == j)
+            {
+                // The diagonal is a square root. A value at or below zero
+                // means the matrix is not positive definite: there is a
+                // direction in which the spread it describes is zero or
+                // negative, which no real spread can be.
+                if(total <= REAL_C(0.0))
+                {
+                    return false;
+                }
+
+                matrix_add_element(dest, i, j, REAL_SQRT(total));
+            }
+            else
+            {
+                matrix_add_element(dest, i, j,
+                                   total / matrix_get_element(dest, j, j));
+            }
+        }
+
+        // Everything above the diagonal is zero, because the factor is a lower
+        // triangle.
+        for(uint32_t j = i + 1u; j < order; j++)
+        {
+            matrix_add_element(dest, i, j, REAL_C(0.0));
+        }
+    }
+
+    return true;
+}
+
+matrix_t matrix_cholesky(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
+
+    matrix_t factor = matrix_alloc(matrix->m, matrix->n);
+
+    if(!matrix_cholesky_into(matrix, &factor))
+    {
+        // A matrix with no factor gives back all zeros, as a singular matrix
+        // gives back all zeros from matrix_inverse.
+        matrix_set_zero(&factor);
+    }
+
+    return factor;
 }
 
 matrix_t matrix_inverse(matrix_t* matrix)

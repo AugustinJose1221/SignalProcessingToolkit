@@ -125,6 +125,45 @@ matrix_t matrix_transpose(matrix_t* matrix);
 // find that state. Give the result to matrix_free.
 matrix_t matrix_inverse(matrix_t* matrix);
 
+// True if the matrix is symmetric: every element equals the one across the
+// diagonal from it, within the given tolerance.
+//
+// A tolerance is needed because a matrix that a chain of arithmetic has built
+// is symmetric in principle and not always in its last digits.
+bool matrix_is_symmetric(matrix_t* matrix, real_t tolerance);
+
+// Give the factor of Cholesky of the matrix, which is the lower triangle L for
+// which L times its own transpose gives the matrix back.
+//
+// WHAT THIS IS FOR
+//
+// A covariance matrix says how far a set of numbers spreads and how their
+// spreads lean on each other. Its factor is the SHAPE of that spread: a set of
+// directions, each as long as the spread reaches that way. Multiply a step of
+// unit length by the factor and the step lands on the edge of the spread,
+// whichever way it points.
+//
+// That is what the unscented Kalman filter needs to place its points, and it
+// is what turns a set of unrelated random numbers into a set that spreads the
+// way a given covariance says.
+//
+// It is also the fast way to solve a set of equations whose matrix is a
+// covariance: about half the work of a general elimination, because it uses
+// the symmetry instead of ignoring it.
+//
+// WHEN IT DOES NOT EXIST
+//
+// Only a symmetric matrix that is positive definite has a factor. Positive
+// definite means the spread it describes is real: no direction in which the
+// spread is zero or, worse, negative. A covariance that has been worked out by
+// a long chain of arithmetic can lose that, and when it does the failure is
+// the first sign that something upstream has gone wrong.
+//
+// The function gives a matrix of all zeros when there is no factor. Use
+// matrix_is_zero on the result to find that state. Give the result to
+// matrix_free.
+matrix_t matrix_cholesky(matrix_t* matrix);
+
 // Write the elements of the source into the destination. Both matrices must
 // have the same order.
 void matrix_copy(matrix_t* src, matrix_t* dest);
@@ -183,5 +222,16 @@ void matrix_set_zero(matrix_t* matrix);
 // matrix. It loses its content. The function gives false if the matrix is
 // singular, and it does not change the destination then.
 bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch);
+
+// Write the factor of Cholesky of the matrix into the destination. Both
+// matrices must be square and of the same order.
+//
+// The function gives false when the matrix has no factor, which is when it is
+// not symmetric or not positive definite. The destination is left as it was.
+//
+// The destination may be the matrix itself. Working in place is safe here,
+// because each element of the factor is worked out from elements that are
+// already finished and from the one place of the matrix that it replaces.
+bool matrix_cholesky_into(matrix_t* matrix, matrix_t* dest);
 
 #endif//MATRIX_H

@@ -978,3 +978,276 @@ void test_the_operations_that_write_into_a_matrix_need_no_heap(void)
     matrix_free(&dest);
     matrix_free(&scratch);
 }
+
+void test_matrix_is_symmetric(void)
+{
+    matrix_t matrix = matrix_alloc(2, 2);
+
+    matrix_add_element(&matrix, 0, 0, REAL_C(4.0));
+    matrix_add_element(&matrix, 0, 1, REAL_C(2.0));
+    matrix_add_element(&matrix, 1, 0, REAL_C(2.0));
+    matrix_add_element(&matrix, 1, 1, REAL_C(3.0));
+
+    TEST_ASSERT_EQUAL(true, matrix_is_symmetric(&matrix, REAL_C(0.0001)));
+
+    matrix_add_element(&matrix, 1, 0, REAL_C(2.5));
+    TEST_ASSERT_EQUAL(false, matrix_is_symmetric(&matrix, REAL_C(0.0001)));
+
+    // A tolerance is needed, because a matrix built by a chain of arithmetic
+    // is symmetric in principle and not in its last digits.
+    TEST_ASSERT_EQUAL(true, matrix_is_symmetric(&matrix, REAL_C(1.0)));
+
+    matrix_free(&matrix);
+}
+
+void test_matrix_is_symmetric_needs_a_square_matrix(void)
+{
+    matrix_t matrix = matrix_create_zero_matrix(2, 3);
+
+    TEST_ASSERT_EQUAL(false, matrix_is_symmetric(&matrix, REAL_C(1.0)));
+
+    matrix_free(&matrix);
+}
+
+void test_matrix_cholesky_gives_the_matrix_back_when_multiplied_out(void)
+{
+    // This is what the factor IS: the lower triangle whose product with its
+    // own transpose gives the matrix back. Everything else follows from it.
+    matrix_t matrix = matrix_alloc(3, 3);
+
+    real_t values[9] = {REAL_C(4.0),  REAL_C(12.0), REAL_C(-16.0),
+                        REAL_C(12.0), REAL_C(37.0), REAL_C(-43.0),
+                        REAL_C(-16.0), REAL_C(-43.0), REAL_C(98.0)};
+
+    for(uint32_t i = 0; i < 3u; i++)
+    {
+        for(uint32_t j = 0; j < 3u; j++)
+        {
+            matrix_add_element(&matrix, i, j, values[(i * 3u) + j]);
+        }
+    }
+
+    matrix_t factor = matrix_cholesky(&matrix);
+
+    TEST_ASSERT_EQUAL(false, matrix_is_zero(&factor));
+
+    matrix_t turned = matrix_transpose(&factor);
+    matrix_t again = matrix_multiply(&factor, &turned);
+
+    for(uint32_t i = 0; i < 3u; i++)
+    {
+        for(uint32_t j = 0; j < 3u; j++)
+        {
+            TEST_ASSERT_REAL_WITHIN(REAL_C(0.001),
+                                    matrix_get_element(&matrix, i, j),
+                                    matrix_get_element(&again, i, j));
+        }
+    }
+
+    matrix_free(&matrix);
+    matrix_free(&factor);
+    matrix_free(&turned);
+    matrix_free(&again);
+}
+
+void test_matrix_cholesky_gives_a_lower_triangle(void)
+{
+    matrix_t matrix = matrix_alloc(3, 3);
+
+    real_t values[9] = {REAL_C(4.0),  REAL_C(12.0), REAL_C(-16.0),
+                        REAL_C(12.0), REAL_C(37.0), REAL_C(-43.0),
+                        REAL_C(-16.0), REAL_C(-43.0), REAL_C(98.0)};
+
+    for(uint32_t i = 0; i < 3u; i++)
+    {
+        for(uint32_t j = 0; j < 3u; j++)
+        {
+            matrix_add_element(&matrix, i, j, values[(i * 3u) + j]);
+        }
+    }
+
+    matrix_t factor = matrix_cholesky(&matrix);
+
+    // The known factor of this matrix, which is the one every book uses.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(2.0),
+                            matrix_get_element(&factor, 0, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(6.0),
+                            matrix_get_element(&factor, 1, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(1.0),
+                            matrix_get_element(&factor, 1, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(-8.0),
+                            matrix_get_element(&factor, 2, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(5.0),
+                            matrix_get_element(&factor, 2, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(3.0),
+                            matrix_get_element(&factor, 2, 2));
+
+    // Everything above the diagonal is nothing.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0),
+                            matrix_get_element(&factor, 0, 1));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0),
+                            matrix_get_element(&factor, 0, 2));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0),
+                            matrix_get_element(&factor, 1, 2));
+
+    matrix_free(&matrix);
+    matrix_free(&factor);
+}
+
+void test_matrix_cholesky_of_a_unit_matrix_is_a_unit_matrix(void)
+{
+    matrix_t matrix = matrix_create_unit_matrix(4);
+    matrix_t factor = matrix_cholesky(&matrix);
+
+    TEST_ASSERT_EQUAL(true, matrix_is_unit(&factor));
+
+    matrix_free(&matrix);
+    matrix_free(&factor);
+}
+
+void test_matrix_cholesky_refuses_a_matrix_that_is_not_positive_definite(void)
+{
+    // The spread this matrix describes is negative in one direction, which no
+    // real spread can be. There is no factor, and the module says so rather
+    // than taking a root of a negative number.
+    matrix_t matrix = matrix_alloc(2, 2);
+
+    matrix_add_element(&matrix, 0, 0, REAL_C(1.0));
+    matrix_add_element(&matrix, 0, 1, REAL_C(2.0));
+    matrix_add_element(&matrix, 1, 0, REAL_C(2.0));
+    matrix_add_element(&matrix, 1, 1, REAL_C(1.0));
+
+    matrix_t factor = matrix_cholesky(&matrix);
+
+    TEST_ASSERT_EQUAL(true, matrix_is_zero(&factor));
+
+    matrix_free(&matrix);
+    matrix_free(&factor);
+}
+
+void test_matrix_cholesky_refuses_a_matrix_that_is_not_symmetric(void)
+{
+    // Taking a factor anyway would quietly use the lower half and ignore the
+    // upper half, which is a different matrix from the one that was given.
+    matrix_t matrix = matrix_alloc(2, 2);
+
+    matrix_add_element(&matrix, 0, 0, REAL_C(4.0));
+    matrix_add_element(&matrix, 0, 1, REAL_C(1.0));
+    matrix_add_element(&matrix, 1, 0, REAL_C(2.0));
+    matrix_add_element(&matrix, 1, 1, REAL_C(3.0));
+
+    matrix_t dest = matrix_alloc(2, 2);
+
+    TEST_ASSERT_EQUAL(false, matrix_cholesky_into(&matrix, &dest));
+
+    matrix_free(&matrix);
+    matrix_free(&dest);
+}
+
+void test_matrix_cholesky_refuses_a_spread_of_nothing(void)
+{
+    // A covariance with a zero on its diagonal says there is a direction with
+    // no spread at all. That is not positive definite, and a filter that meets
+    // it has already gone wrong upstream.
+    matrix_t matrix = matrix_create_zero_matrix(2, 2);
+    matrix_add_element(&matrix, 0, 0, REAL_C(1.0));
+
+    matrix_t dest = matrix_alloc(2, 2);
+
+    TEST_ASSERT_EQUAL(false, matrix_cholesky_into(&matrix, &dest));
+
+    matrix_free(&matrix);
+    matrix_free(&dest);
+}
+
+void test_matrix_cholesky_into_may_write_over_the_matrix(void)
+{
+    // The header says this is safe. Each element of the factor is worked out
+    // from elements that are already finished and from the one place it
+    // replaces, thus nothing that is still needed is overwritten.
+    matrix_t matrix = matrix_alloc(3, 3);
+    matrix_t apart = matrix_alloc(3, 3);
+
+    real_t values[9] = {REAL_C(25.0), REAL_C(15.0), REAL_C(-5.0),
+                        REAL_C(15.0), REAL_C(18.0), REAL_C(0.0),
+                        REAL_C(-5.0), REAL_C(0.0),  REAL_C(11.0)};
+
+    for(uint32_t i = 0; i < 3u; i++)
+    {
+        for(uint32_t j = 0; j < 3u; j++)
+        {
+            matrix_add_element(&matrix, i, j, values[(i * 3u) + j]);
+        }
+    }
+
+    TEST_ASSERT_EQUAL(true, matrix_cholesky_into(&matrix, &apart));
+    TEST_ASSERT_EQUAL(true, matrix_cholesky_into(&matrix, &matrix));
+
+    for(uint32_t i = 0; i < 3u; i++)
+    {
+        for(uint32_t j = 0; j < 3u; j++)
+        {
+            TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001),
+                                    matrix_get_element(&apart, i, j),
+                                    matrix_get_element(&matrix, i, j));
+        }
+    }
+
+    matrix_free(&matrix);
+    matrix_free(&apart);
+}
+
+void test_matrix_cholesky_shapes_a_spread(void)
+{
+    // What the factor is FOR. A step of unit length multiplied by the factor
+    // lands on the edge of the spread that the matrix describes, whichever way
+    // the step points. That is how a filter places its points and how a set of
+    // unrelated random numbers is made to spread a given way.
+    matrix_t covariance = matrix_alloc(2, 2);
+
+    // A spread that is wide one way, narrow the other, and leaning.
+    matrix_add_element(&covariance, 0, 0, REAL_C(4.0));
+    matrix_add_element(&covariance, 0, 1, REAL_C(2.0));
+    matrix_add_element(&covariance, 1, 0, REAL_C(2.0));
+    matrix_add_element(&covariance, 1, 1, REAL_C(3.0));
+
+    matrix_t factor = matrix_cholesky(&covariance);
+
+    // Take unit steps all the way round a circle, shape each one, and the
+    // shaped steps must trace the edge of the spread. A point on that edge
+    // satisfies: the step, times the inverse of the covariance, times the step
+    // again, equals one.
+    matrix_t inverse = matrix_inverse(&covariance);
+    matrix_t step = matrix_create_zero_matrix(2, 1);
+    matrix_t shaped = matrix_create_zero_matrix(2, 1);
+
+    for(uint32_t which = 0; which < 8u; which++)
+    {
+        real_t angle = (REAL_C(2.0) * REAL_PI * (real_t)which) / REAL_C(8.0);
+
+        matrix_add_element(&step, 0, 0, REAL_COS(angle));
+        matrix_add_element(&step, 1, 0, REAL_SIN(angle));
+
+        matrix_multiply_into(&factor, &step, &shaped);
+
+        // How far the shaped step reaches, measured against the spread.
+        real_t reach = REAL_C(0.0);
+        for(uint32_t i = 0; i < 2u; i++)
+        {
+            for(uint32_t j = 0; j < 2u; j++)
+            {
+                reach += matrix_get_element(&shaped, i, 0)
+                         * matrix_get_element(&inverse, i, j)
+                         * matrix_get_element(&shaped, j, 0);
+            }
+        }
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(1.0), reach);
+    }
+
+    matrix_free(&covariance);
+    matrix_free(&factor);
+    matrix_free(&inverse);
+    matrix_free(&step);
+    matrix_free(&shaped);
+}
