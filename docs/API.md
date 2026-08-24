@@ -72,6 +72,7 @@ name and shape of every function.
 | Module | What it holds |
 | --- | --- |
 | [`cspline`](api/cspline.md) | Cubic splines |
+| [`interp`](api/interp.md) | Reading between the points of a table |
 
 ## Linear algebra
 

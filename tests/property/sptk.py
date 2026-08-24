@@ -36,6 +36,7 @@ SOURCES = [
     "sptk/linalg/vector.c",
     "sptk/linalg/vector2d.c",
     "sptk/interpolate/cspline.c",
+    "sptk/interpolate/interp.c",
     "sptk/transform/dwt.c",
     "sptk/transform/fft.c",
     "sptk/transform/goertzel.c",
