@@ -39,6 +39,7 @@
 #define RUN_CALIBRATE_EXAMPLE       18
 #define RUN_LINALG_EXAMPLE          19
 #define RUN_ATTITUDE_EXAMPLE        20
+#define RUN_FITCURVE_EXAMPLE        21
 
 #define RUN_EXAMPLE     RUN_NONE
 
