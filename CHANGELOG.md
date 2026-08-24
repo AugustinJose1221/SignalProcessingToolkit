@@ -1,3 +1,86 @@
+## 0.9.0 (2026-08-24)
+
+Five pieces that a signal has to pass through before anything clever can be
+done with it: sliding one signal along another, reading between the points of
+a table, saying which peaks are real, fitting a curve through readings, and
+taking the drift out of a block.
+
+**`convolve`** slides one signal along another, in the three modes that are
+wanted: the whole overlap, the middle piece of the same length as the input,
+and only the part where the two fully overlap. It gives both the direct way
+and the way through the transform, and `convolve_transform_size` says which
+size of transform a given pair needs. Neither way takes memory of its own; the
+transform and its working room come from the caller.
+
+**`interp`** reads between the points of a table, by straight lines or by the
+shape-keeping curve of pchip. The difference is not a matter of taste. On a
+table that only rises, from 0 to 10, measured across 600 places:
+
+| | reaches | goes down |
+| --- | --- | --- |
+| `cspline` | -1.09 to 11.08 | at 262 places |
+| `interp`, pchip | 0.00 to 10.00 | nowhere |
+| `interp`, linear | 0.00 to 10.00 | nowhere |
+
+A smooth curve through a table that only rises can still go down between the
+points, and 22 parts in 100 of the answer can sit outside the table it came
+from. A calibration read that way reports a temperature the reference never
+showed. `cspline` remains for the case where a smooth second derivative is what
+is wanted; where the shape of the data is what is wanted, pchip keeps it.
+
+**`peakdetect` gained the rules that say which peaks are real.** A height rule
+alone keeps the wrong ones: measured, a wobble at a height of 7.9 has a
+prominence of 0.2, and a lone peak at 6.0 has a prominence of 5.0, thus any
+height rule that keeps the first drops the second. On ten beats carried on
+noise, the local maxima number more than a hundred and the prominence and
+distance rules give exactly ten. `peakdetect_prominence` gives how far a peak
+stands above the ground around it, `peakdetect_width` gives how wide it is at a
+given part of its height, and `peakdetect_find` applies height, prominence,
+width and distance together.
+
+**`lstsq`** fits a curve through more readings than it has room for, on top of
+the factor of Cholesky. It refuses rather than answering badly: it reads the
+diagonal of the factor, and where two columns say so nearly the same thing that
+the answer would be made of rounding, it says no. Measurement puts that refusal
+one order past the last order that still follows the readings.
+
+**Where the x of the readings sits matters as much as the order.** The same 60
+points, the same width, the highest order that still follows them to three
+digits:
+
+| x runs from | 32 bits | 64 bits |
+| --- | --- | --- |
+| 0 to 1 | 5 | 11 |
+| -1 to 1 | 10 | 23 |
+
+Move 50 points to x from 1000 to 1001 and even a cubic is refused, at 64 bits,
+on data that fits perfectly. A thermistor read in ohms or a sensor read as a
+count from a converter is exactly that case, thus `lstsq_polyfit_scaled` brings
+x to a range of about -1 to 1 first and gives back the centre and the width it
+used. The new `fitcurve` example runs a plain fit and a scaled fit through the
+same calibration, and shows what the scaled coefficients give when they are
+read the wrong way.
+
+**`detrend`** takes the level, or the level and the drift, out of a block. It
+is the block cousin of `dcblock`, which does the same for a stream. Before a
+transform it is not optional: on a wave of one unit at bin 8 with a drift of 4
+units across the block, bin 1 holds 1.27 with the drift left in and 0.08 with
+it taken out, and bin 1 holds no signal at all.
+
+**It takes a little of the signal along with the drift, and that is recorded
+rather than hidden.** A wave even about the middle of the block loses `3/(n+1)`
+of itself. A wave odd about it loses about 3 divided by pi times the number of
+periods it makes across the block, and the length of the block does not come
+into it:
+
+| periods across the block | 1 | 4 | 16 | 32 |
+| --- | --- | --- | --- | --- |
+| part of the wave taken | 0.95 | 0.24 | 0.06 | 0.03 |
+
+A wave of one period across a block is a drift, as far as anything looking at
+that block can tell, and no method can separate the two. The answer is to keep
+the block long compared with the lowest frequency wanted.
+
 ## 0.8.0 (2026-08-24)
 
 Three pieces that belong together: a factor that shapes a spread, a filter that
