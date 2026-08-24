@@ -23,6 +23,7 @@ name and shape of every function.
 | [`window`](api/window.md) | Windows for a transform |
 | [`psd`](api/psd.md) | Power at each frequency |
 | [`correlate`](api/correlate.md) | How alike two signals are |
+| [`convolve`](api/convolve.md) | Sliding one signal along another |
 | [`goertzel`](api/goertzel.md) | Detection of one frequency |
 | [`hilbert`](api/hilbert.md) | The Hilbert transform |
 | [`hht`](api/hht.md) | The Hilbert-Huang transform |

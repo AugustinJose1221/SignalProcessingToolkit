@@ -42,6 +42,7 @@ MODULES = [
     ("fft", "sptk/transform/fft.h", "The fast Fourier transform"),
     ("window", "sptk/transform/window.h", "Windows for a transform"),
     ("correlate", "sptk/transform/correlate.h", "How alike two signals are"),
+    ("convolve", "sptk/transform/convolve.h", "Sliding one signal along another"),
     ("psd", "sptk/transform/psd.h", "Power at each frequency"),
     ("hilbert", "sptk/transform/hilbert.h", "The Hilbert transform"),
     ("hht", "sptk/transform/hht.h", "The Hilbert-Huang transform"),
@@ -161,7 +162,8 @@ def read_header(path):
 # holds a README.md that says how its modules work.
 AREAS = [
     ("transform", "Transforms", ["fft", "window", "psd", "correlate",
-                                 "goertzel", "hilbert", "hht", "dwt"]),
+                                 "convolve", "goertzel", "hilbert", "hht",
+                                 "dwt"]),
     ("filter", "Filters", ["fir", "iir", "savgol", "movavg", "medfilt",
                            "dcblock", "hampel", "adaptive", "resample",
                            "filtfilt"]),

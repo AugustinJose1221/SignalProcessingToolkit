@@ -10,6 +10,7 @@ question decides which one you want.
 | `window` | How do I stop one tone smearing over the others? | One multiplication for each sample |
 | `psd` | How much power at each frequency, measured steadily? | One transform for each block |
 | `correlate` | How long is the delay, does this repeat, is this shape in there? | Size times lags, or three transforms |
+| `convolve` | What comes out when a signal passes through a shape? | Size times shape, or three transforms |
 | `goertzel` | How much of *this one* frequency does it hold? | Three float values |
 | `hilbert` | What is the amplitude and the frequency at each moment? | One transform each way |
 | `hht` | Which frequency at which moment, for a signal that changes? | A decomposition and a transform |
@@ -99,6 +100,39 @@ signal holds between those two frequencies.
 every block; overlapping uses them again in the next one. More than half costs
 work and gains little, because blocks that overlap heavily hold much the same
 samples and their noise no longer averages away.
+
+## convolve
+
+Sliding one signal along another, multiplying and adding at every place. This
+is the most basic operation in the field: passing a signal through a filter
+**is** a convolution with that filter's coefficients, and `fir` is this
+operation done one sample at a time. A test holds that, running the same signal
+through a filter and through a convolution with its coefficients and finding
+the two agree.
+
+**How it differs from correlation, which is the usual confusion.** The two are
+the same sum with one difference: a convolution **turns one signal round**
+before sliding it. For a shape that reads the same forwards and backwards they
+agree, and a great deal of code is written on that assumption and then meets a
+shape that does not. Take a convolution when a signal **passes through**
+something; take a correlation when asking **how alike** two things are.
+
+**The mode must be chosen deliberately.**
+
+| Mode | Length | |
+| --- | --- | --- |
+| `CONVOLVE_FULL` | n+m-1 | every place; the ends are built from a signal assumed to be zero outside itself |
+| `CONVOLVE_SAME` | n | the middle of the full answer, lined up with the input sample for sample |
+| `CONVOLVE_VALID` | n-m+1 | only where the shape lies wholly inside; **nothing is assumed** |
+
+Take `CONVOLVE_VALID` when the ends matter. The other two report values at the
+ends that were partly invented, and they look no different from the rest.
+
+**The fast way.** A convolution in time is a multiplication in frequency. For a
+signal of 4096 and a shape of 512 the plain way costs two million operations
+and the transform about 400 thousand. Below a shape of about 60 the plain way
+wins. It takes its transform and working memory from the caller, thus it needs
+no heap.
 
 ## correlate
 
