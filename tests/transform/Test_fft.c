@@ -310,3 +310,78 @@ void test_fft_free_releases_a_dynamic_transform(void)
     fft_free(&fft);
     TEST_ASSERT_NULL(fft.twiddle);
 }
+
+void test_fft_inverse_real_gives_the_signal_back(void)
+{
+    // The round trip. A real signal, transformed and brought back from the
+    // half spectrum alone, must be the signal it started as.
+    fft_t fft = fft_alloc(64);
+    real_t input[64];
+    real_t output[64];
+    cnum_t spectrum[64];
+    cnum_t work[64];
+
+    for(uint32_t index = 0; index < 64u; index++)
+    {
+        input[index] = REAL_SIN(REAL_C(2.0) * REAL_PI * REAL_C(5.0)
+                                * (real_t)index / REAL_C(64.0))
+                       + (REAL_C(0.5) * REAL_COS(REAL_C(2.0) * REAL_PI
+                          * REAL_C(11.0) * (real_t)index / REAL_C(64.0)));
+    }
+
+    fft_forward_real(&fft, input, spectrum);
+
+    // Only the first half and one more is handed back, and that is enough.
+    fft_inverse_real(&fft, spectrum, output, work);
+
+    for(uint32_t index = 0; index < 64u; index++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), input[index], output[index]);
+    }
+
+    fft_free(&fft);
+}
+
+void test_fft_real_bin_count(void)
+{
+    // Half the size and one more: bin 0 and the bin at half the sample rate
+    // are both counted.
+    TEST_ASSERT_EQUAL(33, FFT_REAL_BIN_COUNT(64));
+    TEST_ASSERT_EQUAL(9, FFT_REAL_BIN_COUNT(16));
+}
+
+void test_fft_inverse_real_drops_what_no_real_signal_could_have(void)
+{
+    // Bin 0 and the bin at half the sample rate sit on their own mirror, thus
+    // no real signal can give either one an imaginary part. A spectrum built
+    // by hand, or turned in phase by a filter, can. This holds that such a
+    // part is dropped and not carried into the answer.
+    fft_t fft = fft_alloc(16);
+    real_t clean[16];
+    real_t dirty[16];
+    cnum_t spectrum[9];
+    cnum_t work[16];
+
+    for(uint32_t index = 0; index < 9u; index++)
+    {
+        spectrum[index] = cnum_zero();
+    }
+
+    // A level of 16, which gives a flat signal of 1.
+    spectrum[0] = cnum_make(REAL_C(16.0), REAL_C(0.0));
+    fft_inverse_real(&fft, spectrum, clean, work);
+
+    // The same, with an imaginary part on bin 0 and on the top bin that no
+    // real signal could have put there.
+    spectrum[0] = cnum_make(REAL_C(16.0), REAL_C(9.0));
+    spectrum[8] = cnum_make(REAL_C(0.0), REAL_C(4.0));
+    fft_inverse_real(&fft, spectrum, dirty, work);
+
+    for(uint32_t index = 0; index < 16u; index++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(1.0), clean[index]);
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), clean[index], dirty[index]);
+    }
+
+    fft_free(&fft);
+}
