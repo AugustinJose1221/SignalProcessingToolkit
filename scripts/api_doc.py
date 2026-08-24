@@ -46,6 +46,9 @@ MODULES = [
     ("correlate", "sptk/transform/correlate.h", "How alike two signals are"),
     ("convolve", "sptk/transform/convolve.h", "Sliding one signal along another"),
     ("psd", "sptk/transform/psd.h", "Power at each frequency"),
+    ("csd", "sptk/transform/csd.h", "What two signals have in common"),
+    ("stft", "sptk/transform/stft.h", "The transform in short pieces"),
+    ("spectrogram", "sptk/transform/spectrogram.h", "What the short pieces mean"),
     ("hilbert", "sptk/transform/hilbert.h", "The Hilbert transform"),
     ("hht", "sptk/transform/hht.h", "The Hilbert-Huang transform"),
     ("fir", "sptk/filter/fir.h", "Filters with a finite impulse response"),
@@ -165,9 +168,10 @@ def read_header(path):
 # The areas of the library. Each one is a directory under sptk/, and each one
 # holds a README.md that says how its modules work.
 AREAS = [
-    ("transform", "Transforms", ["fft", "bluestein", "window", "psd",
-                                 "correlate", "convolve", "goertzel",
-                                 "hilbert", "hht", "dwt"]),
+    ("transform", "Transforms", ["fft", "bluestein", "window", "psd", "csd",
+                                 "stft", "spectrogram", "correlate",
+                                 "convolve", "goertzel", "hilbert", "hht",
+                                 "dwt"]),
     ("filter", "Filters", ["fir", "iir", "savgol", "movavg", "medfilt",
                            "dcblock", "detrend", "hampel", "adaptive",
                            "resample", "filtfilt"]),

@@ -39,6 +39,8 @@ comment that says so.
 | `RUN_LINALG_EXAMPLE` | [linalg.c](linalg.c) | A robot joint, two coils | — |
 | `RUN_ATTITUDE_EXAMPLE` | [attitude.c](attitude.c) | A gyroscope and an accelerometer | Which way is the board pointing? |
 | `RUN_FITCURVE_EXAMPLE` | [fitcurve.c](fitcurve.c) | A pressure sensor read as a count | What curve turns a count into a pressure? |
+| `RUN_SPECTROGRAM_EXAMPLE` | [spectrogram.c](spectrogram.c) | A tone that slides from low to high | When was each frequency there? |
+| `RUN_COHERENCE_EXAMPLE` | [coherence.c](coherence.c) | A machine, a floor and a second machine | Which of these two is shaking the floor? |
 
 ## What each example shows
 
@@ -173,3 +175,22 @@ on data that lies on a perfect cubic. The same readings brought to a range of
 about -1 to 1 first fit exactly. The example runs both, and then shows what the
 scaled coefficients give when they are read as a plain polynomial in the count:
 a pressure of minus twenty-five million million, where 131 kilopascal is right.
+
+**spectrogram.c — when each frequency was there.** A tone slides from 100 Hz to
+800 Hz across two seconds, and the example draws it as a rising line on the
+terminal. One transform of the whole recording cannot show that at all: it gives
+a smear covering every frequency the tone ever visited, with no way to tell a
+rising tone from a falling one. The same recording is drawn at a block of 64 and
+a block of 256, so that the trade can be seen rather than believed — the long
+block draws a thin line in frequency and a smeared one in time, and the short
+block does the reverse. The product of the two is fixed and no setting is good
+at both.
+
+**coherence.c — which of two machines is shaking the floor.** A machine runs at
+50 Hz and a second one nearby at 53 Hz. At the block used, those two fall in the
+**same bin**, thus no spectrum can separate them: both recordings show one peak
+in the same place. Coherence separates them completely, reading 0.80 for the
+machine that really is shaking the floor and 0.00 for the one that is not. The
+example also runs the block count up from 1, so that the trap can be watched:
+below eight blocks the module refuses, because at one block any two signals
+whatever read exactly 1.00.
