@@ -161,3 +161,46 @@ near a half turn, which is an ordinary attitude and not a corner case.
 normalising is the obvious shortcut and it hurries through the middle. It also
 takes the short way round, which needs the sign allowed for: without that, two
 attitudes a few degrees apart could be interpolated the long way round.
+
+## lstsq
+
+**A fit is not a solve.** Twenty readings and three numbers to find has no
+answer that passes through all twenty, and looking for one is the wrong
+question. The right one is which three numbers leave the smallest total error.
+
+**Where x sits matters as much as the order.** This is the one thing to carry
+away. Fitting a sine through 60 points, the highest order that still follows
+the readings to three digits:
+
+| x runs from | 32 bits | 64 bits |
+|---|---|---|
+| 0 to 1 | 5 | 11 |
+| -1 to 1 | 10 | 23 |
+
+The same readings and the same width reach more than twice the order when x is
+moved. Nothing about the data changed; only where its x sits. Move 50 points to
+x from 1000 to 1001 and **even a cubic is refused**, at 64 bits, on data that
+fits perfectly. A thermistor read in ohms runs from 1000 to 70000, which is
+exactly this case.
+
+**Thus use `lstsq_polyfit_scaled` unless x already runs about -1 to 1.** It
+brings x to that range first and gives back the centre and the width it used.
+The coefficients it gives are for the scaled place: they must be read with
+`lstsq_evaluate_scaled` and those two numbers. They are **not** a polynomial in
+x, and using them as one gives nonsense.
+
+**The module refuses rather than answering badly.** The normal equations square
+how badly conditioned a problem is, and a factor of Cholesky exists long after
+the answer has stopped meaning anything. The fit looks at the diagonal of that
+factor and says no where the answer would be made of rounding, which
+measurement puts at one order past the last one worth having.
+
+**Look at `lstsq_fit_quality` afterwards.** It gives how much of the movement of
+the readings the curve accounts for, from 0 to 1. A fit that is never examined
+is a fit that is believed for no reason.
+
+**A high order is usually the wrong answer anyway.** A polynomial of the ninth
+order through twelve calibration points passes through all of them and swings
+wildly between them. Where a table is what is wanted, `interp` reads between its
+points without inventing anything; where a curve is wanted, the third or the
+fourth order is nearly always enough.

@@ -16,6 +16,7 @@ set(SIGNALPROC_SOURCES
     sptk/linalg/cmatrix.c
     sptk/linalg/cnum.c
     sptk/linalg/matrix.c
+    sptk/linalg/lstsq.c
     sptk/linalg/pmatrix.c
     sptk/linalg/quaternion.c
     sptk/linalg/vector.c
@@ -82,7 +83,8 @@ if(BUILD_EXAMPLE)
         examples/stream.c
         examples/calibrate.c
         examples/linalg.c
-        examples/attitude.c)
+        examples/attitude.c
+        examples/fitcurve.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()
