@@ -1,3 +1,88 @@
+## 0.10.0 (2026-08-24)
+
+Everything in this release is about answering a question that one transform of
+a whole recording cannot: WHEN was that frequency there, WHAT do two signals
+share, and what if the size that matters is not a power of two.
+
+**`bluestein` transforms any size.** `fft` takes a power of two, which is the
+right trade when the block size is a choice. Some sizes are not a choice: at
+3000 samples in a second one period of 50 hertz is 60 samples, a day is 1440
+minutes, and a turn of a shaft is however many readings the machine gives.
+Rounding such a size up and filling with zeros moves every bin off the
+frequency the size was chosen for.
+
+The turning factors of the method follow the SQUARE of the index, and for a
+size of 200000 the last one asks for the sine of an angle near ten to the
+eleventh, which a number of 32 bits cannot hold. The module folds the square
+back into one turn first. Measured on a single tone at 32 bits, the worst false
+answer as a part of the tone:
+
+| size | 1 000 | 10 000 | 50 000 | 200 000 |
+| --- | --- | --- | --- | --- |
+| with the fold | 0.0000001 | 0.0000000 | 0.0000000 | 0.0000001 |
+| without it | 0.0000076 | 0.0001036 | 0.0003396 | 0.0014121 |
+
+Use `fft` where the size is a power of two: measured on the same size,
+`bluestein` takes 5.1 times as long and gives nothing extra.
+
+**`fft_inverse_real`** brings a half spectrum back to a signal of real values
+and rebuilds the mirrored half itself. Bin 0 and the bin at half the sample rate
+sit on their own mirror, thus no real signal can give either an imaginary part;
+the function drops whatever is there rather than carrying it into an answer that
+no real signal could have.
+
+**`stft` cuts a signal into short overlapping pieces**, and guards the way back
+twice. `stft_can_rebuild` examines the window and the hop together and refuses a
+pairing that multiplies samples by nearly nothing, such as a hann window at a
+hop of the whole block.
+
+**`stft_solid_range` is the one that catches everyone.** The first sample of a
+signal is under the first block alone, where a sample in the middle is under as
+many blocks as fit across it, and a window that is zero at its first sample has
+taken that sample away for good. Outside the solid stretch the output is set to
+nothing rather than left as a number that looks like an answer. Inside it the
+rebuild is exact: the worst error at 32 bits is 0.0000005, which is the rounding
+of the transform itself.
+
+**`spectrogram` turns those frames into a unit that can be read**, and corrects
+the three things that are usually left out. A wave of amplitude A reads as A,
+whatever the block, the window or the hop. Measured on a wave of amplitude 2:
+
+| window | block 128 | block 512 | block 2048 |
+| --- | --- | --- | --- |
+| rectangular | 2.00000 | 2.00000 | 2.00000 |
+| hann | 1.99999 | 2.00000 | 2.00000 |
+| blackman | 2.00000 | 2.00000 | 2.00000 |
+
+The decibel unit holds a floor under it, because the logarithm of nothing has no
+value and a bin that holds nothing is a thing that happens.
+
+**`csd` gives what two signals share**, the coherence between them, and the gain
+and phase of whatever lies between them. A single block gives a coherence of
+exactly 1 for any two signals whatever, because the arithmetic there is a number
+divided by itself. Measured on two signals of noise with nothing in common,
+where the truth is 0 at every frequency:
+
+| blocks | 1 | 2 | 4 | 8 | 16 | 32 | 64 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| mean reading | 1.00 | 0.46 | 0.35 | 0.13 | 0.06 | 0.04 | 0.02 |
+
+The reading falls as about one over the number of blocks, thus a reading of 0.35
+is evidence of nothing if it came from 4 blocks. The module refuses below eight.
+
+**Two examples.** `spectrogram` draws a tone sliding from 100 to 800 hertz at a
+block of 64 and a block of 256, so that the trade between time and frequency can
+be seen rather than believed. `coherence` separates a machine at 50 hertz from a
+second machine at 53 hertz: the two fall in the SAME BIN and no spectrum can
+tell them apart, while the coherence reads 0.80 for the machine that is really
+shaking the floor and 0.00 for the one that is not.
+
+**A fix.** The name `RUN_FITCURVE_EXAMPLE` was missing from `run_example.h`, and
+the header itself says what that costs: a name that is not there counts as zero,
+and zero is the value of `RUN_NONE`. The fitcurve example therefore gave a main
+function in the default build, which is the one build that is supposed to give
+none.
+
 ## 0.9.0 (2026-08-24)
 
 Five pieces that a signal has to pass through before anything clever can be
