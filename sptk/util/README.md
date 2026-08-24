@@ -81,3 +81,43 @@ The fault is in the sum and not in the squaring: five samples near eight
 million give a total near forty million, where one step of a float is 4. A
 caller whose readings sit far from zero should build in 64 bits, or take the
 level away first with `dcblock`. The tests hold both numbers.
+
+
+## Finding the peaks that are real
+
+`peakdetect_get_peaks` gives every local maximum, which is what `emd` wants and
+what a caller wants when the signal is already clean.
+
+**On real data that is not enough.** Noise puts a local maximum every few
+samples: a recording of a heart at 500 samples in a second holds about a
+hundred of them for every beat. A test in this repository builds exactly that
+signal and finds **over 100** local maxima where there are **10** beats.
+
+`peakdetect_find` takes four rules, and they are not equal.
+
+**Prominence is the one to reach for.** It asks: how far must you descend from
+this peak before you can climb to a higher one? A wobble on the side of a large
+peak has almost no prominence however high it stands. A test holds this
+directly: a wobble standing at 7.9 has a prominence of 0.2, while a lone peak
+standing at only 6.0 has a prominence of 5.0. **A height rule keeps the wrong
+one of those two.** Prominence also does not care where the signal sits, thus a
+drifting level does not defeat it.
+
+**Height** is the obvious rule and the weakest, for the reason above.
+**Width** throws away what is too narrow to be real: a spike one sample wide is
+noise, a heartbeat is thirty samples wide. **Distance** says no two peaks may
+stand closer than so many samples, keeping the taller — a heart cannot beat
+twice in 200 ms.
+
+With prominence and distance together, the same test finds exactly the 10
+beats, each within three samples of where it was put.
+
+**A flat top counts as one peak.** This matters on real data: a reading from a
+converter is a whole number of counts, thus the top of a peak is often two or
+three samples of exactly the same value. A test of "larger than both
+neighbours" finds no peak there at all, and a test in this repository shows
+`peakdetect_get_peaks` returning zero on such a peak while `peakdetect_find`
+returns one, at the middle of the flat part.
+
+**A valley is a peak of the signal turned upside down.** There is no separate
+set of these rules for valleys; negate the signal and use these.
