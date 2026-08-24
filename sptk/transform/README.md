@@ -329,3 +329,103 @@ with the size, and by 200000 it is four orders worse.
 it, it keeps one turning factor for each point of the size asked for and three
 buffers of the larger size. `bluestein_static_alloc` takes all of that from the
 caller, thus a device with no heap can still use it.
+
+## stft
+
+**One transform of a recording says which frequencies it holds and nothing
+about when.** A recording of a bird and then a car gives the same answer as a
+car and then a bird. `stft` cuts the signal into short overlapping pieces and
+transforms each one, which is what almost every real question wants.
+
+**The trade cannot be escaped.** A block of `n` samples at a rate of `r` covers
+`n/r` seconds and its bins stand `r/n` hertz apart. The product is 1 whatever is
+chosen:
+
+| block at 8000 samples in a second | covers | bins stand apart |
+|---|---|---|
+| 128 | 16 ms | 62.5 Hz |
+| 1024 | 128 ms | 7.8 Hz |
+| 8192 | 1.02 s | 0.98 Hz |
+
+Choose the block from the question. Speech changes every 20 ms; a shaft turning
+at 50 hertz wants a block of a second or more. There is no default that suits
+both.
+
+**Two different things stop a signal being put back together.** The first is the
+window and the hop together: `stft_can_rebuild` says whether every sample inside
+the signal carries enough weight, and a hann window at a hop of the whole block
+is refused because it multiplies the first sample of every block by zero.
+
+The second **catches everyone**: the two ends of the signal itself. The very
+first sample is under the first block only, where a sample in the middle is
+under as many blocks as fit across it. `stft_solid_range` gives the stretch
+where the cover is full; outside it `stft_inverse` **writes zero** rather than a
+number that looks like an answer. Where the ends matter, put a block of zeros
+before the signal and another after it.
+
+Inside that stretch the rebuild is exact — the worst error at 32 bits is
+0.0000005 for every window at a hop of a quarter or a half of the block, which
+is the rounding of the transform and nothing more.
+
+**The window is laid a second time on the way back.** That is what keeps the
+joins from showing when the frames have been changed in between, which is the
+usual reason for taking a signal apart at all.
+
+## spectrogram
+
+**A complex number is not something to look at.** This turns the frames of
+`stft` into one real number for each bin, in one of four units.
+
+**The scaling is the part that is usually wrong**, and the wrong answer looks
+perfectly reasonable. A longer block gives larger numbers for the same signal, a
+window makes them smaller, and half the power sits in the mirrored half that is
+not there. Corrected, **a wave of amplitude A reads A**, whatever the block, the
+window or the hop. Measured on a wave of amplitude 2:
+
+| window | block 128 | block 512 | block 2048 |
+|---|---|---|---|
+| rectangular | 2.00000 | 2.00000 | 2.00000 |
+| hann | 1.99999 | 2.00000 | 2.00000 |
+| blackman | 2.00000 | 2.00000 | 2.00000 |
+
+Ask for `SPECTROGRAM_AMPLITUDE` to read the size of a tone off a picture,
+`SPECTROGRAM_DENSITY` to add the power of a band together, and
+`SPECTROGRAM_DECIBEL` to draw the picture at all — anything real covers so many
+factors of ten that a linear scale shows one bright line and black everywhere
+else.
+
+**The floor under the decibels is not a detail.** The logarithm of nothing has
+no value, and a bin holding nothing is a thing that happens: a silent stretch, or
+a bin above the cutoff of a filter. `spectrogram_against_the_largest` measures
+everything from the loudest reading, which is how a spectrogram is nearly always
+drawn.
+
+## csd
+
+**What two signals have in common at each frequency.** Both a machine and a
+floor hold a peak at 50 hertz; that proves nothing, because half the building
+holds a peak at 50 hertz. Coherence says whether the two peaks move together.
+
+**A single block gives a coherence of exactly 1, always.** Two signals of pure
+noise, with nothing whatever in common, read 1 at every frequency. It is not a
+rounding matter and no width fixes it: with one block the arithmetic is a number
+divided by itself. Measured on two unrelated noise signals, where the truth is 0:
+
+| blocks | 1 | 2 | 4 | 8 | 16 | 32 | 64 |
+|---|---|---|---|---|---|---|---|
+| mean reading | 1.00 | 0.46 | 0.35 | 0.13 | 0.06 | 0.04 | 0.02 |
+
+The reading falls as about one over the number of blocks. **A reading of 0.35 is
+evidence of nothing if it came from 4 blocks.** The module refuses below
+`CSD_SMALLEST_BLOCK_COUNT`, and above it the table is the rule of thumb.
+
+**`csd_transfer` gives the gain and the phase of whatever lies between two
+signals**, at every frequency at once, without putting a single tone through it.
+It is blind to noise added to the output, which is the usual case — sensor noise
+at the output does not bend the answer, while noise on the input does. **Look at
+the coherence beside it**: where the coherence is low the gain is still a number,
+and it is a number about nothing.
+
+**Both signals must be measured at the same moments.** Two recordings started a
+second apart hold the same events at different sample numbers, and every answer
+here is then about a relation that is not there.

@@ -32,7 +32,10 @@ set(SIGNALPROC_SOURCES
     sptk/transform/window.c
     sptk/transform/correlate.c
     sptk/transform/convolve.c
+    sptk/transform/csd.c
     sptk/transform/psd.c
+    sptk/transform/spectrogram.c
+    sptk/transform/stft.c
     sptk/filter/fir.c
     sptk/filter/iir.c
     sptk/filter/savgol.c
@@ -86,7 +89,9 @@ if(BUILD_EXAMPLE)
         examples/calibrate.c
         examples/linalg.c
         examples/attitude.c
-        examples/fitcurve.c)
+        examples/fitcurve.c
+        examples/spectrogram.c
+        examples/coherence.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()
