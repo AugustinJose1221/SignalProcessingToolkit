@@ -38,6 +38,7 @@ comment that says so.
 | `RUN_CALIBRATE_EXAMPLE` | [calibrate.c](calibrate.c) | A thermistor | What temperature is this resistance? |
 | `RUN_LINALG_EXAMPLE` | [linalg.c](linalg.c) | A robot joint, two coils | — |
 | `RUN_ATTITUDE_EXAMPLE` | [attitude.c](attitude.c) | A gyroscope and an accelerometer | Which way is the board pointing? |
+| `RUN_FITCURVE_EXAMPLE` | [fitcurve.c](fitcurve.c) | A pressure sensor read as a count | What curve turns a count into a pressure? |
 
 ## What each example shows
 
@@ -162,3 +163,13 @@ holds it at under one. The total grows for both, and that is not a fault of the
 filter: an accelerometer sees gravity and nothing else, thus nothing here can
 say which way the board faces about the vertical. A real device adds a
 magnetometer for that.
+
+**fitcurve.c — fitting a calibration curve, and the trap that ruins it.** A
+pressure sensor is measured against a reference at twelve points and a curve of
+the third order is fitted through them. The trap is not the order. The sensor
+is read as a count from a converter of 16 bits, thus the readings run from 6100
+to 60000, and **a plain fit through those counts is refused at either width**,
+on data that lies on a perfect cubic. The same readings brought to a range of
+about -1 to 1 first fit exactly. The example runs both, and then shows what the
+scaled coefficients give when they are read as a plain polynomial in the count:
+a pressure of minus twenty-five million million, where 131 kilopascal is right.

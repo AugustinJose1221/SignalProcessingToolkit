@@ -23,6 +23,7 @@ name and shape of every function.
 | [`window`](api/window.md) | Windows for a transform |
 | [`psd`](api/psd.md) | Power at each frequency |
 | [`correlate`](api/correlate.md) | How alike two signals are |
+| [`convolve`](api/convolve.md) | Sliding one signal along another |
 | [`goertzel`](api/goertzel.md) | Detection of one frequency |
 | [`hilbert`](api/hilbert.md) | The Hilbert transform |
 | [`hht`](api/hht.md) | The Hilbert-Huang transform |
@@ -40,6 +41,7 @@ name and shape of every function.
 | [`movavg`](api/movavg.md) | The mean of the last samples |
 | [`medfilt`](api/medfilt.md) | The median of the last samples |
 | [`dcblock`](api/dcblock.md) | Taking the level of a signal away |
+| [`detrend`](api/detrend.md) | Taking the level and the drift out of a block |
 | [`hampel`](api/hampel.md) | Replacing only the samples that are wrong |
 | [`adaptive`](api/adaptive.md) | A filter that finds its own coefficients |
 | [`resample`](api/resample.md) | Changing the rate of a signal |
@@ -71,6 +73,7 @@ name and shape of every function.
 | Module | What it holds |
 | --- | --- |
 | [`cspline`](api/cspline.md) | Cubic splines |
+| [`interp`](api/interp.md) | Reading between the points of a table |
 
 ## Linear algebra
 
@@ -83,6 +86,7 @@ name and shape of every function.
 | [`pmatrix`](api/pmatrix.md) | Matrices with a parameter |
 | [`cnum`](api/cnum.md) | Complex numbers |
 | [`quaternion`](api/quaternion.md) | Which way something points |
+| [`lstsq`](api/lstsq.md) | Fitting a curve through readings |
 | [`vector`](api/vector.md) | Vectors of float values |
 | [`vector2d`](api/vector2d.md) | Vectors with two values |
 
