@@ -53,6 +53,7 @@ SOURCES = [
     "sptk/filter/movavg.c",
     "sptk/filter/medfilt.c",
     "sptk/filter/dcblock.c",
+    "sptk/filter/detrend.c",
     "sptk/filter/hampel.c",
     "sptk/filter/adaptive.c",
     "sptk/filter/resample.c",
