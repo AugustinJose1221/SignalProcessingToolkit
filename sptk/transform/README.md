@@ -286,3 +286,46 @@ spike sharp, which a low pass filter would make round.
 The module holds two wavelets. **Haar** looks at two samples at a time, thus it
 finds a step very well and a smooth curve badly. **Daubechies with four
 coefficients** looks at four samples at a time and follows a curve better.
+
+## bluestein
+
+**A transform of any size.** `fft` takes a power of two and nothing else, which
+is the right trade when the block size is a choice. Some sizes are not a choice:
+at 3000 samples in a second one period of 50 hertz is 60 samples, a day is 1440
+minutes, a turn of a shaft is however many readings the machine gives. Rounding
+such a size up to a power of two and filling with zeros moves every bin off the
+frequency that the size was chosen for.
+
+**Use `fft` where the size is a power of two.** Measured on the same size,
+`bluestein` takes 5.1 times as long and gives nothing extra:
+
+| size | `fft` | `bluestein` |
+|---|---|---|
+| 256 | 0.0055 ms | 0.0284 ms |
+| 1024 | 0.0244 ms | 0.1243 ms |
+| 4096 | 0.1151 ms | 0.5882 ms |
+
+**The accuracy is the same order as `fft`.** Measured against a transform of the
+same size worked out directly, the worst error across all bins as a part of the
+largest bin, at 32 bits: 0.0000004 at a size of 60 and 0.0000006 at a size of
+1000. At 64 bits it is below what those figures can show.
+
+**The square of the index is where it would fall apart.** The turning factors
+follow `n` squared, and for a size of 200000 the last one asks for the sine of
+an angle near ten to the eleventh. A number of 32 bits holding an angle that
+large has no digits left for where in the turn it lands. The module folds the
+square back into one turn before it forms any angle. Measured on a single tone,
+the worst false answer as a part of the tone, at 32 bits:
+
+| size | 1 000 | 10 000 | 50 000 | 200 000 |
+|---|---|---|---|---|
+| with the fold | 0.0000001 | 0.0000000 | 0.0000000 | 0.0000001 |
+| without it | 0.0000076 | 0.0001036 | 0.0003396 | 0.0014121 |
+
+The fold holds the error flat across the whole range. Without it the error grows
+with the size, and by 200000 it is four orders worse.
+
+**It holds working room of its own.** Beside the tables of the transform inside
+it, it keeps one turning factor for each point of the size asked for and three
+buffers of the larger size. `bluestein_static_alloc` takes all of that from the
+caller, thus a device with no heap can still use it.

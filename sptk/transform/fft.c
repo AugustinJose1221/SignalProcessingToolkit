@@ -100,6 +100,42 @@ void fft_forward_real(fft_t* fft, const real_t* input, cnum_t* output)
     fft_transform(fft, output);
 }
 
+void fft_inverse_real(fft_t* fft, const cnum_t* input, real_t* output,
+                      cnum_t* work)
+{
+    ASSERT(fft != NULL);
+    ASSERT(input != NULL);
+    ASSERT(output != NULL);
+    ASSERT(work != NULL);
+
+    uint32_t size = fft->size;
+    uint32_t half = size / 2u;
+
+    // Bin 0 and bin size/2 sit on top of their own mirror. A signal of real
+    // values cannot give either of them an imaginary part, thus whatever is
+    // there is dropped rather than carried into an answer that no real signal
+    // could have.
+    work[0] = cnum_make(cnum_real(input[0]), REAL_C(0.0));
+    work[half] = cnum_make(cnum_real(input[half]), REAL_C(0.0));
+
+    // Every other bin of the upper half is the mirror of one below it, turned
+    // the other way.
+    for(uint32_t index = 1; index < half; index++)
+    {
+        work[index] = input[index];
+        work[size - index] = cnum_conjugate(input[index]);
+    }
+
+    fft_inverse(fft, work);
+
+    // What comes back is real to the last digit the width can hold. The
+    // imaginary part is rounding and it is dropped.
+    for(uint32_t index = 0; index < size; index++)
+    {
+        output[index] = cnum_real(work[index]);
+    }
+}
+
 void fft_magnitude(const cnum_t* data, real_t* magnitude, uint32_t size)
 {
     ASSERT(data != NULL);
