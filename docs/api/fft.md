@@ -30,6 +30,20 @@ The number of turning factors that a transform of the given size needs.
 The number of indices of the bit reversal that a transform of the given size
 needs.
 
+### `FFT_REAL_BIN_COUNT`
+
+```c
+#define FFT_REAL_BIN_COUNT(size)    (((size)/2) + 1)
+```
+
+The number of bins that hold new information in the transform of a real
+signal, which is half the size and one more.
+
+A real signal gives a spectrum where the second half is the mirror of the
+first, thus the bins above this many say nothing that the bins below them
+have not already said. Bin 0 holds the level of the signal and bin size/2
+holds the highest frequency the sample rate can carry.
+
 ## Types
 
 ### `fft_t`
@@ -111,6 +125,31 @@ A signal of real values gives a result where the second half mirrors the
 first half. Thus only the bins from 0 to size/2 hold new information. This
 function is not the faster method that uses that mirror. It gives the same
 result with less code.
+
+### `fft_inverse_real`
+
+```c
+void fft_inverse_real(fft_t* fft, const cnum_t* input, real_t* output, cnum_t* work);
+```
+
+Change a half spectrum back into a signal of real values.
+
+This is the opposite of fft_forward_real. The input holds
+FFT_REAL_BIN_COUNT(size) complex numbers, which is what the first half of a
+forward transform of a real signal gives, and the output holds as many real
+values as the size of the transform. The work buffer holds as many complex
+numbers as the size of the transform and loses its content.
+
+The mirrored half is rebuilt from the half that is given, thus the caller
+need not hold it and cannot get it wrong.
+
+TWO BINS ARE NOT FREE TO BE ANYTHING. Bin 0 and bin size/2 are their own
+mirror, thus for a signal of real values they must be real themselves. This
+function TAKES THE REAL PART of those two and drops whatever imaginary part
+they carry. That is not a rounding matter: a filter written in the frequency
+domain that turns the phase of every bin will turn those two into something
+that no real signal can give, and the answer would otherwise hold a wave at
+half the sample rate that was never asked for.
 
 ### `fft_magnitude`
 

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(SignalProcessing VERSION 0.9.0 LANGUAGES C)
+project(SignalProcessing VERSION 0.10.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -23,6 +23,7 @@ set(SIGNALPROC_SOURCES
     sptk/linalg/vector2d.c
     sptk/interpolate/cspline.c
     sptk/interpolate/interp.c
+    sptk/transform/bluestein.c
     sptk/transform/dwt.c
     sptk/transform/fft.c
     sptk/transform/goertzel.c
@@ -31,7 +32,10 @@ set(SIGNALPROC_SOURCES
     sptk/transform/window.c
     sptk/transform/correlate.c
     sptk/transform/convolve.c
+    sptk/transform/csd.c
     sptk/transform/psd.c
+    sptk/transform/spectrogram.c
+    sptk/transform/stft.c
     sptk/filter/fir.c
     sptk/filter/iir.c
     sptk/filter/savgol.c
@@ -85,7 +89,9 @@ if(BUILD_EXAMPLE)
         examples/calibrate.c
         examples/linalg.c
         examples/attitude.c
-        examples/fitcurve.c)
+        examples/fitcurve.c
+        examples/spectrogram.c
+        examples/coherence.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()

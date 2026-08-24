@@ -41,10 +41,14 @@ MODULES = [
     ("quaternion", "sptk/linalg/quaternion.h", "Which way something points"),
     ("lstsq", "sptk/linalg/lstsq.h", "Fitting a curve through readings"),
     ("fft", "sptk/transform/fft.h", "The fast Fourier transform"),
+    ("bluestein", "sptk/transform/bluestein.h", "A transform of any size"),
     ("window", "sptk/transform/window.h", "Windows for a transform"),
     ("correlate", "sptk/transform/correlate.h", "How alike two signals are"),
     ("convolve", "sptk/transform/convolve.h", "Sliding one signal along another"),
     ("psd", "sptk/transform/psd.h", "Power at each frequency"),
+    ("csd", "sptk/transform/csd.h", "What two signals have in common"),
+    ("stft", "sptk/transform/stft.h", "The transform in short pieces"),
+    ("spectrogram", "sptk/transform/spectrogram.h", "What the short pieces mean"),
     ("hilbert", "sptk/transform/hilbert.h", "The Hilbert transform"),
     ("hht", "sptk/transform/hht.h", "The Hilbert-Huang transform"),
     ("fir", "sptk/filter/fir.h", "Filters with a finite impulse response"),
@@ -164,7 +168,8 @@ def read_header(path):
 # The areas of the library. Each one is a directory under sptk/, and each one
 # holds a README.md that says how its modules work.
 AREAS = [
-    ("transform", "Transforms", ["fft", "window", "psd", "correlate",
+    ("transform", "Transforms", ["fft", "bluestein", "window", "psd", "csd",
+                                 "stft", "spectrogram", "correlate",
                                  "convolve", "goertzel", "hilbert", "hht",
                                  "dwt"]),
     ("filter", "Filters", ["fir", "iir", "savgol", "movavg", "medfilt",

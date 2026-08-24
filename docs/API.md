@@ -20,8 +20,12 @@ name and shape of every function.
 | Module | What it holds |
 | --- | --- |
 | [`fft`](api/fft.md) | The fast Fourier transform |
+| [`bluestein`](api/bluestein.md) | A transform of any size |
 | [`window`](api/window.md) | Windows for a transform |
 | [`psd`](api/psd.md) | Power at each frequency |
+| [`csd`](api/csd.md) | What two signals have in common |
+| [`stft`](api/stft.md) | The transform in short pieces |
+| [`spectrogram`](api/spectrogram.md) | What the short pieces mean |
 | [`correlate`](api/correlate.md) | How alike two signals are |
 | [`convolve`](api/convolve.md) | Sliding one signal along another |
 | [`goertzel`](api/goertzel.md) | Detection of one frequency |
