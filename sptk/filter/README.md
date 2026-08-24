@@ -474,3 +474,52 @@ the sample rate is too high for the work. A cutoff of 0.5 Hz against 32 kHz is
 holds. Bring the rate down first, then filter. Building at 64 bits answers the
 first case as well, and making the filter longer answers the second, at the
 cost of delay.
+
+## detrend
+
+**A block, not a stream.** `detrend` reads the whole block before it can give
+the first answer. For a stream, `dcblock` follows the level as it goes and takes
+it away one sample at a time. The two solve the same trouble at different ends.
+
+**Why it matters before a transform.** A transform reads the block as one
+period of something that repeats, thus a block that ends higher than it began
+holds a step at the join. That step is not in the signal, and its energy spreads
+across every frequency. Measured, on a wave of one unit at bin 8 with a drift of
+4 units across the block, what stands at bin 1, which holds no signal at all:
+
+| | at bin 1 |
+|---|---|
+| with the drift left in | 1.27 |
+| with the drift taken out | 0.08 |
+
+The false answer is larger than the true signal. A window softens the join but
+cannot undo a drift.
+
+**It takes a little of the signal as well, and this is not small.** A straight
+line through a block always holds something in common with a wave in that block.
+A wave **even** about the middle of the block loses `3/(n+1)` of itself, which
+falls away as the block grows. A wave **odd** about the middle loses about
+`3/(pi k)` where `k` is the number of periods it makes across the block, and
+**the length of the block does not come into it**:
+
+| periods across the block | 1 | 4 | 16 | 32 |
+|---|---|---|---|---|
+| part of the wave taken | 0.95 | 0.24 | 0.06 | 0.03 |
+
+A wave that makes one period across the block loses 95 parts in 100, at 64
+samples and at 4096 alike. The fit is not at fault: one period across the block
+**is** a drift as far as anything looking at that block can tell. Keep the block
+long compared with the lowest frequency wanted.
+
+**The samples are numbered from the middle.** That makes their numbers sum to
+zero and keeps every sum the size of the samples themselves. Measured on a block
+of 4096 at 32 bits it is about four times better than numbering from the start,
+at every level, for the same work. Because of it, the offset that `detrend_trend`
+gives is the value of the trend at the **middle** of the block, which is the
+mean, and not the value at the first sample. Use `detrend_trend_at` rather than
+working it out by hand.
+
+**Use `detrend_remove` where the signal itself rises.** Finding the trend afresh
+in every block takes the signal away with the drift where the signal rises
+across the block. Find the trend once from a block known to be quiet, and take
+that same trend out of the blocks that follow.
