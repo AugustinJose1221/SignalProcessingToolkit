@@ -1,3 +1,16 @@
+## 0.11.1 (2026-08-25)
+
+Two examples and one support file were written with `int main()` rather than
+`int main(void)`, which in C says nothing about what the function takes rather
+than saying it takes nothing. The support of the conformation runs did not
+include its own header either, so its one function had no declaration anywhere
+the compiler saw.
+
+The `-Wstrict-prototypes` and `-Wmissing-prototypes` that 0.11.0 added to the
+build are what found these, on the first run after that release. They are the
+whole reason those warnings were added, and the release that added them is the
+release they caught.
+
 ## 0.11.0 (2026-08-25)
 
 The shapes of filter, the order estimate, the phase, and any window for an FIR.
