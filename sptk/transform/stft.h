@@ -190,7 +190,12 @@ bool stft_forward(stft_t* stft, const real_t* signal, uint32_t size,
 // recovered. Where the ends matter, put a block of zeros before the signal and
 // another after it.
 //
-// Give false if the transform has not been designed or there are no frames.
+// Give false if the transform has not been designed, if there are no frames,
+// or IF THERE ARE TOO FEW FRAMES FOR ANY SAMPLE TO BE COVERED FULLY. That last
+// one is easy to meet by accident: a sample in the middle is under as many
+// blocks as fit across it, thus the block divided by the hop is the fewest
+// frames that can leave any sample solid at all. A block of 8 at a hop of 2
+// needs 4 frames, and 3 frames leave nothing to give back.
 bool stft_solid_range(const stft_t* stft, uint32_t frame_count,
                       uint32_t* first, uint32_t* count);
 
@@ -207,7 +212,10 @@ bool stft_solid_range(const stft_t* stft, uint32_t frame_count,
 // gives, the output is set to zero.
 //
 // Give false if the transform has not been designed, if stft_can_rebuild is
-// false, or if the room is too small.
+// false, if the room is too small, or if stft_solid_range gives false because
+// there are too few frames for any sample to be covered fully. Nothing could
+// be given back in that last case, thus nothing is: the answer would be a
+// buffer of zeros wearing the look of a signal.
 bool stft_inverse(stft_t* stft, const cnum_t* frames, uint32_t frame_count,
                   real_t* output, uint32_t room, real_t* weight);
 

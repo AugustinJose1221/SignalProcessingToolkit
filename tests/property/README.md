@@ -62,3 +62,37 @@ where the arithmetic still gives a result that a user can trust. The comparison
 helpers take a relative tolerance as well as an absolute one. For the
 determinant the tolerance follows the bound of Hadamard, because the
 calculation adds and subtracts products that are much larger than the result.
+
+## What is covered
+
+One file for each module. A property test earns its place where it proves
+something a set of examples structurally cannot: a rule that must hold for
+every input, or a second way to the same answer.
+
+| file | what it holds |
+|---|---|
+| `test_bindings.py` | the Python types agree with the C types, at both widths |
+| `test_interp_properties.py` | pchip never leaves the table and never turns back on rising data |
+| `test_convolve_properties.py` | the direct way and the way through the transform give one answer |
+| `test_fft_properties.py` | the transform against one written plainly, and the rule of Parseval |
+| `test_bluestein_properties.py` | any size against a plain transform, and against `fft` where both can be used |
+| `test_stft_properties.py` | the rebuild is exact inside the solid stretch and nothing outside it |
+| `test_lstsq_properties.py` | the error left after a fit holds nothing of the model |
+| `test_detrend_properties.py` | taking a trend out twice is taking it out once |
+| `test_quaternion_properties.py` | a matrix written and read back is the same attitude, through all four branches |
+| `test_window_properties.py` | every window is symmetric, and the three gains agree |
+| `test_peakdetect_rules_properties.py` | a stricter rule never finds more peaks |
+| `test_matrix_properties.py`, `test_vector_properties.py`, `test_stats_properties.py`, `test_medfilt_properties.py`, `test_cspline_properties.py`, `test_kalman_properties.py` | the rules of the modules they name |
+
+**A test that fails is not always the library.** Several of the rules above were
+wrong when they were first written, and the library was right: a discrete ramp
+is not orthogonal to a sinusoid, an even-sized window has no sample at its peak,
+and bin `size/2` is its own mirror. Measure before changing the library.
+
+## Keeping the tests quick
+
+Each example calls into C, thus each costs more than a pure Python one. The
+profile in `conftest.py` holds the count to 200, and the files that run a
+transform lower it further with `@settings(max_examples=40)`. The sizes are kept
+small on purpose: a rule that holds at a block of 8 holds at a block of 8192, and
+the larger block only costs time.

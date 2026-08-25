@@ -40,32 +40,46 @@
 // multiplying it by itself SQUARES how badly conditioned it is. A fit that
 // would need seven digits by a careful method needs fourteen by this one.
 //
-// WHAT STOPS A BAD ANSWER FROM BEING GIVEN BACK
+// WHAT STOPS A BAD ANSWER FROM BEING GIVEN BACK, AND WHAT DOES NOT
 //
 // A factor exists long after the answer has stopped meaning anything, thus the
 // factor alone is not the test. The module looks at the diagonal of the factor
 // instead: two columns that say almost the same thing leave one diagonal tiny
-// beside the others, and the square of that ratio is how badly conditioned the
-// small problem is. Above what the width can hold, the fit is refused.
+// beside the others, and above what the width can hold the fit is refused.
 //
-// The guard follows the readings rather than a fixed rule, and measurement
-// shows it lands where it should. Fitting a sine and an exponential through 60
-// points, the highest order that still follows the readings to three digits,
-// and the order at which the module refuses:
+// THAT GUARD CATCHES ONE FAULT AND NOT THE OTHER, AND THE DIFFERENCE MATTERS.
 //
-//                              32 bits            64 bits
-//     x from 0 to 1       5, refuses at 6    11, refuses at 12
-//     x from -1 to 1     10, refuses at 11   23, refuses at 24
+//   IT CATCHES columns of the model that say the same thing, or nearly so.
+//   That is a fault of the MODEL, and the factor shows it plainly.
 //
-// It refuses at one order past the last one worth having, and it errs towards
-// refusing. Two columns that are EXACTLY the same leave a diagonal that is not
-// quite zero at 32 bits, and a guard set at the last defensible place would
-// let that through on a coin toss; the margin holds it out at both widths, and
-// the price is the two orders it gives up on the second row.
+//   IT DOES NOT CATCH the digits lost in FORMING the normal equations. Turning
+//   the model round and multiplying it by itself is where the loss happens,
+//   and by the time the factor is taken the loss has already happened. The
+//   factor of a matrix that was built from spent digits looks perfectly
+//   healthy, because it is: it is the healthy factor of the wrong matrix.
 //
-// LSTSQ_HIGHEST_ORDER is a second and much looser cap, set at the best that
-// was reached at each width, and it is there so that a mistaken order costs
-// nothing rather than a run of arithmetic.
+// Measured, on 14 readings whose x runs from 2 to 6, at 32 bits. A curve of a
+// higher order can always do whatever a lower one did, thus the quality must
+// never fall as the order rises:
+//
+//     order            1       2       3       4       5
+//     plain fit     0.171   0.482   0.769   0.527  refused
+//     scaled fit    0.171   0.482   0.769   0.930   0.983
+//     pivot ratio    0.86    0.75    0.67    0.64      -
+//
+// AT ORDER 4 THE PLAIN FIT FALLS FROM 0.769 TO 0.527 AND THE GUARD SEES
+// NOTHING WRONG: the ratio of the diagonals is 0.64, a thousand times above
+// where the guard sits. The answer is simply wrong, and the module gives it
+// back. At 64 bits the same fit reads 0.930 and the fault does not appear.
+//
+// THEREFORE, TWO THINGS.
+//
+//   USE lstsq_polyfit_scaled. It is not a refinement for awkward data; it is
+//   the one that works. Every reading in the table above is right in the
+//   scaled row, at the same width, on the same data.
+//   LOOK AT lstsq_fit_quality AFTERWARDS. It is what shows this fault: 0.527
+//   where 0.930 was to be had. A fit that is never examined is a fit that is
+//   believed for no reason, and here that is not a figure of speech.
 //
 // WHERE X SITS MATTERS AS MUCH AS THE ORDER, AND THIS IS THE TRAP
 //
