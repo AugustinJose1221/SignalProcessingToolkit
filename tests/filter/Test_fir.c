@@ -613,3 +613,99 @@ void test_the_hamming_design_is_the_plain_one(void)
     fir_free(&plain);
     fir_free(&named);
 }
+
+void test_every_design_gives_a_symmetric_filter(void)
+{
+    // Only a symmetric filter holds every frequency back by the same time,
+    // thus this is what the whole promise of the module rests on.
+    const window_kind_t kinds[5] = {WINDOW_RECTANGULAR, WINDOW_HANN,
+                                    WINDOW_HAMMING, WINDOW_BLACKMAN,
+                                    WINDOW_BLACKMAN_HARRIS};
+
+    for(uint32_t which = 0; which < 5u; which++)
+    {
+        fir_t filter = fir_alloc(51);
+
+        fir_design_low_pass_with(&filter, REAL_C(0.2), kinds[which],
+                                 REAL_C(0.0));
+        TEST_ASSERT_EQUAL(true, fir_is_symmetric(&filter));
+
+        fir_design_high_pass_with(&filter, REAL_C(0.2), kinds[which],
+                                  REAL_C(0.0));
+        TEST_ASSERT_EQUAL(true, fir_is_symmetric(&filter));
+
+        fir_design_band_pass_with(&filter, REAL_C(0.15), REAL_C(0.35),
+                                  kinds[which], REAL_C(0.0));
+        TEST_ASSERT_EQUAL(true, fir_is_symmetric(&filter));
+
+        fir_free(&filter);
+    }
+}
+
+void test_a_symmetric_filter_holds_every_frequency_back_by_the_same_time(void)
+{
+    // THE REASON TO CHOOSE A FILTER OF THIS KIND AT ALL.
+    //
+    // The iir module measures a Butterworth rising from 41 samples to 93
+    // across the band that passes. This must not move at all.
+    fir_t filter = fir_alloc(101);
+
+    fir_design_low_pass_with(&filter, REAL_C(0.1), WINDOW_HAMMING,
+                             REAL_C(0.0));
+
+    for(uint32_t step = 1; step < 25u; step++)
+    {
+        real_t place = (real_t)step / REAL_C(100.0);
+
+        // Half the length less one half, at every frequency.
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(50.0),
+                                fir_group_delay(&filter, place));
+    }
+
+    fir_free(&filter);
+}
+
+void test_a_filter_that_is_not_symmetric_is_measured_instead(void)
+{
+    // A filter whose coefficients were written by hand need not be symmetric,
+    // and then the delay is worked out from the phase either side. A single 1
+    // three places along holds the signal back by exactly three samples.
+    fir_t filter = fir_alloc(5);
+
+    for(uint32_t index = 0; index < 5u; index++)
+    {
+        fir_set_coefficient(&filter, index, REAL_C(0.0));
+    }
+
+    fir_set_coefficient(&filter, 3, REAL_C(1.0));
+
+    TEST_ASSERT_EQUAL(false, fir_is_symmetric(&filter));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(3.0),
+                            fir_group_delay(&filter, REAL_C(0.1)));
+
+    // And a single 1 at the very start holds it back by nothing.
+    fir_set_coefficient(&filter, 3, REAL_C(0.0));
+    fir_set_coefficient(&filter, 0, REAL_C(1.0));
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(0.0),
+                            fir_group_delay(&filter, REAL_C(0.1)));
+
+    fir_free(&filter);
+}
+
+void test_fir_phase_stays_inside_one_turn(void)
+{
+    fir_t filter = fir_alloc(31);
+
+    fir_design_low_pass_with(&filter, REAL_C(0.2), WINDOW_HANN, REAL_C(0.0));
+
+    for(uint32_t step = 0; step < 50u; step++)
+    {
+        real_t phase = fir_phase(&filter, (real_t)step / REAL_C(100.0));
+
+        TEST_ASSERT_TRUE(phase >= -REAL_C(3.1416));
+        TEST_ASSERT_TRUE(phase <= REAL_C(3.1416));
+    }
+
+    fir_free(&filter);
+}
