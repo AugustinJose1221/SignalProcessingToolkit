@@ -1,6 +1,7 @@
 #include "unity.h"
 #include "real_assert.h"
 #include "fir.h"
+#include "window.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -372,4 +373,243 @@ void test_fir_design_holds_its_pass_band_at_the_shortest_valid_cutoff(void)
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.02), REAL_C(1.0), fir_get_gain(&fir, REAL_C(0.0)));
 
     fir_free(&fir);
+}
+
+// Where a low pass leaves 0.9 and where it first reaches 0.1, which is how
+// wide its turn is.
+static real_t fir_measured_turn(fir_t* filter)
+{
+    real_t leaves = -REAL_C(1.0);
+
+    for(uint32_t step = 0; step <= 8000u; step++)
+    {
+        real_t place = (real_t)step / REAL_C(16000.0);
+        real_t gain = fir_get_gain(filter, place);
+
+        if(gain >= REAL_C(0.9))
+        {
+            leaves = place;
+        }
+
+        if((leaves >= REAL_C(0.0)) && (gain < REAL_C(0.1)))
+        {
+            return place - leaves;
+        }
+    }
+
+    return REAL_C(0.0);
+}
+
+void test_fir_design_with_a_window_of_your_choosing(void)
+{
+    // Every window must give a working low pass, whatever its shape.
+    const window_kind_t kinds[5] = {WINDOW_RECTANGULAR, WINDOW_HANN,
+                                    WINDOW_HAMMING, WINDOW_BLACKMAN,
+                                    WINDOW_BLACKMAN_HARRIS};
+
+    for(uint32_t which = 0; which < 5u; which++)
+    {
+        fir_t filter = fir_alloc(101);
+
+        TEST_ASSERT_EQUAL(true,
+                          fir_design_low_pass_with(&filter, REAL_C(0.25),
+                                                   kinds[which],
+                                                   REAL_C(0.0)));
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.02), REAL_C(1.0),
+                                fir_get_gain(&filter, REAL_C(0.05)));
+        TEST_ASSERT_TRUE(fir_get_gain(&filter, REAL_C(0.45))
+                         < REAL_C(0.06));
+
+        fir_free(&filter);
+    }
+}
+
+void test_a_gentler_window_turns_more_slowly_and_stops_more_deeply(void)
+{
+    // THE TRADE THE HEADER DESCRIBES, HELD TRUE. A rectangular window turns
+    // fastest and lets the most through; a Blackman-Harris does the reverse.
+    // No window is best at both, and that is the whole point.
+    fir_t sharp = fir_alloc(101);
+    fir_t deep = fir_alloc(101);
+
+    fir_design_low_pass_with(&sharp, REAL_C(0.25), WINDOW_RECTANGULAR,
+                             REAL_C(0.0));
+    fir_design_low_pass_with(&deep, REAL_C(0.25), WINDOW_BLACKMAN_HARRIS,
+                             REAL_C(0.0));
+
+    TEST_ASSERT_TRUE(fir_measured_turn(&sharp) < fir_measured_turn(&deep));
+
+    // Far into the band that is stopped, the gentler window lets far less
+    // through.
+    real_t sharp_worst = REAL_C(0.0);
+    real_t deep_worst = REAL_C(0.0);
+
+    for(uint32_t step = 0; step <= 200u; step++)
+    {
+        real_t place = REAL_C(0.35)
+                       + ((REAL_C(0.15) * (real_t)step) / REAL_C(200.0));
+        real_t one = fir_get_gain(&sharp, place);
+        real_t other = fir_get_gain(&deep, place);
+
+        if(one > sharp_worst) { sharp_worst = one; }
+        if(other > deep_worst) { deep_worst = other; }
+    }
+
+    TEST_ASSERT_TRUE(deep_worst < sharp_worst);
+
+    fir_free(&sharp);
+    fir_free(&deep);
+}
+
+void test_fir_transition_width_does_not_depend_on_the_length(void)
+{
+    // The turn of a window is a fixed number divided by the length. Doubling
+    // the length must halve the turn and change nothing else.
+    real_t at_101 = fir_transition_width(WINDOW_HAMMING, 101);
+    real_t at_202 = fir_transition_width(WINDOW_HAMMING, 202);
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), at_101 / REAL_C(2.0), at_202);
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0),
+                            fir_transition_width(WINDOW_HAMMING, 0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0),
+                            fir_transition_width((window_kind_t)99, 101));
+}
+
+void test_fir_length_for_gives_a_filter_that_really_turns_that_fast(void)
+{
+    // A length that does not deliver the turn is worse than no length.
+    const window_kind_t kinds[5] = {WINDOW_RECTANGULAR, WINDOW_HANN,
+                                    WINDOW_HAMMING, WINDOW_BLACKMAN,
+                                    WINDOW_BLACKMAN_HARRIS};
+    const real_t wanted = REAL_C(0.01);
+
+    for(uint32_t which = 0; which < 5u; which++)
+    {
+        uint32_t length = fir_length_for(kinds[which], wanted);
+
+        TEST_ASSERT_TRUE(length > 0u);
+
+        // Always odd, because a high pass needs a middle coefficient.
+        TEST_ASSERT_EQUAL(1, length % 2u);
+
+        fir_t filter = fir_alloc(length);
+
+        TEST_ASSERT_EQUAL(true,
+                          fir_design_low_pass_with(&filter, REAL_C(0.25),
+                                                   kinds[which],
+                                                   REAL_C(0.0)));
+
+        real_t measured = fir_measured_turn(&filter);
+
+        // Within a twentieth of what was asked for.
+        TEST_ASSERT_REAL_WITHIN(wanted / REAL_C(20.0), wanted, measured);
+
+        fir_free(&filter);
+    }
+}
+
+void test_a_gentler_window_needs_a_longer_filter_for_the_same_turn(void)
+{
+    // The other half of the trade, seen through the length.
+    TEST_ASSERT_TRUE(fir_length_for(WINDOW_RECTANGULAR, REAL_C(0.01))
+                     < fir_length_for(WINDOW_HAMMING, REAL_C(0.01)));
+    TEST_ASSERT_TRUE(fir_length_for(WINDOW_HAMMING, REAL_C(0.01))
+                     < fir_length_for(WINDOW_BLACKMAN, REAL_C(0.01)));
+    TEST_ASSERT_TRUE(fir_length_for(WINDOW_BLACKMAN, REAL_C(0.01))
+                     < fir_length_for(WINDOW_BLACKMAN_HARRIS, REAL_C(0.01)));
+
+    TEST_ASSERT_EQUAL(0, fir_length_for((window_kind_t)99, REAL_C(0.01)));
+    TEST_ASSERT_EQUAL(0, fir_length_for(WINDOW_HAMMING, REAL_C(0.0)));
+}
+
+void test_a_high_pass_with_a_chosen_window(void)
+{
+    fir_t filter = fir_alloc(101);
+
+    TEST_ASSERT_EQUAL(true,
+                      fir_design_high_pass_with(&filter, REAL_C(0.25),
+                                                WINDOW_BLACKMAN,
+                                                REAL_C(0.0)));
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0),
+                            fir_get_gain(&filter, REAL_C(0.45)));
+    TEST_ASSERT_TRUE(fir_get_gain(&filter, REAL_C(0.05)) < REAL_C(0.01));
+
+    fir_free(&filter);
+}
+
+void test_a_band_pass_with_a_chosen_window(void)
+{
+    fir_t filter = fir_alloc(101);
+
+    TEST_ASSERT_EQUAL(true,
+                      fir_design_band_pass_with(&filter, REAL_C(0.15),
+                                                REAL_C(0.35), WINDOW_HANN,
+                                                REAL_C(0.0)));
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0),
+                            fir_get_gain(&filter, REAL_C(0.25)));
+    TEST_ASSERT_TRUE(fir_get_gain(&filter, REAL_C(0.05)) < REAL_C(0.01));
+    TEST_ASSERT_TRUE(fir_get_gain(&filter, REAL_C(0.45)) < REAL_C(0.01));
+
+    fir_free(&filter);
+}
+
+void test_fir_design_with_refuses_what_it_cannot_build(void)
+{
+    fir_t filter = fir_alloc(101);
+
+    TEST_ASSERT_EQUAL(false,
+                      fir_design_low_pass_with(&filter, REAL_C(0.25),
+                                               (window_kind_t)99,
+                                               REAL_C(0.0)));
+
+    // A cutoff with no room for the turn.
+    TEST_ASSERT_EQUAL(false,
+                      fir_design_low_pass_with(&filter, REAL_C(0.001),
+                                               WINDOW_HAMMING, REAL_C(0.0)));
+
+    fir_free(&filter);
+
+    // A high pass needs a middle coefficient, thus an even length is refused.
+    fir_t even = fir_alloc(100);
+
+    TEST_ASSERT_EQUAL(false,
+                      fir_design_high_pass_with(&even, REAL_C(0.25),
+                                                WINDOW_HAMMING, REAL_C(0.0)));
+
+    fir_free(&even);
+
+    // A window of two values is nothing at all, and the module says so.
+    fir_t tiny = fir_alloc(2);
+
+    TEST_ASSERT_EQUAL(false,
+                      fir_design_low_pass_with(&tiny, REAL_C(0.25),
+                                               WINDOW_HANN, REAL_C(0.0)));
+
+    fir_free(&tiny);
+}
+
+void test_the_hamming_design_is_the_plain_one(void)
+{
+    // The module has always built with a Hamming window, thus asking for one
+    // by name must give the same filter as not asking at all.
+    fir_t plain = fir_alloc(51);
+    fir_t named = fir_alloc(51);
+
+    fir_design_low_pass(&plain, REAL_C(0.2));
+    fir_design_low_pass_with(&named, REAL_C(0.2), WINDOW_HAMMING,
+                             REAL_C(0.0));
+
+    for(uint32_t index = 0; index < 51u; index++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001),
+                                fir_get_coefficient(&plain, index),
+                                fir_get_coefficient(&named, index));
+    }
+
+    fir_free(&plain);
+    fir_free(&named);
 }

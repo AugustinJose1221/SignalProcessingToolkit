@@ -47,6 +47,48 @@ needs for its coefficients.
 The number of float values that a filter with the given number of sections
 needs for its state.
 
+### `IIR_SMALLEST_RIPPLE`
+
+```c
+#define IIR_SMALLEST_RIPPLE     REAL_C(0.001)
+```
+
+### `IIR_LARGEST_RIPPLE`
+
+```c
+#define IIR_LARGEST_RIPPLE      REAL_C(20.0)
+```
+
+### `IIR_LARGEST_SECTIONS`
+
+```c
+#define IIR_LARGEST_SECTIONS        32u
+```
+
+### `IIR_SMALLEST_ATTENUATION`
+
+```c
+#define IIR_SMALLEST_ATTENUATION    REAL_C(3.0)
+```
+
+### `IIR_LARGEST_ATTENUATION`
+
+```c
+#define IIR_LARGEST_ATTENUATION     REAL_C(120.0)
+```
+
+### `IIR_GROUP_DELAY_STEP`
+
+```c
+#define IIR_GROUP_DELAY_STEP    REAL_C(0.00001)
+```
+
+### `IIR_GROUP_DELAY_STEP`
+
+```c
+#define IIR_GROUP_DELAY_STEP    REAL_C(0.0005)
+```
+
 ### `IIR_MIN_CUTOFF`
 
 ```c
@@ -213,6 +255,131 @@ the signal itself, the goertzel module costs far less.
 
 Give false if the frequency cannot be held or if the quality is not above
 zero.
+
+### `iir_is_valid_shape`
+
+```c
+bool iir_is_valid_shape(iir_shape_t shape);
+```
+
+True if the shape is one this module knows.
+
+### `iir_is_valid_ripple`
+
+```c
+bool iir_is_valid_ripple(real_t ripple);
+```
+
+True if this much ripple can be asked for in the band that passes, in
+decibels.
+
+### `iir_is_valid_attenuation`
+
+```c
+bool iir_is_valid_attenuation(real_t attenuation);
+```
+
+True if the band that is stopped can be asked to lie this far down, in
+decibels.
+
+Asking for a depth is not the same as getting it: a filter of too few
+sections falls short whatever it was asked. Use iir_sections_for.
+
+### `iir_design_low_pass_with`
+
+```c
+bool iir_design_low_pass_with(iir_t* iir, real_t cutoff, iir_shape_t shape, real_t pass_ripple, real_t stop_ripple);
+```
+
+Build a low pass of the given shape.
+
+THE CUTOFF MEANS A DIFFERENT THING FOR DIFFERENT SHAPES, and giving it the
+same number for each will not give three filters that can be compared.
+
+  Butterworth   where the answer has fallen to 0.707, which is 3 dB down
+  Chebyshev I   where the answer leaves the ripple, thus the end of the band
+                that passes
+  Chebyshev II  where the band that is STOPPED begins, thus the answer is
+                already all the way down there
+  Elliptic      where the answer leaves the ripple, as with Chebyshev I
+
+It is a part of the sample rate, from IIR_MIN_CUTOFF to 0.5.
+
+pass_ripple is how much the band that passes may ripple, in decibels, and
+Chebyshev I and elliptic read it. stop_ripple is how far down the band that
+is stopped must lie, in decibels, and Chebyshev II and elliptic read it.
+Butterworth reads neither, and gives the same filter as
+iir_design_low_pass.
+
+Give false if the shape is unknown, the cutoff cannot be held, or a ripple
+that the shape reads lies outside IIR_SMALLEST_RIPPLE to IIR_LARGEST_RIPPLE.
+
+### `iir_design_high_pass_with`
+
+```c
+bool iir_design_high_pass_with(iir_t* iir, real_t cutoff, iir_shape_t shape, real_t pass_ripple, real_t stop_ripple);
+```
+
+Build a high pass of the given shape. The arguments read as they do for
+iir_design_low_pass_with.
+
+### `iir_sections_for`
+
+```c
+uint32_t iir_sections_for(iir_shape_t shape, real_t pass_edge, real_t stop_edge, real_t pass_ripple, real_t stop_ripple);
+```
+
+Give how many sections a filter needs to meet a specification.
+
+The two edges are parts of the sample rate. For a low pass the band that
+passes ends at pass_edge and the band that is stopped begins at stop_edge,
+thus stop_edge must be the larger. Measured, to pass below 0.1 and stop
+above 0.15 by 60 dB with 1 dB of ripple, this gives 9 sections for a
+Butterworth, 5 for either Chebyshev and 3 for an elliptic, and a filter
+built to any of those numbers really does meet the specification. pass_ripple is how much ripple the band
+that passes may hold and stop_ripple is how far down the band that is
+stopped must lie, both in decibels.
+
+ASK THIS BEFORE CHOOSING A SHAPE. The same specification wants far fewer
+sections from an elliptic filter than from a Butterworth, and this says how
+many fewer, which is the whole of the trade the header describes.
+
+The answer is rounded up to whole sections, since a section holds two poles.
+Give 0 where the specification cannot be met: when the edges are out of
+order, when a ripple cannot be held, or when it would need more than
+IIR_LARGEST_SECTIONS sections.
+
+### `iir_phase`
+
+```c
+real_t iir_phase(iir_t* iir, real_t frequency);
+```
+
+Give how far the filter turns the phase at one frequency, in radians.
+
+The frequency is a part of the sample rate. The answer runs from -pi to pi
+and does not carry how many whole turns have gone before it; use
+iir_group_delay to see what the filter does to the shape of a waveform.
+
+### `iir_group_delay`
+
+```c
+real_t iir_group_delay(iir_t* iir, real_t frequency);
+```
+
+Give how long the filter holds back the frequencies about this one, in
+samples.
+
+THIS IS THE NUMBER THAT SAYS WHAT A FILTER DOES TO A WAVEFORM. A filter that
+holds every frequency back by the same time moves the waveform along and
+leaves its shape alone. One that holds some frequencies back longer than
+others changes the shape, and a sharp filter does that most of all near its
+cutoff.
+
+The answer is worked out from the phase a little either side of the
+frequency, thus it is an estimate and not an exact derivative. Near the
+cutoff of a sharp filter it changes quickly, and there the estimate is
+coarsest.
 
 ### `iir_set_section`
 

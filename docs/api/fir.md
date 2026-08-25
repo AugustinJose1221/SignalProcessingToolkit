@@ -125,14 +125,77 @@ low cutoff must be smaller than the high cutoff, and both must lie between 0
 and 0.5.
 Give false and leave the filter as it was if fir_is_valid_band is false.
 
+### `fir_design_low_pass_with`
+
+```c
+bool fir_design_low_pass_with(fir_t* fir, real_t cutoff, window_kind_t kind, real_t parameter);
+```
+
+Write one coefficient. Use this function to give the filter a set of
+coefficients that another program calculated.
+Build a low pass with the window of your choosing.
+
+The window decides how wide the turn is and how far down the band that is
+stopped lies; the header above measures both for every window. The parameter
+belongs to the window and is ignored where the window takes none.
+
+Give false if the window is unknown, if it cannot be built at this length,
+or if the length cannot hold this cutoff.
+
+### `fir_design_high_pass_with`
+
+```c
+bool fir_design_high_pass_with(fir_t* fir, real_t cutoff, window_kind_t kind, real_t parameter);
+```
+
+Build a high pass with the window of your choosing. The length must be odd,
+for the reason fir_design_high_pass gives.
+
+### `fir_design_band_pass_with`
+
+```c
+bool fir_design_band_pass_with(fir_t* fir, real_t low_cutoff, real_t high_cutoff, window_kind_t kind, real_t parameter);
+```
+
+Build a band pass with the window of your choosing.
+
+### `fir_transition_width`
+
+```c
+real_t fir_transition_width(window_kind_t kind, uint32_t length);
+```
+
+Give how wide the turn from passing to stopping is, for this window at this
+length, as a part of the sample rate.
+
+The turn of a window is a fixed number divided by the length, thus this is
+that number divided by the length. The numbers were measured and they are in
+the table in the header.
+
+### `fir_length_for`
+
+```c
+uint32_t fir_length_for(window_kind_t kind, real_t width);
+```
+
+Give how long a filter must be for the turn to be this narrow.
+
+ASK THIS BEFORE ALLOCATING. A turn of a hundredth of the sample rate wants
+91 coefficients with a Hamming window and 551 with a Blackman-Harris, and
+choosing the window without knowing that is choosing blind.
+
+The answer is always odd, because a high pass and a band stop need a middle
+coefficient. Give 0 where the window is unknown or the width is not above
+nothing.
+
 ### `fir_set_coefficient`
 
 ```c
 void fir_set_coefficient(fir_t* fir, uint32_t index, real_t value);
 ```
 
-Write one coefficient. Use this function to give the filter a set of
-coefficients that another program calculated.
+Write one coefficient directly, for a filter whose shape comes from
+somewhere other than the designs above.
 
 ### `fir_get_coefficient`
 

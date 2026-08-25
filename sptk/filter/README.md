@@ -523,3 +523,78 @@ working it out by hand.
 in every block takes the signal away with the drift where the signal rises
 across the block. Find the trend once from a block known to be quiet, and take
 that same trend out of the blocks that follow.
+
+## The four shapes of an IIR filter
+
+**No filter is best at all three things.** How flat the band that passes is, how
+sharply it falls, and how much of the stopped band gets through — every shape
+trades these against each other. Measured on a low pass of order 8 at a cutoff
+of 0.1, asked for 1 dB of ripple and a stop band 60 dB down:
+
+| shape | at nothing | ripple | falls to 60 dB below |
+|---|---|---|---|
+| Butterworth | 1.000 | none | 0.209 |
+| Chebyshev I | 0.891 | 1.000 dB | 0.151 |
+| Chebyshev II | 1.000 | none | 0.100 |
+| Elliptic | 0.891 | 1.000 dB | 0.110 |
+
+**Ask `iir_sections_for` before choosing.** The same trade, seen through what it
+costs. To pass below 0.1 and stop above 0.15 by 60 dB, with 1 dB of ripple
+allowed:
+
+| shape | sections | order |
+|---|---|---|
+| Butterworth | 9 | 18 |
+| Chebyshev I | 5 | 10 |
+| Chebyshev II | 5 | 10 |
+| Elliptic | 3 | 6 |
+
+**A third of the sections for the same work.** Every filter in that table was
+built and measured, and every one really meets what was asked.
+
+**The cutoff means a different thing for different shapes.** Butterworth counts
+it where the answer has fallen 3 dB; Chebyshev I and elliptic where the answer
+leaves the ripple; **Chebyshev II counts it where the band that is STOPPED
+begins**, so the answer is already all the way down there. Giving all four the
+same number does not give four filters that can be compared.
+
+**An elliptic filter at 32 bits falls a little short of a deep stop band.** It
+holds the stopped band down with notches, and a notch must be placed exactly to
+reach all the way. At 32 bits the coefficients cannot always place them exactly.
+Measured at a cutoff of 0.05 with 70 dB asked for, the delivered depth is 70.0,
+70.0, 66.9, 69.2 and 69.6 dB for ripples of 0.5, 1, 2, 3 and 5 dB. The shortfall
+is at most about 3 dB and **more sections do not mend it**. Ask for a few dB more
+at 32 bits, or build at 64. No other shape shows this.
+
+**Look at `iir_group_delay` before trusting the shape of a waveform.** Every
+shape moves different frequencies by different times, and the sharper the fall
+the worse it gets. A Butterworth of 4 sections at a cutoff of 0.1 holds the
+signal back by 7.9 samples at 0.01 and 14.6 samples at 0.09 — that difference is
+what bends a waveform out of shape. Where it matters, use `filtfilt`, which runs
+the filter both ways and leaves no phase shift at all.
+
+## Choosing the window of an FIR filter
+
+**The plain sinc is the perfect filter and it runs for ever.** Cutting it to a
+finite length is what a window does, and the window decides how wide the turn is
+against how far down the stopped band lies. Measured for a low pass of 101
+coefficients at a cutoff of 0.25, with the turn taken from where the answer last
+stands at 0.9 to where it first reaches 0.1:
+
+| window | turn is wide | times the length | stopped band |
+|---|---|---|---|
+| rectangular | 0.0090 | 0.90 | -26 dB |
+| hamming | 0.0182 | 1.84 | -58 dB |
+| hann | 0.0194 | 1.96 | -55 dB |
+| kaiser, beta 6 | 0.0198 | 1.99 | -68 dB |
+| blackman | 0.0238 | 2.40 | -75 dB |
+| blackman-harris | 0.0281 | 2.83 | -104 dB |
+
+**The third column is the same at 101 coefficients and at 201.** That is what
+says the turn belongs to the shape of the window and to the length, and to
+nothing else — so `fir_length_for` can give a length from a turn, and
+`fir_transition_width` the turn from a length.
+
+**A longer filter makes the turn narrower and changes nothing else.** The depth
+of the stopped band belongs to the window alone. To go deeper, change the
+window; to turn faster, lengthen the filter.
