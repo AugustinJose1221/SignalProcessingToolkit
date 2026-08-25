@@ -15,7 +15,7 @@
 #define RADS_TO_DEG(x)  ((PI/180)*x)
 #define NUMBER_OF_IMF   6u
 
-int main()
+int main(void)
 {
     real_t x[SAMPLE_SIZE];
     real_t y[SAMPLE_SIZE];
