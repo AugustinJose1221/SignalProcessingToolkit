@@ -1,3 +1,113 @@
+## 0.11.0 (2026-08-25)
+
+The shapes of filter, the order estimate, the phase, and any window for an FIR.
+Also the fixes for the three faults that the property based tests of 0.10.1
+brought out, and three more that measuring this release brought out.
+
+**Four shapes of IIR filter instead of one.** Chebyshev I ripples in the band
+that passes and falls faster for it; Chebyshev II keeps that band flat and puts
+the ripple where it is stopped; elliptic ripples in both and falls fastest of
+all. Measured on a low pass of order 8 at a cutoff of 0.1, asked for 1 dB of
+ripple and a stop band 60 dB down:
+
+| shape | at nothing | ripple | falls to 60 dB below |
+| --- | --- | --- | --- |
+| Butterworth | 1.000 | none | 0.209 |
+| Chebyshev I | 0.891 | 1.000 dB | 0.151 |
+| Chebyshev II | 1.000 | none | 0.100 |
+| Elliptic | 0.891 | 1.000 dB | 0.110 |
+
+**`iir_sections_for` says how many sections a specification needs**, which is
+the whole trade in one number. To pass below 0.1 and stop above 0.15 by 60 dB
+with 1 dB of ripple allowed:
+
+| shape | sections | order |
+| --- | --- | --- |
+| Butterworth | 9 | 18 |
+| Chebyshev I | 5 | 10 |
+| Chebyshev II | 5 | 10 |
+| Elliptic | 3 | 6 |
+
+A third of the sections for the same work. Every filter in that table was built
+and measured, and every one really meets what was asked.
+
+**`iir_phase` and `iir_group_delay`, and the same two for `fir`.** The group
+delay is the number that says what a filter does to the SHAPE of a waveform,
+which no measurement of gain shows. Measured across the band that passes, a
+Butterworth of 10 sections rises from 41 samples to 93 and an elliptic of 3
+from 14 to 87: the shape that costs the fewest multiplications costs the most
+here. An FIR built by any design in this library holds every frequency back by
+exactly half its length less one half, and that is the reason to choose one.
+
+**`fir_design_low_pass_with` and its two companions take any window.** The turn
+of a window is a fixed number divided by the length, and measuring it at 101
+coefficients and again at 201 gives the same number, which is what says it
+belongs to the shape of the window alone:
+
+| window | times the length | band that is stopped |
+| --- | --- | --- |
+| rectangular | 0.90 | -26 dB |
+| hamming | 1.84 | -58 dB |
+| hann | 1.96 | -55 dB |
+| blackman | 2.40 | -75 dB |
+| blackman-harris | 2.83 | -104 dB |
+
+`fir_length_for` turns a wanted turn into a length and `fir_transition_width`
+does the reverse.
+
+### The faults that 0.10.1 found, now fixed
+
+**`lstsq_polyfit` gave a wrong answer and said nothing.** The guard on the
+diagonal of the factor cannot catch the digits lost in forming the normal
+equations. Reading the answer back does not catch it either: measured over
+20000 random sets at 32 bits, the answers that were right leaned on a column of
+the model by as much as 8.6 parts in ten thousand and the answers that were
+wrong by as little as 1.2 parts in a hundred thousand, and the two ranges lie
+across each other. What does part them is the same fit done with the places
+brought near zero. The module now does both and refuses where the plain one
+leaves more error: not one wrong answer in 20000 sets, against 103 before, and
+1.6 fits in every 100 refused. At 64 bits nothing is refused.
+
+**`stft_fewest_frames`** says how many frames a rebuild needs, which
+`stft_inverse` refused without explaining.
+
+**`window_is_valid_size`** says which sizes a window can be built at. A
+symmetric window of two values is its two ends, and the ends are where a taper
+is nothing, so a hann window of 2 has a coherent gain of nothing and the header
+tells callers to divide by that.
+
+### And three that building this release brought out
+
+**A Chebyshev I with an odd number of sections amplified the band it was meant
+to pass**, reaching 1.122 where it should have reached 1. The scaling that
+holds the ripple down from 1 was applied only when the number of sections was
+even, and every order this module builds is even.
+
+**An elliptic filter refused every stop band deeper than 60 dB at 32 bits.**
+For a deep stop band the selectivity is very small, its square falls below what
+the width can tell from nothing, and the modulus across it rounds to exactly 1,
+whose measure is not finite. That measure has a closed form there, and using it
+lets a 32 bit build reach 110 dB.
+
+**The same rounding gave `iir_sections_for` an order of eight million**, which a
+caller would have tried to allocate. The measure across a modulus now has one
+place where it is worked out, and no answer above `IIR_LARGEST_SECTIONS` is
+given back at all.
+
+**What remains is recorded rather than hidden.** An elliptic filter at 32 bits
+holds its stop band down with notches that the coefficients cannot always place
+exactly, and the floor then sits up to 3 dB above what was asked. More sections
+do not mend it. No other shape shows this, and no shape shows it at 64 bits.
+
+### The build
+
+`-Wmissing-prototypes` and `-Wstrict-prototypes` are now among the warnings the
+build must pass, and the warnings check compiles with optimisation. The first
+found a public function with no declaration in its header; the last found a
+buffer read before it was written. `vector2d_alloc` was written with empty
+brackets, which in C says nothing about what it takes rather than saying it
+takes nothing.
+
 ## 0.10.1 (2026-08-25)
 
 Property based tests for eleven modules, and the three faults that writing them
