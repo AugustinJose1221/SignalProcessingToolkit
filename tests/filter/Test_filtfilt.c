@@ -3,6 +3,7 @@
 #include "filtfilt.h"
 #include "iir.h"
 #include "fir.h"
+#include "window.h"
 #include <stdlib.h>
 #include <math.h>
 

@@ -605,3 +605,456 @@ void test_iir_notch_takes_a_hum_out_of_a_signal(void)
 
     iir_free(&iir);
 }
+
+// The gain of a filter at its largest and its smallest across a band.
+static void iir_band_reach(iir_t* filter, real_t from, real_t to,
+                           real_t* smallest, real_t* largest)
+{
+    *smallest = REAL_LARGEST;
+    *largest = REAL_C(0.0);
+
+    for(uint32_t step = 0; step <= 400u; step++)
+    {
+        real_t place = from + (((to - from) * (real_t)step) / REAL_C(400.0));
+        real_t gain = iir_get_gain(filter, place);
+
+        if(gain < *smallest) { *smallest = gain; }
+        if(gain > *largest) { *largest = gain; }
+    }
+}
+
+void test_iir_is_valid_shape(void)
+{
+    TEST_ASSERT_EQUAL(true, iir_is_valid_shape(IIR_BUTTERWORTH));
+    TEST_ASSERT_EQUAL(true, iir_is_valid_shape(IIR_CHEBYSHEV_I));
+    TEST_ASSERT_EQUAL(true, iir_is_valid_shape(IIR_CHEBYSHEV_II));
+    TEST_ASSERT_EQUAL(true, iir_is_valid_shape(IIR_ELLIPTIC));
+    TEST_ASSERT_EQUAL(false, iir_is_valid_shape((iir_shape_t)9));
+}
+
+void test_iir_tells_a_ripple_from_an_attenuation(void)
+{
+    // Two different quantities in two different ranges. Giving one where the
+    // other belongs is the easy mistake, thus they are examined apart.
+    TEST_ASSERT_EQUAL(true, iir_is_valid_ripple(REAL_C(1.0)));
+    TEST_ASSERT_EQUAL(false, iir_is_valid_ripple(REAL_C(60.0)));
+
+    TEST_ASSERT_EQUAL(true, iir_is_valid_attenuation(REAL_C(60.0)));
+    TEST_ASSERT_EQUAL(false, iir_is_valid_attenuation(REAL_C(1.0)));
+
+    TEST_ASSERT_EQUAL(false,
+                      iir_is_valid_attenuation(IIR_LARGEST_ATTENUATION
+                                               + REAL_C(1.0)));
+}
+
+void test_a_chebyshev_ripples_by_exactly_what_was_asked(void)
+{
+    // The whole point of asking for a ripple is getting that ripple. Every
+    // number of sections is walked, because an odd number and an even number
+    // reach the top of the ripple at different places and both must be right.
+    for(uint32_t sections = 1; sections <= 4u; sections++)
+    {
+        iir_t filter = iir_alloc(sections);
+
+        TEST_ASSERT_EQUAL(true,
+                          iir_design_low_pass_with(&filter, REAL_C(0.1),
+                                                   IIR_CHEBYSHEV_I,
+                                                   REAL_C(1.0),
+                                                   REAL_C(60.0)));
+
+        real_t smallest;
+        real_t largest;
+
+        iir_band_reach(&filter, REAL_C(0.0), REAL_C(0.1), &smallest,
+                       &largest);
+
+        // 1 dB is a ratio of 1.122 between the top and the bottom.
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.005), REAL_C(1.122),
+                                largest / smallest);
+
+        // AND THE TOP OF THE RIPPLE STANDS AT 1, NOT ABOVE IT. A filter that
+        // reached 1.122 would be amplifying the band it is meant to pass.
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0), largest);
+
+        iir_free(&filter);
+    }
+}
+
+void test_a_chebyshev_of_the_second_kind_is_flat_and_stops_where_it_should(void)
+{
+    // For this shape the cutoff is where the band that is STOPPED begins, thus
+    // the answer is already all the way down at the cutoff itself.
+    iir_t filter = iir_alloc(4);
+
+    TEST_ASSERT_EQUAL(true,
+                      iir_design_low_pass_with(&filter, REAL_C(0.1),
+                                               IIR_CHEBYSHEV_II, REAL_C(1.0),
+                                               REAL_C(60.0)));
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(1.0),
+                            iir_get_gain(&filter, REAL_C(0.0)));
+
+    // 60 dB down is a thousandth.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0002), REAL_C(0.001),
+                            iir_get_gain(&filter, REAL_C(0.1)));
+
+    // And nothing above it climbs back out of the band that is stopped.
+    real_t smallest;
+    real_t largest;
+
+    iir_band_reach(&filter, REAL_C(0.1), REAL_C(0.5), &smallest, &largest);
+
+    TEST_ASSERT_TRUE(largest <= REAL_C(0.0011));
+
+    iir_free(&filter);
+}
+
+void test_an_elliptic_ripples_in_both_bands_by_what_was_asked(void)
+{
+    // THE SHAPE THAT RIPPLES AT BOTH ENDS. Both ripples must be what was
+    // asked, which is the whole of what makes it an elliptic filter and not
+    // merely a sharp one.
+    iir_t filter = iir_alloc(4);
+
+    TEST_ASSERT_EQUAL(true,
+                      iir_design_low_pass_with(&filter, REAL_C(0.1),
+                                               IIR_ELLIPTIC, REAL_C(1.0),
+                                               REAL_C(60.0)));
+
+    real_t smallest;
+    real_t largest;
+
+    iir_band_reach(&filter, REAL_C(0.0), REAL_C(0.1), &smallest, &largest);
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.122), largest / smallest);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0), largest);
+
+    // The band that is stopped begins soon after the cutoff and holds.
+    iir_band_reach(&filter, REAL_C(0.12), REAL_C(0.5), &smallest, &largest);
+
+    TEST_ASSERT_TRUE(largest <= REAL_C(0.0012));
+
+    iir_free(&filter);
+}
+
+void test_the_sharper_shapes_really_are_sharper(void)
+{
+    // The table in the header, held true. Each shape must reach 60 dB down
+    // sooner than the one before it.
+    const iir_shape_t order_of_sharpness[3] = {IIR_BUTTERWORTH,
+                                               IIR_CHEBYSHEV_I,
+                                               IIR_ELLIPTIC};
+    real_t reached[3];
+
+    for(uint32_t which = 0; which < 3u; which++)
+    {
+        iir_t filter = iir_alloc(4);
+
+        TEST_ASSERT_EQUAL(true,
+                          iir_design_low_pass_with(&filter, REAL_C(0.1),
+                                                   order_of_sharpness[which],
+                                                   REAL_C(1.0),
+                                                   REAL_C(60.0)));
+
+        reached[which] = REAL_C(0.5);
+
+        for(uint32_t step = 0; step <= 2000u; step++)
+        {
+            real_t place = (real_t)step / REAL_C(4000.0);
+
+            if(iir_get_gain(&filter, place) < REAL_C(0.001))
+            {
+                reached[which] = place;
+                break;
+            }
+        }
+
+        iir_free(&filter);
+    }
+
+    TEST_ASSERT_TRUE(reached[1] < reached[0]);
+    TEST_ASSERT_TRUE(reached[2] < reached[1]);
+}
+
+void test_iir_sections_for_gives_a_filter_that_really_meets_it(void)
+{
+    // A number that does not meet the specification is worse than no number.
+    // Every shape is asked, and every answer is built and measured.
+    const iir_shape_t shapes[4] = {IIR_BUTTERWORTH, IIR_CHEBYSHEV_I,
+                                   IIR_CHEBYSHEV_II, IIR_ELLIPTIC};
+    const real_t pass_edge = REAL_C(0.1);
+    const real_t stop_edge = REAL_C(0.15);
+
+    for(uint32_t which = 0; which < 4u; which++)
+    {
+        uint32_t sections = iir_sections_for(shapes[which], pass_edge,
+                                             stop_edge, REAL_C(1.0),
+                                             REAL_C(60.0));
+
+        TEST_ASSERT_TRUE(sections > 0u);
+
+        iir_t filter = iir_alloc(sections);
+
+        // Chebyshev II counts its cutoff at the far edge; the others at the
+        // near one.
+        real_t cutoff = (shapes[which] == IIR_CHEBYSHEV_II) ? stop_edge
+                                                            : pass_edge;
+
+        TEST_ASSERT_EQUAL(true,
+                          iir_design_low_pass_with(&filter, cutoff,
+                                                   shapes[which], REAL_C(1.0),
+                                                   REAL_C(60.0)));
+
+        real_t smallest;
+        real_t largest;
+
+        iir_band_reach(&filter, stop_edge, REAL_C(0.5), &smallest, &largest);
+
+        // A thousandth is 60 dB down, with a little room for the rounding of
+        // the measurement.
+        TEST_ASSERT_TRUE(largest <= REAL_C(0.00105));
+
+        iir_free(&filter);
+    }
+}
+
+void test_an_elliptic_needs_the_fewest_sections(void)
+{
+    uint32_t butterworth = iir_sections_for(IIR_BUTTERWORTH, REAL_C(0.1),
+                                            REAL_C(0.15), REAL_C(1.0),
+                                            REAL_C(60.0));
+    uint32_t chebyshev = iir_sections_for(IIR_CHEBYSHEV_I, REAL_C(0.1),
+                                          REAL_C(0.15), REAL_C(1.0),
+                                          REAL_C(60.0));
+    uint32_t elliptic = iir_sections_for(IIR_ELLIPTIC, REAL_C(0.1),
+                                         REAL_C(0.15), REAL_C(1.0),
+                                         REAL_C(60.0));
+
+    TEST_ASSERT_EQUAL(9, butterworth);
+    TEST_ASSERT_EQUAL(5, chebyshev);
+    TEST_ASSERT_EQUAL(3, elliptic);
+}
+
+void test_iir_sections_for_refuses_what_cannot_be_asked(void)
+{
+    // The edges the wrong way round.
+    TEST_ASSERT_EQUAL(0, iir_sections_for(IIR_BUTTERWORTH, REAL_C(0.2),
+                                          REAL_C(0.1), REAL_C(1.0),
+                                          REAL_C(60.0)));
+
+    // A ripple that belongs to the other band.
+    TEST_ASSERT_EQUAL(0, iir_sections_for(IIR_BUTTERWORTH, REAL_C(0.1),
+                                          REAL_C(0.2), REAL_C(60.0),
+                                          REAL_C(60.0)));
+
+    TEST_ASSERT_EQUAL(0, iir_sections_for((iir_shape_t)9, REAL_C(0.1),
+                                          REAL_C(0.2), REAL_C(1.0),
+                                          REAL_C(60.0)));
+}
+
+void test_a_high_pass_of_every_shape_passes_the_top_and_stops_the_bottom(void)
+{
+    const iir_shape_t shapes[4] = {IIR_BUTTERWORTH, IIR_CHEBYSHEV_I,
+                                   IIR_CHEBYSHEV_II, IIR_ELLIPTIC};
+
+    for(uint32_t which = 0; which < 4u; which++)
+    {
+        iir_t filter = iir_alloc(3);
+
+        TEST_ASSERT_EQUAL(true,
+                          iir_design_high_pass_with(&filter, REAL_C(0.25),
+                                                    shapes[which],
+                                                    REAL_C(1.0),
+                                                    REAL_C(60.0)));
+
+        // Well above the cutoff it passes, and well below it does not.
+        TEST_ASSERT_TRUE(iir_get_gain(&filter, REAL_C(0.45)) > REAL_C(0.85));
+        TEST_ASSERT_TRUE(iir_get_gain(&filter, REAL_C(0.02)) < REAL_C(0.01));
+
+        iir_free(&filter);
+    }
+}
+
+void test_iir_design_with_refuses_what_it_cannot_build(void)
+{
+    iir_t filter = iir_alloc(2);
+
+    TEST_ASSERT_EQUAL(false,
+                      iir_design_low_pass_with(&filter, REAL_C(0.1),
+                                               (iir_shape_t)9, REAL_C(1.0),
+                                               REAL_C(60.0)));
+
+    // A ripple outside what a band that passes can hold.
+    TEST_ASSERT_EQUAL(false,
+                      iir_design_low_pass_with(&filter, REAL_C(0.1),
+                                               IIR_CHEBYSHEV_I, REAL_C(50.0),
+                                               REAL_C(60.0)));
+
+    // A stop band asked for below what it means to stop anything.
+    TEST_ASSERT_EQUAL(false,
+                      iir_design_low_pass_with(&filter, REAL_C(0.1),
+                                               IIR_CHEBYSHEV_II, REAL_C(1.0),
+                                               REAL_C(0.5)));
+
+    // A cutoff at or above half the sample rate.
+    TEST_ASSERT_EQUAL(false,
+                      iir_design_low_pass_with(&filter, REAL_C(0.5),
+                                               IIR_BUTTERWORTH, REAL_C(1.0),
+                                               REAL_C(60.0)));
+
+    // Butterworth reads neither ripple, thus a value that would refuse another
+    // shape must not refuse this one.
+    TEST_ASSERT_EQUAL(true,
+                      iir_design_low_pass_with(&filter, REAL_C(0.1),
+                                               IIR_BUTTERWORTH, REAL_C(999.0),
+                                               REAL_C(999.0)));
+
+    iir_free(&filter);
+}
+
+void test_the_shaped_butterworth_is_the_plain_one(void)
+{
+    // Two roads to one filter must not give two filters.
+    iir_t plain = iir_alloc(3);
+    iir_t shaped = iir_alloc(3);
+
+    iir_design_low_pass(&plain, REAL_C(0.2));
+    iir_design_low_pass_with(&shaped, REAL_C(0.2), IIR_BUTTERWORTH,
+                             REAL_C(1.0), REAL_C(60.0));
+
+    for(uint32_t step = 0; step <= 40u; step++)
+    {
+        real_t place = (real_t)step / REAL_C(100.0);
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.005), iir_get_gain(&plain, place),
+                                iir_get_gain(&shaped, place));
+    }
+
+    iir_free(&plain);
+    iir_free(&shaped);
+}
+
+void test_iir_phase_and_group_delay(void)
+{
+    iir_t filter = iir_alloc(4);
+
+    iir_design_low_pass_with(&filter, REAL_C(0.1), IIR_BUTTERWORTH,
+                             REAL_C(1.0), REAL_C(60.0));
+
+    // The phase is an angle and cannot leave the turn it is measured in.
+    for(uint32_t step = 1; step < 50u; step++)
+    {
+        real_t place = (real_t)step / REAL_C(100.0);
+        real_t phase = iir_phase(&filter, place);
+
+        TEST_ASSERT_TRUE(phase >= -REAL_C(3.1416));
+        TEST_ASSERT_TRUE(phase <= REAL_C(3.1416));
+    }
+
+    // THE DELAY IS A REAL NUMBER OF SAMPLES AND IT RISES TOWARDS THE CUTOFF.
+    // That rise is what changes the shape of a waveform, and it is the reason
+    // this function exists.
+    real_t low = iir_group_delay(&filter, REAL_C(0.02));
+    real_t near_cutoff = iir_group_delay(&filter, REAL_C(0.09));
+
+    TEST_ASSERT_TRUE(low > REAL_C(0.0));
+    TEST_ASSERT_TRUE(near_cutoff > low);
+
+    iir_free(&filter);
+}
+
+void test_a_filter_that_does_nothing_holds_back_nothing(void)
+{
+    // A filter that passes the signal through turns no phase, thus it holds
+    // nothing back at any frequency.
+    iir_t filter = iir_alloc(2);
+
+    // A section that passes the signal through: one times the input and no
+    // feedback at all.
+    for(uint32_t section = 0; section < 2u; section++)
+    {
+        iir_set_section(&filter, section, REAL_C(1.0), REAL_C(0.0),
+                        REAL_C(0.0), REAL_C(1.0), REAL_C(0.0), REAL_C(0.0));
+    }
+
+    for(uint32_t step = 1; step < 20u; step++)
+    {
+        real_t place = (real_t)step / REAL_C(50.0);
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(0.0),
+                                iir_phase(&filter, place));
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(0.0),
+                                iir_group_delay(&filter, place));
+    }
+
+    iir_free(&filter);
+}
+
+void test_iir_sections_for_never_asks_for_more_than_could_be_built(void)
+{
+    // THE FAULT THAT THE PROPERTY TESTS FOUND.
+    //
+    // For a small ripple the arithmetic that gives the order asks for the
+    // measure of a modulus that has rounded to exactly 1, whose value is not
+    // finite. Worked out anyway it gave an order of eight million, and a
+    // caller that trusted it would have tried to allocate that many sections.
+    //
+    // The measure now has a closed form where the modulus is small, and no
+    // answer above IIR_LARGEST_SECTIONS is given back at all.
+    uint32_t sections = iir_sections_for(IIR_ELLIPTIC, REAL_C(0.05),
+                                         REAL_C(0.075), REAL_C(0.0625),
+                                         REAL_C(60.0));
+
+    TEST_ASSERT_TRUE(sections > 0u);
+    TEST_ASSERT_TRUE(sections <= IIR_LARGEST_SECTIONS);
+
+    // And the answer is the right one, not merely a small one.
+    TEST_ASSERT_EQUAL(4, sections);
+
+    // Every shape, at every ripple, must stay inside what can be built.
+    const iir_shape_t shapes[4] = {IIR_BUTTERWORTH, IIR_CHEBYSHEV_I,
+                                   IIR_CHEBYSHEV_II, IIR_ELLIPTIC};
+    const real_t ripples[4] = {REAL_C(0.0625), REAL_C(0.25), REAL_C(1.0),
+                               REAL_C(3.0)};
+
+    for(uint32_t which = 0; which < 4u; which++)
+    {
+        for(uint32_t level = 0; level < 4u; level++)
+        {
+            uint32_t count = iir_sections_for(shapes[which], REAL_C(0.05),
+                                              REAL_C(0.075), ripples[level],
+                                              REAL_C(60.0));
+
+            TEST_ASSERT_TRUE(count <= IIR_LARGEST_SECTIONS);
+        }
+    }
+}
+
+void test_an_elliptic_reaches_a_deep_stop_band_at_either_width(void)
+{
+    // Reaching 70 dB once needed a measure that a 32 bit build could not take,
+    // and the design refused. It now uses the closed form of that measure
+    // where the modulus is small, and answers at either width.
+    iir_t filter = iir_alloc(6);
+
+    TEST_ASSERT_EQUAL(true,
+                      iir_design_low_pass_with(&filter, REAL_C(0.05),
+                                               IIR_ELLIPTIC, REAL_C(1.0),
+                                               REAL_C(70.0)));
+
+    real_t worst = REAL_C(0.0);
+
+    for(uint32_t step = 0; step <= 400u; step++)
+    {
+        real_t place = REAL_C(0.1)
+                       + ((REAL_C(0.4) * (real_t)step) / REAL_C(400.0));
+        real_t gain = iir_get_gain(&filter, place);
+
+        if(gain > worst) { worst = gain; }
+    }
+
+    // 70 dB down is about a part in 3162.
+    TEST_ASSERT_TRUE(worst < REAL_C(0.00035));
+
+    iir_free(&filter);
+}

@@ -5,6 +5,7 @@
 #include "fft.h"
 #include "cnum.h"
 #include "fir.h"
+#include "window.h"
 #include <stdlib.h>
 #include <math.h>
 

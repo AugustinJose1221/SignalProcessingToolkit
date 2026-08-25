@@ -185,7 +185,7 @@ jobs:
           for example in FFT FILTER HHT EKF GOERTZEL DWT SAVGOL EMD MATRIX \
                          RESAMPLE PSD CORRELATE ADAPTIVE CLEAN FILTFILT \
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
-                         SPECTROGRAM COHERENCE; do
+                         SPECTROGRAM COHERENCE SHAPES; do
             echo "== $example"
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DSPTK_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} > /dev/null
@@ -237,17 +237,17 @@ jobs:
           status=0
           for source in sptk/*/*.c perf/benchmark/*.c; do
             echo "== $source"
-            gcc -std=c99 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
+            gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
           done
           # Each example holds its code inside a condition on RUN_EXAMPLE, thus
           # the build must switch each one on to see its code at all.
           for example in FFT FILTER HHT EKF GOERTZEL DWT SAVGOL EMD MATRIX \
                          RESAMPLE PSD CORRELATE ADAPTIVE CLEAN FILTFILT \
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
-                         SPECTROGRAM COHERENCE; do
+                         SPECTROGRAM COHERENCE SHAPES; do
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             for source in examples/*.c; do
-              gcc -std=c99 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
+              gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
             done
           done
           git checkout examples/run_example.h

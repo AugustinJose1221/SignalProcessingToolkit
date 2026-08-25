@@ -2,6 +2,7 @@
 #include "real_assert.h"
 #include "resample.h"
 #include "fir.h"
+#include "window.h"
 #include "ringbuf.h"
 #include <stdlib.h>
 #include <math.h>

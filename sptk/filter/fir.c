@@ -1,9 +1,11 @@
 #ifndef TEST
 #include <sptk/filter/fir.h>
 #include <sptk/core/defs.h>
+#include <sptk/transform/window.h>
 #else
 #include "fir.h"
 #include "defs.h"
+#include "window.h"
 #endif
 
 #include <math.h>
@@ -81,6 +83,192 @@ bool fir_is_valid_band(uint32_t length, real_t low_cutoff, real_t high_cutoff)
     real_t turn = FIR_TRANSITION / (real_t)length;
 
     return (high_cutoff - low_cutoff) >= turn;
+}
+
+// How wide the turn of each window is, as a number divided by the length.
+//
+// Measured on a low pass at a cutoff of 0.25, by walking the answer from where
+// it last stands at 0.9 to where it first reaches 0.1 and multiplying by the
+// length. The same numbers came back at 101 coefficients and at 201, which is
+// what says they belong to the shape of the window and not to the length.
+static real_t fir_transition_number(window_kind_t kind)
+{
+    switch(kind)
+    {
+        case WINDOW_RECTANGULAR:
+            return REAL_C(0.90);
+
+        case WINDOW_HANN:
+            return REAL_C(1.96);
+
+        case WINDOW_HAMMING:
+            return REAL_C(1.84);
+
+        case WINDOW_BLACKMAN:
+            return REAL_C(2.40);
+
+        case WINDOW_BLACKMAN_HARRIS:
+            return REAL_C(2.83);
+
+        case WINDOW_TUKEY:
+        case WINDOW_KAISER:
+        default:
+            // Both of these follow a parameter, thus no one number describes
+            // them. A Kaiser of beta 6 measured 1.99, which is near the middle
+            // of what the two cover, and a caller that needs better should
+            // measure its own.
+            return REAL_C(1.99);
+    }
+}
+
+real_t fir_transition_width(window_kind_t kind, uint32_t length)
+{
+    if(!window_is_valid_kind(kind) || (length == 0u))
+    {
+        return REAL_C(0.0);
+    }
+
+    return fir_transition_number(kind) / (real_t)length;
+}
+
+uint32_t fir_length_for(window_kind_t kind, real_t width)
+{
+    if(!window_is_valid_kind(kind) || (width <= REAL_SMALLEST))
+    {
+        return 0u;
+    }
+
+    real_t wanted = fir_transition_number(kind) / width;
+
+    if(wanted >= REAL_C(1000000.0))
+    {
+        return 0u;
+    }
+
+    uint32_t length = (uint32_t)REAL_CEIL(wanted);
+
+    if(length < 3u)
+    {
+        length = 3u;
+    }
+
+    // Always odd. A high pass and a band stop are built by taking a low pass
+    // away from a filter that passes everything, and that filter is a single 1
+    // in the middle, which an even length has not got.
+    if((length % 2u) == 0u)
+    {
+        length += 1u;
+    }
+
+    return length;
+}
+
+// Build a low pass with any window.
+static void fir_build_low_pass_with(real_t* coefficient, uint32_t length,
+                                    real_t cutoff, window_kind_t kind,
+                                    real_t parameter)
+{
+    real_t middle = ((real_t)length - REAL_C(1.0)) / REAL_C(2.0);
+
+    for(uint32_t index = 0; index < length; index++)
+    {
+        real_t position = (real_t)index - middle;
+
+        coefficient[index] = REAL_C(2.0) * cutoff
+                             * fir_sinc(REAL_C(2.0) * cutoff * position)
+                             * window_value(index, length, kind, parameter);
+    }
+}
+
+// Everything the three designs below must agree about before they build.
+static bool fir_can_design(const fir_t* fir, window_kind_t kind)
+{
+    return window_is_valid_kind(kind)
+           && window_is_valid_size(fir->length, kind);
+}
+
+bool fir_design_low_pass_with(fir_t* fir, real_t cutoff, window_kind_t kind,
+                              real_t parameter)
+{
+    ASSERT(fir != NULL);
+
+    if(!fir_can_design(fir, kind)
+       || !fir_is_valid_cutoff(fir->length, cutoff))
+    {
+        return false;
+    }
+
+    fir_build_low_pass_with(fir->coefficient, fir->length, cutoff, kind,
+                            parameter);
+
+    return true;
+}
+
+bool fir_design_high_pass_with(fir_t* fir, real_t cutoff, window_kind_t kind,
+                               real_t parameter)
+{
+    ASSERT(fir != NULL);
+
+    // The change of sign works with a middle coefficient only, thus the length
+    // must be odd.
+    if((fir->length % 2u) != 1u)
+    {
+        return false;
+    }
+
+    if(!fir_can_design(fir, kind)
+       || !fir_is_valid_cutoff(fir->length, cutoff))
+    {
+        return false;
+    }
+
+    fir_build_low_pass_with(fir->coefficient, fir->length, cutoff, kind,
+                            parameter);
+
+    // A high pass is everything less a low pass. Everything is a single 1 in
+    // the middle, thus the sign of every coefficient is turned and the middle
+    // one has 1 added to it.
+    for(uint32_t index = 0; index < fir->length; index++)
+    {
+        fir->coefficient[index] = -fir->coefficient[index];
+    }
+
+    fir->coefficient[fir->length / 2u] += REAL_C(1.0);
+
+    return true;
+}
+
+bool fir_design_band_pass_with(fir_t* fir, real_t low_cutoff,
+                               real_t high_cutoff, window_kind_t kind,
+                               real_t parameter)
+{
+    ASSERT(fir != NULL);
+
+    if(!fir_can_design(fir, kind)
+       || !fir_is_valid_band(fir->length, low_cutoff, high_cutoff))
+    {
+        return false;
+    }
+
+    real_t middle = ((real_t)fir->length - REAL_C(1.0)) / REAL_C(2.0);
+
+    // A band pass is a low pass at the higher cutoff less a low pass at the
+    // lower one. Both are built in the same pass, so that no second buffer is
+    // needed.
+    for(uint32_t index = 0; index < fir->length; index++)
+    {
+        real_t position = (real_t)index - middle;
+        real_t shape = window_value(index, fir->length, kind, parameter);
+
+        real_t high = REAL_C(2.0) * high_cutoff
+                      * fir_sinc(REAL_C(2.0) * high_cutoff * position);
+        real_t low = REAL_C(2.0) * low_cutoff
+                     * fir_sinc(REAL_C(2.0) * low_cutoff * position);
+
+        fir->coefficient[index] = (high - low) * shape;
+    }
+
+    return true;
 }
 
 bool fir_design_low_pass(fir_t* fir, real_t cutoff)

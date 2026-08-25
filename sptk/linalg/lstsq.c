@@ -286,6 +286,14 @@ bool lstsq_polyfit(const real_t* x, const real_t* y, uint32_t size,
     ASSERT(y != NULL);
     ASSERT(coefficients != NULL);
 
+    // The size is examined before anything is taken from the heap, both
+    // because an allocation that cannot be used is waste and because the
+    // arithmetic below reads the whole of what it allocates.
+    if(!lstsq_is_valid_fit(size, order))
+    {
+        return false;
+    }
+
     if(!lstsq_fit_raw(x, y, size, order, coefficients))
     {
         return false;
@@ -316,9 +324,13 @@ bool lstsq_polyfit(const real_t* x, const real_t* y, uint32_t size,
     // does the right fit once and never needs the comparison.
     real_t centre;
     real_t width;
-    real_t* scaled = (real_t*)malloc(sizeof(real_t) * size);
-    real_t* other = (real_t*)malloc(sizeof(real_t)
-                                    * LSTSQ_COEFFICIENT_COUNT(order));
+    // Taken as cleared rather than as raw memory. The loop below fills every
+    // place of it, but a compiler cannot see that through the check above, and
+    // a buffer that is read before it is written is worth ruling out rather
+    // than arguing about.
+    real_t* scaled = (real_t*)calloc(size, sizeof(real_t));
+    real_t* other = (real_t*)calloc(LSTSQ_COEFFICIENT_COUNT(order),
+                                    sizeof(real_t));
 
     if((scaled == NULL) || (other == NULL))
     {

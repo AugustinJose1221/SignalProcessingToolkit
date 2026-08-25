@@ -91,7 +91,8 @@ if(BUILD_EXAMPLE)
         examples/attitude.c
         examples/fitcurve.c
         examples/spectrogram.c
-        examples/coherence.c)
+        examples/coherence.c
+        examples/shapes.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()
