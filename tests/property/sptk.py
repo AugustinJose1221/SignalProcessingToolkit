@@ -176,7 +176,93 @@ class Kalman(ctypes.Structure):
     ]
 
 
+class Cnum(ctypes.Structure):
+    _fields_ = [
+        ("re", REAL_T),
+        ("im", REAL_T),
+    ]
+
+
+class Fft(ctypes.Structure):
+    _fields_ = [
+        ("size", ctypes.c_uint32),
+        ("twiddle", ctypes.POINTER(Cnum)),
+        ("reverse", ctypes.POINTER(ctypes.c_uint32)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Bluestein(ctypes.Structure):
+    _fields_ = [
+        ("size", ctypes.c_uint32),
+        ("fft", Fft),
+        ("chirp", ctypes.POINTER(Cnum)),
+        ("kernel", ctypes.POINTER(Cnum)),
+        ("first", ctypes.POINTER(Cnum)),
+        ("second", ctypes.POINTER(Cnum)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Stft(ctypes.Structure):
+    _fields_ = [
+        ("block", ctypes.c_uint32),
+        ("hop", ctypes.c_uint32),
+        ("kind", ctypes.c_int),
+        ("parameter", REAL_T),
+        ("window", ctypes.POINTER(REAL_T)),
+        ("windowed", ctypes.POINTER(REAL_T)),
+        ("spectrum", ctypes.POINTER(Cnum)),
+        ("fft", Fft),
+        ("designed", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Quaternion(ctypes.Structure):
+    _fields_ = [
+        ("w", REAL_T),
+        ("x", REAL_T),
+        ("y", REAL_T),
+        ("z", REAL_T),
+    ]
+
+
+class PeakdetectOptions(ctypes.Structure):
+    _fields_ = [
+        ("minimum_height", REAL_T),
+        ("minimum_prominence", REAL_T),
+        ("minimum_width", REAL_T),
+        ("minimum_distance", ctypes.c_uint32),
+    ]
+
+
 FLOAT_POINTER = ctypes.POINTER(REAL_T)
+
+# The enumerations of the library. A test that writes 0 and 1 says nothing
+# about what it is asking for; these names say it.
+INTERP_LINEAR = 0
+INTERP_PCHIP = 1
+
+DETREND_CONSTANT = 0
+DETREND_LINEAR = 1
+
+CONVOLVE_FULL = 0
+CONVOLVE_SAME = 1
+CONVOLVE_VALID = 2
+
+WINDOW_RECTANGULAR = 0
+WINDOW_HANN = 1
+WINDOW_HAMMING = 2
+WINDOW_BLACKMAN = 3
+WINDOW_BLACKMAN_HARRIS = 4
+WINDOW_TUKEY = 5
+WINDOW_KAISER = 6
+
+# The windows that take no parameter, which is what most tests want to walk
+# through.
+WINDOWS_WITHOUT_A_PARAMETER = (WINDOW_RECTANGULAR, WINDOW_HANN, WINDOW_HAMMING,
+                               WINDOW_BLACKMAN, WINDOW_BLACKMAN_HARRIS)
 
 
 def load_library():
@@ -311,6 +397,255 @@ def load_library():
     library.stats_percentile.restype = REAL_T
     library.stats_mad.argtypes = [FLOAT_POINTER, ctypes.c_uint32, FLOAT_POINTER]
     library.stats_mad.restype = REAL_T
+
+    # interp
+    library.interp_is_valid_kind.argtypes = [ctypes.c_int]
+    library.interp_is_valid_kind.restype = ctypes.c_bool
+    library.interp_is_valid_table.argtypes = [FLOAT_POINTER, ctypes.c_uint32]
+    library.interp_is_valid_table.restype = ctypes.c_bool
+    library.interp_linear.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                      ctypes.c_uint32, REAL_T]
+    library.interp_linear.restype = REAL_T
+    library.interp_pchip_slopes.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                            ctypes.c_uint32, FLOAT_POINTER]
+    library.interp_pchip_slopes.restype = ctypes.c_bool
+    library.interp_pchip.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32, REAL_T]
+    library.interp_pchip.restype = REAL_T
+    library.interp_block.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32,
+                                     ctypes.c_int, FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32]
+    library.interp_block.restype = ctypes.c_bool
+
+    # detrend
+    library.detrend_is_valid_kind.argtypes = [ctypes.c_int]
+    library.detrend_is_valid_kind.restype = ctypes.c_bool
+    library.detrend_trend.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                      ctypes.c_int, FLOAT_POINTER,
+                                      FLOAT_POINTER]
+    library.detrend_trend.restype = ctypes.c_bool
+    library.detrend_trend_at.argtypes = [REAL_T, REAL_T, ctypes.c_uint32,
+                                         ctypes.c_uint32]
+    library.detrend_trend_at.restype = REAL_T
+    library.detrend_block.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                      ctypes.c_uint32, ctypes.c_int]
+    library.detrend_block.restype = ctypes.c_bool
+    library.detrend_remove.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                       ctypes.c_uint32, REAL_T, REAL_T]
+    library.detrend_remove.restype = ctypes.c_bool
+
+    # lstsq
+    library.lstsq_is_valid_fit.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.lstsq_is_valid_fit.restype = ctypes.c_bool
+    library.lstsq_polyfit.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                      ctypes.c_uint32, ctypes.c_uint32,
+                                      FLOAT_POINTER]
+    library.lstsq_polyfit.restype = ctypes.c_bool
+    library.lstsq_polyfit_scaled.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32, ctypes.c_uint32,
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             FLOAT_POINTER]
+    library.lstsq_polyfit_scaled.restype = ctypes.c_bool
+    library.lstsq_scaling.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                      FLOAT_POINTER, FLOAT_POINTER]
+    library.lstsq_scaling.restype = None
+    library.lstsq_evaluate.argtypes = [FLOAT_POINTER, ctypes.c_uint32, REAL_T]
+    library.lstsq_evaluate.restype = REAL_T
+    library.lstsq_evaluate_scaled.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                              REAL_T, REAL_T, REAL_T]
+    library.lstsq_evaluate_scaled.restype = REAL_T
+    library.lstsq_fit_quality.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                          ctypes.c_uint32, FLOAT_POINTER,
+                                          ctypes.c_uint32]
+    library.lstsq_fit_quality.restype = REAL_T
+    library.lstsq_fit_quality_scaled.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                                 ctypes.c_uint32,
+                                                 FLOAT_POINTER,
+                                                 ctypes.c_uint32, REAL_T,
+                                                 REAL_T]
+    library.lstsq_fit_quality_scaled.restype = REAL_T
+
+    # window
+    library.window_is_valid_kind.argtypes = [ctypes.c_int]
+    library.window_is_valid_kind.restype = ctypes.c_bool
+    library.window_takes_a_parameter.argtypes = [ctypes.c_int]
+    library.window_takes_a_parameter.restype = ctypes.c_bool
+    library.window_build.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                     ctypes.c_int]
+    library.window_build.restype = None
+    library.window_build_with.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                          ctypes.c_int, REAL_T]
+    library.window_build_with.restype = None
+    library.window_value.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                     ctypes.c_int, REAL_T]
+    library.window_value.restype = REAL_T
+    for name in ("window_coherent_gain", "window_noise_gain",
+                 "window_noise_bandwidth"):
+        function = getattr(library, name)
+        function.argtypes = [FLOAT_POINTER, ctypes.c_uint32]
+        function.restype = REAL_T
+    library.window_apply.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32]
+    library.window_apply.restype = None
+
+    # convolve
+    library.convolve_is_valid_mode.argtypes = [ctypes.c_int]
+    library.convolve_is_valid_mode.restype = ctypes.c_bool
+    library.convolve_output_size.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                             ctypes.c_int]
+    library.convolve_output_size.restype = ctypes.c_uint32
+    library.convolve_direct.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                        FLOAT_POINTER, ctypes.c_uint32,
+                                        FLOAT_POINTER, ctypes.c_int]
+    library.convolve_direct.restype = ctypes.c_bool
+    library.convolve_transform_size.argtypes = [ctypes.c_uint32,
+                                                ctypes.c_uint32]
+    library.convolve_transform_size.restype = ctypes.c_uint32
+    library.convolve_by_transform.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                              FLOAT_POINTER, ctypes.c_uint32,
+                                              FLOAT_POINTER, ctypes.c_int,
+                                              ctypes.POINTER(Fft),
+                                              ctypes.POINTER(Cnum),
+                                              ctypes.POINTER(Cnum),
+                                              FLOAT_POINTER]
+    library.convolve_by_transform.restype = ctypes.c_bool
+
+    # cnum
+    library.cnum_make.argtypes = [REAL_T, REAL_T]
+    library.cnum_make.restype = Cnum
+    library.cnum_magnitude.argtypes = [Cnum]
+    library.cnum_magnitude.restype = REAL_T
+
+    # fft
+    library.fft_is_valid_size.argtypes = [ctypes.c_uint32]
+    library.fft_is_valid_size.restype = ctypes.c_bool
+    library.fft_alloc.argtypes = [ctypes.c_uint32]
+    library.fft_alloc.restype = Fft
+    for name in ("fft_forward", "fft_inverse"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Fft), ctypes.POINTER(Cnum)]
+        function.restype = None
+    library.fft_forward_real.argtypes = [ctypes.POINTER(Fft), FLOAT_POINTER,
+                                         ctypes.POINTER(Cnum)]
+    library.fft_forward_real.restype = None
+    library.fft_inverse_real.argtypes = [ctypes.POINTER(Fft),
+                                         ctypes.POINTER(Cnum), FLOAT_POINTER,
+                                         ctypes.POINTER(Cnum)]
+    library.fft_inverse_real.restype = None
+    library.fft_magnitude.argtypes = [ctypes.POINTER(Cnum), FLOAT_POINTER,
+                                      ctypes.c_uint32]
+    library.fft_magnitude.restype = None
+    library.fft_bin_frequency.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                          REAL_T]
+    library.fft_bin_frequency.restype = REAL_T
+    library.fft_free.argtypes = [ctypes.POINTER(Fft)]
+    library.fft_free.restype = None
+
+    # bluestein
+    library.bluestein_is_valid_size.argtypes = [ctypes.c_uint32]
+    library.bluestein_is_valid_size.restype = ctypes.c_bool
+    library.bluestein_transform_size.argtypes = [ctypes.c_uint32]
+    library.bluestein_transform_size.restype = ctypes.c_uint32
+    library.bluestein_alloc.argtypes = [ctypes.c_uint32]
+    library.bluestein_alloc.restype = Bluestein
+    for name in ("bluestein_forward", "bluestein_inverse"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Bluestein), ctypes.POINTER(Cnum)]
+        function.restype = None
+    library.bluestein_bin_frequency.argtypes = [ctypes.c_uint32,
+                                                ctypes.c_uint32, REAL_T]
+    library.bluestein_bin_frequency.restype = REAL_T
+    library.bluestein_free.argtypes = [ctypes.POINTER(Bluestein)]
+    library.bluestein_free.restype = None
+
+    # stft
+    library.stft_is_valid_block.argtypes = [ctypes.c_uint32]
+    library.stft_is_valid_block.restype = ctypes.c_bool
+    library.stft_is_valid_hop.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.stft_is_valid_hop.restype = ctypes.c_bool
+    library.stft_frame_count.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                         ctypes.c_uint32]
+    library.stft_frame_count.restype = ctypes.c_uint32
+    library.stft_signal_size.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                         ctypes.c_uint32]
+    library.stft_signal_size.restype = ctypes.c_uint32
+    library.stft_alloc.argtypes = [ctypes.c_uint32]
+    library.stft_alloc.restype = Stft
+    library.stft_design.argtypes = [ctypes.POINTER(Stft), ctypes.c_uint32,
+                                    ctypes.c_int, REAL_T]
+    library.stft_design.restype = ctypes.c_bool
+    library.stft_can_rebuild.argtypes = [ctypes.POINTER(Stft)]
+    library.stft_can_rebuild.restype = ctypes.c_bool
+    library.stft_solid_range.argtypes = [ctypes.POINTER(Stft),
+                                         ctypes.c_uint32,
+                                         ctypes.POINTER(ctypes.c_uint32),
+                                         ctypes.POINTER(ctypes.c_uint32)]
+    library.stft_solid_range.restype = ctypes.c_bool
+    library.stft_forward.argtypes = [ctypes.POINTER(Stft), FLOAT_POINTER,
+                                     ctypes.c_uint32, ctypes.POINTER(Cnum),
+                                     ctypes.c_uint32]
+    library.stft_forward.restype = ctypes.c_bool
+    library.stft_inverse.argtypes = [ctypes.POINTER(Stft), ctypes.POINTER(Cnum),
+                                     ctypes.c_uint32, FLOAT_POINTER,
+                                     ctypes.c_uint32, FLOAT_POINTER]
+    library.stft_inverse.restype = ctypes.c_bool
+    library.stft_bin_frequency.argtypes = [ctypes.POINTER(Stft),
+                                           ctypes.c_uint32, REAL_T]
+    library.stft_bin_frequency.restype = REAL_T
+    library.stft_frame_time.argtypes = [ctypes.POINTER(Stft), ctypes.c_uint32,
+                                        REAL_T]
+    library.stft_frame_time.restype = REAL_T
+    library.stft_free.argtypes = [ctypes.POINTER(Stft)]
+    library.stft_free.restype = None
+
+    # quaternion
+    library.quaternion_make.argtypes = [REAL_T, REAL_T, REAL_T, REAL_T]
+    library.quaternion_make.restype = Quaternion
+    library.quaternion_identity.argtypes = []
+    library.quaternion_identity.restype = Quaternion
+    library.quaternion_magnitude.argtypes = [Quaternion]
+    library.quaternion_magnitude.restype = REAL_T
+    library.quaternion_dot.argtypes = [Quaternion, Quaternion]
+    library.quaternion_dot.restype = REAL_T
+    library.quaternion_from_axis_angle.argtypes = [REAL_T, REAL_T, REAL_T,
+                                                   REAL_T]
+    library.quaternion_from_axis_angle.restype = Quaternion
+    for name in ("quaternion_normalise", "quaternion_conjugate"):
+        function = getattr(library, name)
+        function.argtypes = [Quaternion]
+        function.restype = Quaternion
+    library.quaternion_multiply.argtypes = [Quaternion, Quaternion]
+    library.quaternion_multiply.restype = Quaternion
+    library.quaternion_is_same_attitude.argtypes = [Quaternion, Quaternion,
+                                                    REAL_T]
+    library.quaternion_is_same_attitude.restype = ctypes.c_bool
+    library.quaternion_rotate.argtypes = [Quaternion, REAL_T, REAL_T, REAL_T,
+                                          FLOAT_POINTER, FLOAT_POINTER,
+                                          FLOAT_POINTER]
+    library.quaternion_rotate.restype = None
+    library.quaternion_to_matrix_into.argtypes = [Quaternion,
+                                                  ctypes.POINTER(Matrix)]
+    library.quaternion_to_matrix_into.restype = None
+    library.quaternion_from_matrix.argtypes = [ctypes.POINTER(Matrix)]
+    library.quaternion_from_matrix.restype = Quaternion
+    library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
+    library.quaternion_slerp.restype = Quaternion
+
+    # peakdetect
+    library.peakdetect_no_rules.argtypes = []
+    library.peakdetect_no_rules.restype = PeakdetectOptions
+    library.peakdetect_prominence.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                              ctypes.c_uint32]
+    library.peakdetect_prominence.restype = REAL_T
+    library.peakdetect_width.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                         ctypes.c_uint32, REAL_T]
+    library.peakdetect_width.restype = REAL_T
+    library.peakdetect_find.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                        ctypes.POINTER(PeakdetectOptions),
+                                        ctypes.POINTER(ctypes.c_uint32),
+                                        ctypes.c_uint32]
+    library.peakdetect_find.restype = ctypes.c_uint32
 
     return library
 
