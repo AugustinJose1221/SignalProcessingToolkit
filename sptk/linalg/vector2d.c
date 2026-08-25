@@ -4,7 +4,7 @@
 #include "vector2d.h"
 #endif//TEST
 
-vector_t vector2d_alloc()
+vector_t vector2d_alloc(void)
 {
     return vector_alloc(2);
 }
