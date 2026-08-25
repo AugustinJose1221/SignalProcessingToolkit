@@ -471,6 +471,8 @@ def load_library():
     library.window_is_valid_kind.restype = ctypes.c_bool
     library.window_takes_a_parameter.argtypes = [ctypes.c_int]
     library.window_takes_a_parameter.restype = ctypes.c_bool
+    library.window_is_valid_size.argtypes = [ctypes.c_uint32, ctypes.c_int]
+    library.window_is_valid_size.restype = ctypes.c_bool
     library.window_build.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
                                      ctypes.c_int]
     library.window_build.restype = None
@@ -570,6 +572,8 @@ def load_library():
     library.stft_signal_size.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
                                          ctypes.c_uint32]
     library.stft_signal_size.restype = ctypes.c_uint32
+    library.stft_fewest_frames.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.stft_fewest_frames.restype = ctypes.c_uint32
     library.stft_alloc.argtypes = [ctypes.c_uint32]
     library.stft_alloc.restype = Stft
     library.stft_design.argtypes = [ctypes.POINTER(Stft), ctypes.c_uint32,

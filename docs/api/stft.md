@@ -86,6 +86,23 @@ Only whole blocks are taken. A signal shorter than one block gives none, and
 the samples at the end that do not fill a block are not transformed. Where
 they matter, add zeros to the signal until they do.
 
+### `stft_fewest_frames`
+
+```c
+uint32_t stft_fewest_frames(uint32_t block, uint32_t hop);
+```
+
+The fewest frames that leave any sample covered fully.
+
+A sample in the middle of a signal is under as many blocks as fit across it,
+thus this is the block divided by the hop, rounded up. Below it
+stft_solid_range gives false and stft_inverse refuses, because there is
+nothing to give back.
+
+Use it to work out the shortest signal worth taking apart, which is this
+many frames through stft_signal_size. Give 0 where the block and the hop
+cannot be used together.
+
 ### `stft_signal_size`
 
 ```c
@@ -184,7 +201,8 @@ or IF THERE ARE TOO FEW FRAMES FOR ANY SAMPLE TO BE COVERED FULLY. That last
 one is easy to meet by accident: a sample in the middle is under as many
 blocks as fit across it, thus the block divided by the hop is the fewest
 frames that can leave any sample solid at all. A block of 8 at a hop of 2
-needs 4 frames, and 3 frames leave nothing to give back.
+needs 4 frames, and 3 frames leave nothing to give back. Ask
+stft_fewest_frames rather than finding out from a refusal.
 
 ### `stft_inverse`
 
