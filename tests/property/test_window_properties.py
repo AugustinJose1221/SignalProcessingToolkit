@@ -9,7 +9,7 @@ These tests make those claims for every size.
 import os
 import sys
 
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -81,9 +81,13 @@ def test_a_tapered_window_of_two_values_is_nothing_at_all(lib, kind):
 
     if kind == sptk.WINDOW_RECTANGULAR:
         assert values == [1.0, 1.0]
+        # It takes nothing away, thus it has no ends to fall at.
+        assert lib.window_is_valid_size(2, kind)
     else:
         # Every tapered window falls to nothing or very near it.
         assert max(abs(value) for value in values) < 0.1
+        # And the module says so, rather than leaving it to be found out.
+        assert not lib.window_is_valid_size(2, kind)
 
 
 @given(KINDS)
@@ -203,6 +207,22 @@ def test_a_window_can_be_laid_on_a_block_in_place(lib, size, kind, block):
 
     for index in range(size):
         assert sp.close(apart[index], together[index])
+
+
+@given(SIZES, KINDS)
+def test_a_size_the_module_accepts_has_a_gain_worth_dividing_by(lib, size,
+                                                                kind):
+    """window_is_valid_size exists so that a caller need not find this out.
+
+    The header tells a caller to divide by the coherent gain. Wherever the
+    module says the size is usable, that division must be safe.
+    """
+    assume(lib.window_is_valid_size(size, kind))
+
+    window = sptk.real_buffer(size)
+    lib.window_build(window, size, kind)
+
+    assert lib.window_coherent_gain(window, size) > 0.01
 
 
 @given(st.integers(min_value=-4, max_value=10))
