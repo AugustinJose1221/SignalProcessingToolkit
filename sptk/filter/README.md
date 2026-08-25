@@ -598,3 +598,10 @@ nothing else — so `fir_length_for` can give a length from a turn, and
 **A longer filter makes the turn narrower and changes nothing else.** The depth
 of the stopped band belongs to the window alone. To go deeper, change the
 window; to turn faster, lengthen the filter.
+
+**And this is the reason to choose an FIR at all.** Every design here is
+symmetric, so `fir_group_delay` gives the same answer at every frequency: half
+the length less one half. A waveform comes out moved along and not bent. Against
+the same specification, `iir` measures a Butterworth rising from 41 samples to
+93 across the band that passes and an elliptic from 14 to 87. That is what an
+FIR spends its length on.

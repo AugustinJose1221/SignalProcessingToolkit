@@ -428,6 +428,107 @@ real_t fir_get_gain(fir_t* fir, real_t frequency)
     return REAL_SQRT((real*real) + (imaginary*imaginary));
 }
 
+bool fir_is_symmetric(fir_t* fir)
+{
+    ASSERT(fir != NULL);
+
+    // How far apart two coefficients may stand and still count as the same.
+    // The designs work them out by different roads at the two ends, thus they
+    // agree to the rounding of the width and not beyond it.
+    real_t largest = REAL_C(0.0);
+
+    for(uint32_t index = 0; index < fir->length; index++)
+    {
+        real_t size_of = REAL_ABS(fir->coefficient[index]);
+
+        if(size_of > largest) { largest = size_of; }
+    }
+
+    real_t room = (largest * REAL_C(100.0) * REAL_EPSILON) + REAL_SMALLEST;
+
+    for(uint32_t index = 0; index < (fir->length / 2u); index++)
+    {
+        real_t difference = fir->coefficient[index]
+                            - fir->coefficient[(fir->length - 1u) - index];
+
+        if(REAL_ABS(difference) > room)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+real_t fir_phase(fir_t* fir, real_t frequency)
+{
+    ASSERT(fir != NULL);
+
+    real_t angle = REAL_C(2.0) * FIR_PI * frequency;
+    real_t real_part = REAL_C(0.0);
+    real_t imaginary_part = REAL_C(0.0);
+
+    for(uint32_t index = 0; index < fir->length; index++)
+    {
+        real_t turn = angle * (real_t)index;
+
+        real_part += fir->coefficient[index] * REAL_COS(turn);
+        imaginary_part -= fir->coefficient[index] * REAL_SIN(turn);
+    }
+
+    return REAL_ATAN2(imaginary_part, real_part);
+}
+
+real_t fir_group_delay(fir_t* fir, real_t frequency)
+{
+    ASSERT(fir != NULL);
+
+    // A SYMMETRIC FILTER NEEDS NO MEASUREMENT AT ALL.
+    //
+    // Its phase falls in a straight line, thus every frequency is held back by
+    // exactly the same time: half the length less one half. Working that out
+    // from two phases would give the same answer with the rounding of two
+    // arc tangents added to it, and would go astray where the answer passes
+    // through nothing.
+    if(fir_is_symmetric(fir))
+    {
+        return ((real_t)fir->length - REAL_C(1.0)) / REAL_C(2.0);
+    }
+
+    // One that is not symmetric is measured, as the iir module measures it.
+    real_t step = FIR_GROUP_DELAY_STEP;
+    real_t low = frequency - step;
+    real_t high = frequency + step;
+
+    if(low < REAL_C(0.0))
+    {
+        low = REAL_C(0.0);
+        high = step * REAL_C(2.0);
+    }
+
+    if(high > REAL_C(0.5))
+    {
+        high = REAL_C(0.5);
+        low = REAL_C(0.5) - (step * REAL_C(2.0));
+    }
+
+    real_t difference = fir_phase(fir, high) - fir_phase(fir, low);
+
+    // The phase comes back folded into one turn, thus a step across the fold
+    // looks like a jump of a whole turn.
+    while(difference > FIR_PI)
+    {
+        difference -= REAL_C(2.0) * FIR_PI;
+    }
+
+    while(difference < -FIR_PI)
+    {
+        difference += REAL_C(2.0) * FIR_PI;
+    }
+
+    return -difference / (REAL_C(2.0) * FIR_PI * (high - low));
+}
+
 void fir_free(fir_t* fir)
 {
     ASSERT(fir != NULL);
