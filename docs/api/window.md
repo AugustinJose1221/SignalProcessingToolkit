@@ -45,6 +45,21 @@ same thing, thus this module serves both.
 
 A size of 1 gives the single value 1.
 
+A SIZE OF 2 IS DEGENERATE FOR EVERY WINDOW THAT TAPERS, and it is worth
+knowing before it is met. A symmetric window of two values is its two ends,
+and the ends are where a taper is nothing. Measured, the coherent gain:
+
+    size                 1       2       3       4
+    rectangular     1.0000  1.0000  1.0000  1.0000
+    hann            1.0000  0.0000  0.3333  0.3750
+    blackman        1.0000  0.0000  0.3333  0.3150
+    hamming         1.0000  0.0800  0.3867  0.4250
+
+The values are right; two ends really are all there is. But a caller that
+follows window_coherent_gain and DIVIDES by it has divided by nothing. From
+a size of 3 upwards every window here has a gain worth dividing by. Use no
+tapered window below 3.
+
 ### `window_build_with`
 
 ```c
