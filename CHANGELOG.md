@@ -1,3 +1,61 @@
+## 0.10.1 (2026-08-25)
+
+Property based tests for eleven modules, and the three faults that writing them
+brought out. No behaviour of the library changed in this release; the only
+changes to the C sources are to what the headers say.
+
+Every module written since 0.5.0 had unit tests only. The suite goes from 68
+property based tests to 177.
+
+**The tests were chosen where a rule holds for every input, or where two ways to
+the same answer can be set against each other.** `interp` keeps its two claims
+for every table and not only for the one that was measured. `convolve` sets its
+direct way against its way through the transform, which share no arithmetic at
+all. `fft` and `bluestein` are set against a transform written plainly in
+Python. `stft` rebuilds exactly inside its solid stretch for every window and hop
+that `stft_can_rebuild` accepts. `lstsq` leaves an error that holds nothing of
+any column of the model, which is what a least squares fit means. `quaternion`
+writes an attitude as a matrix and reads it back, which reaches all four of the
+branches that `quaternion_from_matrix` chooses between.
+
+**The guard of `lstsq` does not do what its header claimed.** It was said to
+refuse an answer made of rounding. It cannot: it reads the diagonal of the
+factor, and by the time the factor is taken the digits have already been spent
+in forming the normal equations. Measured on 14 readings whose x runs from 2 to
+6, at 32 bits:
+
+| order | 1 | 2 | 3 | 4 | 5 |
+| --- | --- | --- | --- | --- | --- |
+| plain fit | 0.171 | 0.482 | 0.769 | **0.527** | refused |
+| scaled fit | 0.171 | 0.482 | 0.769 | 0.930 | 0.983 |
+| ratio of the diagonals | 0.86 | 0.75 | 0.67 | 0.64 | - |
+
+A curve of order 4 can always do whatever a curve of order 3 did, thus the
+quality can never fall as the order rises. It falls, and the guard sees a ratio
+of 0.64, a thousand times above where it sits. The header now says what the
+guard catches, which is columns of the model that say the same thing, and what
+it does not, which is the digits lost in forming the normal equations. **Use
+`lstsq_polyfit_scaled`**, which is right on the same data at the same width, and
+**look at `lstsq_fit_quality` afterwards**, which is what shows this.
+
+**`stft_inverse` refuses when there are too few frames**, and the header did not
+say so. A sample in the middle of a signal is under as many blocks as fit across
+it, thus the block divided by the hop is the fewest frames that leave any sample
+covered fully. A block of 8 at a hop of 2 needs 4 frames, and 3 frames leave
+nothing to give back.
+
+**A window of two values is degenerate for every window that tapers.** A
+symmetric window of two values is its two ends, and the ends are where a taper is
+nothing. The values are right, but the header told callers to divide by
+`window_coherent_gain`, and for a hann window of 2 that is a division by nothing.
+Use no tapered window below a size of 3.
+
+**The probe that compares the C structures with the Python types was never built
+at 64 bits.** It could not show until a structure held a `real_t` by value, and
+every structure mirrored before now held pointers alone, whose size does not
+follow the width. The check that guards every other property test was examining
+one width only. It is now built at the width of the library it measures.
+
 ## 0.10.0 (2026-08-24)
 
 Everything in this release is about answering a question that one transform of
