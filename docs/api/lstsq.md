@@ -19,6 +19,18 @@ Fitting a curve through readings. Declared in `sptk/linalg/lstsq.h`.
 #define LSTSQ_SMALLEST_PIVOT_PART       (REAL_C(2.0) * REAL_SQRT(REAL_EPSILON))
 ```
 
+### `LSTSQ_LARGEST_EXCESS`
+
+```c
+#define LSTSQ_LARGEST_EXCESS    REAL_C(0.01)
+```
+
+### `LSTSQ_SMALLEST_ERROR`
+
+```c
+#define LSTSQ_SMALLEST_ERROR    (REAL_C(1000.0) * REAL_EPSILON)
+```
+
 ### `LSTSQ_HIGHEST_ORDER`
 
 ```c

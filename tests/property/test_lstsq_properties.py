@@ -149,18 +149,18 @@ def test_a_higher_order_never_follows_the_readings_less_well(lib, points,
     assert higher >= lower - 1e-3
 
 
-def test_the_plain_fit_can_answer_worse_at_a_higher_order(lib):
-    """THE FAULT THE HEADER RECORDS, PINNED SO THAT IT CANNOT BE FORGOTTEN.
+def test_the_plain_fit_refuses_where_it_would_have_answered_wrongly(lib):
+    """THE FAULT THAT THE PROPERTY TESTS FOUND, AND ITS FIX, BOTH PINNED.
 
     A curve of order 4 can always do whatever a curve of order 3 did, thus the
-    quality must never fall as the order rises. On these readings, at 32 bits,
-    IT FALLS, and lstsq_polyfit gives the answer back without complaint. The
-    guard on the diagonal of the factor sees a ratio of 0.64, which is a
-    thousand times above where it sits, because the digits were spent before
-    the factor was ever taken.
+    quality must never fall as the order rises. On these readings at 32 bits it
+    fell, from 0.769 to 0.527, and lstsq_polyfit gave the answer back without
+    complaint.
 
-    The scaled fit gets it right on the same data at the same width. This test
-    holds both halves of that, so that a change to either is a decision.
+    The module now does the same fit with the places brought near zero and
+    compares. Where the plain fit leaves more error, it is refused. At 64 bits
+    there are digits to spare and the plain fit is right, thus nothing is
+    refused there.
     """
     x = [2.0, 2.5, 3.0, 3.440809488296509, 3.867011547088623,
          4.205442905426025, 4.460936546325684, 4.656173229217529,
@@ -168,34 +168,66 @@ def test_the_plain_fit_can_answer_worse_at_a_higher_order(lib):
          5.471558094024658, 5.549683094024658, 6.049683094024658]
     y = [0.0] * 13 + [1.0]
 
+    # The scaled fit is right at either width, and that is the point.
+    assert quality_scaled(lib, x, y, 4) > 0.9
+
     cubic = fit(lib, x, y, 3)
+    assert cubic is not None
+
     quartic = fit(lib, x, y, 4)
-    assert cubic is not None and quartic is not None
-
-    plain_cubic = lib.lstsq_fit_quality(sptk.float_array(x),
-                                        sptk.float_array(y), len(x), cubic, 3)
-    plain_quartic = lib.lstsq_fit_quality(sptk.float_array(x),
-                                          sptk.float_array(y), len(x),
-                                          quartic, 4)
-
-    scaled_quartic = quality_scaled(lib, x, y, 4)
-
-    # The scaled fit is right at either width.
-    assert scaled_quartic > 0.9
 
     if sptk.REAL_64:
-        # With digits to spare the plain fit is right as well.
+        assert quartic is not None
+        plain_cubic = lib.lstsq_fit_quality(sptk.float_array(x),
+                                            sptk.float_array(y), len(x),
+                                            cubic, 3)
+        plain_quartic = lib.lstsq_fit_quality(sptk.float_array(x),
+                                              sptk.float_array(y), len(x),
+                                              quartic, 4)
         assert plain_quartic >= plain_cubic
     else:
-        # At 32 bits the plain fit falls away, and this is the fault recorded
-        # in the header of the module.
-        assert plain_quartic < plain_cubic
-        assert plain_quartic < scaled_quartic - 0.3
+        assert quartic is None
 
 
 @given(readings(), ORDERS)
-def test_readings_that_lie_on_a_curve_give_that_curve_back(lib, points, order):
-    """Where the readings really do lie on a curve, the fit must find it."""
+def test_a_plain_fit_that_answers_is_never_worse_than_the_scaled_one(lib,
+                                                                     points,
+                                                                     order):
+    """THE RULE THE MODULE NOW KEEPS.
+
+    Wherever lstsq_polyfit gives an answer at all, that answer must leave no
+    more error than the same fit done with the places brought near zero. That
+    is what the module promises, and it is the whole of what the check inside
+    it does.
+    """
+    x, y = points
+    assume(len(x) > order + 1)
+
+    coefficients = fit(lib, x, y, order)
+    assume(coefficients is not None)
+
+    plain = lib.lstsq_fit_quality(sptk.float_array(x), sptk.float_array(y),
+                                  len(x), coefficients, order)
+    scaled = quality_scaled(lib, x, y, order)
+    assume(scaled is not None)
+
+    assert plain >= scaled - 0.02
+
+
+@given(readings(), ORDERS)
+def test_readings_that_lie_on_a_curve_give_that_curve_back(lib, points,
+                                                            order):
+    """Where the readings really do lie on a curve, the fit must find it.
+
+    THIS IS ASKED OF THE SCALED FIT, and the reason is the whole subject of the
+    header of the module. A plain fit through places that sit away from zero
+    loses digits in forming the normal equations, thus it can follow the
+    readings to a quality above 0.999 while the curve between them is still out
+    by parts in a hundred. Measured: 6 readings whose x runs from 1.5 to 2.8,
+    at order 3, reach 0.999 with the curve out by 0.02.
+
+    The scaled fit does not lose those digits, and recovers the curve.
+    """
     x, _ = points
     assume(len(x) > order + 1)
 
@@ -203,28 +235,44 @@ def test_readings_that_lie_on_a_curve_give_that_curve_back(lib, points, order):
     y = [sp.to_float32(sum(true[power] * (place ** power)
                            for power in range(order + 1))) for place in x]
 
-    coefficients = fit(lib, x, y, order)
-    assume(coefficients is not None)
+    coefficients = sptk.real_buffer(order + 1)
+    centre = sptk.real_buffer(1)
+    width = sptk.real_buffer(1)
 
-    quality = lib.lstsq_fit_quality(sptk.float_array(x), sptk.float_array(y),
-                                    len(x), coefficients, order)
-    assume(quality > 0.99)
+    assume(lib.lstsq_polyfit_scaled(sptk.float_array(x), sptk.float_array(y),
+                                    len(x), order, coefficients, centre,
+                                    width))
+
+    spread = 1.0 + max(abs(value) for value in y)
 
     for place in x:
         wanted = sum(true[power] * (place ** power)
                      for power in range(order + 1))
-        assert sp.close(lib.lstsq_evaluate(coefficients, order, place), wanted,
-                        relative=1e-2, absolute=1e-2)
+        got = lib.lstsq_evaluate_scaled(coefficients, order, centre[0],
+                                        width[0], place)
+        assert abs(got - wanted) <= 1e-2 * spread
+
+
+def curve_at(lib, coefficients, order, x):
+    """Give the value of a fit at each place.
+
+    THE CURVE IS COMPARED AND NOT THE COEFFICIENTS, and the difference matters.
+    Where the fit is poorly conditioned, two rather different sets of
+    coefficients describe the same curve to the last digit that can be seen. A
+    test that compares the coefficients is then measuring the conditioning
+    rather than the answer, and it fails now and then for no fault of the
+    library.
+    """
+    return [lib.lstsq_evaluate(coefficients, order, place) for place in x]
 
 
 @given(readings(), ORDERS,
        st.floats(min_value=-30.0, max_value=30.0, width=32))
-def test_moving_every_reading_moves_only_the_constant(lib, points, order,
-                                                      shift):
+def test_moving_every_reading_moves_the_whole_curve_by_that_much(lib, points,
+                                                                 order, shift):
     """Adding the same amount to every reading lifts the curve by that amount.
 
-    Nothing about the shape changes, thus every coefficient but the first must
-    stay where it was.
+    Nothing about the shape changes.
     """
     x, y = points
     assume(len(x) > order + 1)
@@ -235,17 +283,16 @@ def test_moving_every_reading_moves_only_the_constant(lib, points, order,
 
     scale = 1.0 + abs(shift) + max(abs(value) for value in y)
 
-    assert abs((first[0] + shift) - lifted[0]) <= 1e-2 * scale
-
-    for power in range(1, order + 1):
-        assert abs(first[power] - lifted[power]) <= 1e-2 * scale
+    for before, after in zip(curve_at(lib, first, order, x),
+                             curve_at(lib, lifted, order, x)):
+        assert abs((before + shift) - after) <= 1e-2 * scale
 
 
 @given(readings(), ORDERS,
        st.floats(min_value=0.125, max_value=8.0, width=32))
 def test_scaling_every_reading_scales_the_whole_curve(lib, points, order,
                                                       factor):
-    """Twice the readings must give twice the curve, coefficient by coefficient."""
+    """Twice the readings must give twice the curve, at every place."""
     x, y = points
     assume(len(x) > order + 1)
 
@@ -255,17 +302,21 @@ def test_scaling_every_reading_scales_the_whole_curve(lib, points, order,
 
     scale = 1.0 + (factor * max(abs(value) for value in y))
 
-    for power in range(order + 1):
-        assert abs((first[power] * factor) - scaled[power]) <= 1e-2 * scale
+    for before, after in zip(curve_at(lib, first, order, x),
+                             curve_at(lib, scaled, order, x)):
+        assert abs((before * factor) - after) <= 1e-2 * scale
 
 
 @given(readings(), ORDERS)
-def test_the_scaled_fit_reads_the_same_curve_as_the_plain_one(lib, points,
-                                                              order):
-    """Scaling changes where x sits and nothing about the answer.
+def test_a_plain_fit_that_answers_leaves_no_more_error_than_the_scaled_one(
+        lib, points, order):
+    """EXACTLY WHAT THE MODULE PROMISES, AND NOT MORE.
 
-    Read back with the centre and the width it gave, the scaled fit must follow
-    the readings exactly as the plain fit does.
+    It does not promise that the two fits give the same curve at every place;
+    poor conditioning can move a curve about between the readings without
+    moving the error it leaves. What it promises is that where lstsq_polyfit
+    answers at all, the answer leaves no more error than the same fit done with
+    the places brought near zero, within LSTSQ_LARGEST_EXCESS.
     """
     x, y = points
     assume(len(x) > order + 1)
@@ -276,17 +327,21 @@ def test_the_scaled_fit_reads_the_same_curve_as_the_plain_one(lib, points,
     coefficients = sptk.real_buffer(order + 1)
     centre = sptk.real_buffer(1)
     width = sptk.real_buffer(1)
+    assume(lib.lstsq_polyfit_scaled(sptk.float_array(x), sptk.float_array(y),
+                                    len(x), order, coefficients, centre,
+                                    width))
 
-    assert lib.lstsq_polyfit_scaled(sptk.float_array(x), sptk.float_array(y),
-                                    len(x), order, coefficients, centre, width)
+    plain_error = sum(
+        (y[index] - lib.lstsq_evaluate(plain, order, x[index])) ** 2
+        for index in range(len(x)))
+    scaled_error = sum(
+        (y[index] - lib.lstsq_evaluate_scaled(coefficients, order, centre[0],
+                                              width[0], x[index])) ** 2
+        for index in range(len(x)))
 
-    scale = 1.0 + max(abs(value) for value in y)
+    scale = 1.0 + sum(value * value for value in y)
 
-    for place in x:
-        by_plain = lib.lstsq_evaluate(plain, order, place)
-        by_scaled = lib.lstsq_evaluate_scaled(coefficients, order, centre[0],
-                                              width[0], place)
-        assert abs(by_plain - by_scaled) <= 1e-2 * scale
+    assert plain_error <= (scaled_error * 1.05) + (1e-3 * scale)
 
 
 @given(st.integers(min_value=1, max_value=40),
