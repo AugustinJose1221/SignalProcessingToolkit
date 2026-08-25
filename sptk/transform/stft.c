@@ -30,6 +30,18 @@ uint32_t stft_frame_count(uint32_t size, uint32_t block, uint32_t hop)
     return ((size - block) / hop) + 1u;
 }
 
+uint32_t stft_fewest_frames(uint32_t block, uint32_t hop)
+{
+    if(!stft_is_valid_hop(block, hop))
+    {
+        return 0u;
+    }
+
+    // The block divided by the hop, rounded up. Written as a division that
+    // rounds up rather than with any arithmetic that might overflow.
+    return ((block + hop) - 1u) / hop;
+}
+
 uint32_t stft_signal_size(uint32_t frames, uint32_t block, uint32_t hop)
 {
     if(!stft_is_valid_hop(block, hop) || (frames == 0u))

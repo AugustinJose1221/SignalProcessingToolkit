@@ -41,6 +41,7 @@ def taken_apart(draw):
 
     fewest = -(-block // hop)
     frames = draw(st.integers(min_value=fewest, max_value=fewest + 4))
+    # The module must agree about how many that is.
     size = ((frames - 1) * hop) + block
     signal = draw(st.lists(sp.elements(20.0), min_size=size, max_size=size))
     return block, hop, kind, signal
@@ -205,7 +206,9 @@ def test_too_few_frames_to_cover_any_sample_are_refused(lib, block):
     which is worse than a refusal.
     """
     hop = block // 4
-    fewest = -(-block // hop)
+    fewest = lib.stft_fewest_frames(block, hop)
+
+    assert fewest == -(-block // hop)
 
     stft = designed(lib, block, hop, sptk.WINDOW_HANN)
     first = ctypes.c_uint32()
