@@ -120,6 +120,26 @@ bool window_is_valid_kind(window_kind_t kind)
     return (kind >= WINDOW_RECTANGULAR) && (kind <= WINDOW_KAISER);
 }
 
+bool window_is_valid_size(uint32_t size, window_kind_t kind)
+{
+    if(!window_is_valid_kind(kind) || (size == 0u))
+    {
+        return false;
+    }
+
+    // A rectangular window takes nothing away, thus it has no ends to fall at
+    // and any size serves.
+    if(kind == WINDOW_RECTANGULAR)
+    {
+        return true;
+    }
+
+    // Every other window here tapers. A size of 1 is the single value 1, which
+    // is well defined and useful. A size of 2 is the two ends and nothing
+    // else, which is not.
+    return (size != 2u);
+}
+
 bool window_takes_a_parameter(window_kind_t kind)
 {
     return (kind == WINDOW_TUKEY) || (kind == WINDOW_KAISER);

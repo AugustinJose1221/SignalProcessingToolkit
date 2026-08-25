@@ -315,3 +315,39 @@ void test_stft_static_alloc(void)
 
     stft_free(&stft);
 }
+
+void test_stft_fewest_frames(void)
+{
+    // A sample in the middle is under as many blocks as fit across it, thus
+    // this is the block divided by the hop, rounded up.
+    TEST_ASSERT_EQUAL(4, stft_fewest_frames(8, 2));
+    TEST_ASSERT_EQUAL(2, stft_fewest_frames(8, 4));
+    TEST_ASSERT_EQUAL(1, stft_fewest_frames(8, 8));
+    TEST_ASSERT_EQUAL(8, stft_fewest_frames(8, 1));
+
+    // A hop that does not divide the block still rounds up.
+    TEST_ASSERT_EQUAL(3, stft_fewest_frames(8, 3));
+
+    TEST_ASSERT_EQUAL(0, stft_fewest_frames(9, 3));
+    TEST_ASSERT_EQUAL(0, stft_fewest_frames(8, 0));
+}
+
+void test_stft_fewest_frames_is_where_the_rebuild_becomes_possible(void)
+{
+    // The number it gives must be exactly where stft_solid_range starts to
+    // answer, or it would be advice that does not match the module.
+    stft_t stft = stft_alloc(BLOCK);
+    uint32_t first;
+    uint32_t solid;
+
+    stft_design(&stft, BLOCK / 4u, WINDOW_HANN, REAL_C(0.0));
+
+    uint32_t fewest = stft_fewest_frames(BLOCK, BLOCK / 4u);
+
+    TEST_ASSERT_TRUE(fewest > 1u);
+    TEST_ASSERT_EQUAL(false, stft_solid_range(&stft, fewest - 1u, &first,
+                                              &solid));
+    TEST_ASSERT_EQUAL(true, stft_solid_range(&stft, fewest, &first, &solid));
+
+    stft_free(&stft);
+}

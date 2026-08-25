@@ -21,6 +21,22 @@ bool window_is_valid_kind(window_kind_t kind);
 
 True if the module knows this kind of window.
 
+### `window_is_valid_size`
+
+```c
+bool window_is_valid_size(uint32_t size, window_kind_t kind);
+```
+
+True if a window of this kind can usefully be built at this size.
+
+A symmetric window of two values is its two ends, and the ends are where a
+taper is nothing. Thus every window that tapers is refused at a size of 2,
+and a rectangular window, which takes nothing away, is allowed at any size.
+
+The values a tapered window of 2 gives are not wrong; two ends really are
+all there is. But window_coherent_gain is then nothing or near it, and this
+header tells a caller to DIVIDE by that. Ask this first.
+
 ### `window_takes_a_parameter`
 
 ```c

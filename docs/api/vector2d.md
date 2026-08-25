@@ -16,7 +16,7 @@ Vectors with two values. Declared in `sptk/linalg/vector2d.h`.
 ### `vector2d_alloc`
 
 ```c
-vector_t vector2d_alloc();
+vector_t vector2d_alloc(void);
 ```
 
 Give a vector with two values. The memory comes from the heap. Give the

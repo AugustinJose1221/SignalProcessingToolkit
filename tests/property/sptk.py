@@ -219,6 +219,25 @@ class Stft(ctypes.Structure):
     ]
 
 
+class Iir(ctypes.Structure):
+    _fields_ = [
+        ("sections", ctypes.c_uint32),
+        ("coefficient", ctypes.POINTER(REAL_T)),
+        ("state", ctypes.POINTER(REAL_T)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Fir(ctypes.Structure):
+    _fields_ = [
+        ("length", ctypes.c_uint32),
+        ("coefficient", ctypes.POINTER(REAL_T)),
+        ("history", ctypes.POINTER(REAL_T)),
+        ("position", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
 class Quaternion(ctypes.Structure):
     _fields_ = [
         ("w", REAL_T),
@@ -263,6 +282,18 @@ WINDOW_KAISER = 6
 # through.
 WINDOWS_WITHOUT_A_PARAMETER = (WINDOW_RECTANGULAR, WINDOW_HANN, WINDOW_HAMMING,
                                WINDOW_BLACKMAN, WINDOW_BLACKMAN_HARRIS)
+
+IIR_BUTTERWORTH = 0
+IIR_CHEBYSHEV_I = 1
+IIR_CHEBYSHEV_II = 2
+IIR_ELLIPTIC = 3
+
+IIR_SHAPES = (IIR_BUTTERWORTH, IIR_CHEBYSHEV_I, IIR_CHEBYSHEV_II,
+              IIR_ELLIPTIC)
+
+# The shapes that ripple in the band that passes, in the order of how sharply
+# they fall.
+IIR_SHAPES_BY_SHARPNESS = (IIR_BUTTERWORTH, IIR_CHEBYSHEV_I, IIR_ELLIPTIC)
 
 
 def load_library():
@@ -471,6 +502,8 @@ def load_library():
     library.window_is_valid_kind.restype = ctypes.c_bool
     library.window_takes_a_parameter.argtypes = [ctypes.c_int]
     library.window_takes_a_parameter.restype = ctypes.c_bool
+    library.window_is_valid_size.argtypes = [ctypes.c_uint32, ctypes.c_int]
+    library.window_is_valid_size.restype = ctypes.c_bool
     library.window_build.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
                                      ctypes.c_int]
     library.window_build.restype = None
@@ -570,6 +603,8 @@ def load_library():
     library.stft_signal_size.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
                                          ctypes.c_uint32]
     library.stft_signal_size.restype = ctypes.c_uint32
+    library.stft_fewest_frames.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.stft_fewest_frames.restype = ctypes.c_uint32
     library.stft_alloc.argtypes = [ctypes.c_uint32]
     library.stft_alloc.restype = Stft
     library.stft_design.argtypes = [ctypes.POINTER(Stft), ctypes.c_uint32,
@@ -598,6 +633,55 @@ def load_library():
     library.stft_frame_time.restype = REAL_T
     library.stft_free.argtypes = [ctypes.POINTER(Stft)]
     library.stft_free.restype = None
+
+    # iir
+    library.iir_is_valid_shape.argtypes = [ctypes.c_int]
+    library.iir_is_valid_shape.restype = ctypes.c_bool
+    library.iir_is_valid_ripple.argtypes = [REAL_T]
+    library.iir_is_valid_ripple.restype = ctypes.c_bool
+    library.iir_is_valid_attenuation.argtypes = [REAL_T]
+    library.iir_is_valid_attenuation.restype = ctypes.c_bool
+    library.iir_alloc.argtypes = [ctypes.c_uint32]
+    library.iir_alloc.restype = Iir
+    for name in ("iir_design_low_pass_with", "iir_design_high_pass_with"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Iir), REAL_T, ctypes.c_int,
+                             REAL_T, REAL_T]
+        function.restype = ctypes.c_bool
+    library.iir_sections_for.argtypes = [ctypes.c_int, REAL_T, REAL_T, REAL_T,
+                                         REAL_T]
+    library.iir_sections_for.restype = ctypes.c_uint32
+    for name in ("iir_get_gain", "iir_phase", "iir_group_delay"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Iir), REAL_T]
+        function.restype = REAL_T
+    library.iir_free.argtypes = [ctypes.POINTER(Iir)]
+    library.iir_free.restype = None
+
+    # fir
+    library.fir_alloc.argtypes = [ctypes.c_uint32]
+    library.fir_alloc.restype = Fir
+    library.fir_is_valid_cutoff.argtypes = [ctypes.c_uint32, REAL_T]
+    library.fir_is_valid_cutoff.restype = ctypes.c_bool
+    for name in ("fir_design_low_pass_with", "fir_design_high_pass_with"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Fir), REAL_T, ctypes.c_int, REAL_T]
+        function.restype = ctypes.c_bool
+    library.fir_design_band_pass_with.argtypes = [ctypes.POINTER(Fir), REAL_T,
+                                                  REAL_T, ctypes.c_int,
+                                                  REAL_T]
+    library.fir_design_band_pass_with.restype = ctypes.c_bool
+    library.fir_transition_width.argtypes = [ctypes.c_int, ctypes.c_uint32]
+    library.fir_transition_width.restype = REAL_T
+    library.fir_length_for.argtypes = [ctypes.c_int, REAL_T]
+    library.fir_length_for.restype = ctypes.c_uint32
+    library.fir_get_gain.argtypes = [ctypes.POINTER(Fir), REAL_T]
+    library.fir_get_gain.restype = REAL_T
+    library.fir_get_coefficient.argtypes = [ctypes.POINTER(Fir),
+                                            ctypes.c_uint32]
+    library.fir_get_coefficient.restype = REAL_T
+    library.fir_free.argtypes = [ctypes.POINTER(Fir)]
+    library.fir_free.restype = None
 
     # quaternion
     library.quaternion_make.argtypes = [REAL_T, REAL_T, REAL_T, REAL_T]

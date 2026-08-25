@@ -390,3 +390,76 @@ void test_lstsq_solve_refuses_shapes_that_do_not_fit(void)
     matrix_free(&factor);
     matrix_free(&column);
 }
+
+void test_lstsq_refuses_a_fit_that_the_scaling_would_do_better(void)
+{
+    // THE FAULT THAT THE PROPERTY TESTS FOUND.
+    //
+    // A curve of order 4 can always do whatever a curve of order 3 did, thus
+    // the quality can never fall as the order rises. On these readings at 32
+    // bits it fell, from 0.769 to 0.527, and the module gave the answer back
+    // without complaint: the guard on the diagonal of the factor saw a ratio
+    // of 0.64, a thousand times above where it sits, because the digits were
+    // spent before the factor was ever taken.
+    //
+    // The module now does the same fit with the places brought near zero and
+    // compares what each leaves. Where the plain one is worse it is refused.
+    const uint32_t size = 14u;
+    real_t x[14] = {REAL_C(2.0), REAL_C(2.5), REAL_C(3.0),
+                    REAL_C(3.440809488296509), REAL_C(3.867011547088623),
+                    REAL_C(4.205442905426025), REAL_C(4.460936546325684),
+                    REAL_C(4.656173229217529), REAL_C(4.8380656242370605),
+                    REAL_C(5.082167625427246), REAL_C(5.221558094024658),
+                    REAL_C(5.471558094024658), REAL_C(5.549683094024658),
+                    REAL_C(6.049683094024658)};
+    real_t y[14] = {REAL_C(0.0), REAL_C(0.0), REAL_C(0.0), REAL_C(0.0),
+                    REAL_C(0.0), REAL_C(0.0), REAL_C(0.0), REAL_C(0.0),
+                    REAL_C(0.0), REAL_C(0.0), REAL_C(0.0), REAL_C(0.0),
+                    REAL_C(0.0), REAL_C(1.0)};
+    real_t coefficients[8];
+    real_t centre;
+    real_t width;
+
+    // The order below the trouble answers at either width.
+    TEST_ASSERT_EQUAL(true, lstsq_polyfit(x, y, size, 3u, coefficients));
+
+    // The scaled fit is right at either width, and that is the point: the
+    // answer was there to be had.
+    TEST_ASSERT_EQUAL(true, lstsq_polyfit_scaled(x, y, size, 4u, coefficients,
+                                                 &centre, &width));
+    TEST_ASSERT_TRUE(lstsq_fit_quality_scaled(x, y, size, coefficients, 4u,
+                                              centre, width) > REAL_C(0.9));
+
+#if defined(SPTK_REAL_64)
+    // With digits to spare the plain fit is right, thus nothing is refused.
+    TEST_ASSERT_EQUAL(true, lstsq_polyfit(x, y, size, 4u, coefficients));
+    TEST_ASSERT_TRUE(lstsq_fit_quality(x, y, size, coefficients, 4u)
+                     > REAL_C(0.9));
+#else
+    // At 32 bits the plain fit would answer wrongly, thus it answers not at
+    // all.
+    TEST_ASSERT_EQUAL(false, lstsq_polyfit(x, y, size, 4u, coefficients));
+#endif
+}
+
+void test_lstsq_still_answers_where_the_readings_lie_on_the_curve(void)
+{
+    // The check that refuses a worse fit must not refuse the easiest case of
+    // all. Where the readings lie ON the curve, both fits leave nothing but
+    // rounding, and two such numbers cannot be compared by their ratio.
+    real_t x[12];
+    real_t y[12];
+    real_t coefficients[4];
+
+    for(uint32_t index = 0; index < 12u; index++)
+    {
+        real_t place = (real_t)index / REAL_C(11.0);
+
+        x[index] = place;
+        y[index] = REAL_C(2.0) + (REAL_C(3.0) * place)
+                   - (REAL_C(4.0) * place * place);
+    }
+
+    TEST_ASSERT_EQUAL(true, lstsq_polyfit(x, y, 12u, 2u, coefficients));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(2.0), coefficients[0]);
+}

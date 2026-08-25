@@ -17,7 +17,7 @@
 
 // Give a vector with two values. The memory comes from the heap. Give the
 // vector to vector_free when you no longer need it.
-vector_t vector2d_alloc();
+vector_t vector2d_alloc(void);
 
 // Give a vector with two values that uses the memory at mempool. That memory
 // must hold two float values. This function takes no memory from the heap.

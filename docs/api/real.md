@@ -103,6 +103,36 @@ The one type that holds every number. Declared in `sptk/core/real.h`.
 #define REAL_ATAN2(y, x)    atan2((y), (x))
 ```
 
+### `REAL_SINH`
+
+```c
+#define REAL_SINH(x)        sinh(x)
+```
+
+### `REAL_COSH`
+
+```c
+#define REAL_COSH(x)        cosh(x)
+```
+
+### `REAL_ASIN`
+
+```c
+#define REAL_ASIN(x)        asin(x)
+```
+
+### `REAL_ASINH`
+
+```c
+#define REAL_ASINH(x)       asinh(x)
+```
+
+### `REAL_ACOSH`
+
+```c
+#define REAL_ACOSH(x)       acosh(x)
+```
+
 ### `REAL_FLOOR`
 
 ```c
@@ -209,6 +239,36 @@ The one type that holds every number. Declared in `sptk/core/real.h`.
 
 ```c
 #define REAL_ATAN2(y, x)    atan2f((y), (x))
+```
+
+### `REAL_SINH`
+
+```c
+#define REAL_SINH(x)        sinhf(x)
+```
+
+### `REAL_COSH`
+
+```c
+#define REAL_COSH(x)        coshf(x)
+```
+
+### `REAL_ASIN`
+
+```c
+#define REAL_ASIN(x)        asinf(x)
+```
+
+### `REAL_ASINH`
+
+```c
+#define REAL_ASINH(x)       asinhf(x)
+```
+
+### `REAL_ACOSH`
+
+```c
+#define REAL_ACOSH(x)       acoshf(x)
 ```
 
 ### `REAL_FLOOR`

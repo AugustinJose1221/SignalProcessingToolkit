@@ -289,3 +289,51 @@ void test_the_side_lobes_of_kaiser_are_not_the_stop_band_of_its_rule(void)
 
     TEST_ASSERT_REAL_WITHIN(REAL_C(2.0), -REAL_C(41.6), highest_side_lobe(WINDOW_KAISER, beta));
 }
+
+void test_window_is_valid_size(void)
+{
+    // A symmetric window of two values is its two ends, and the ends are where
+    // a taper is nothing. The values are right; two ends really are all there
+    // is. But the header tells a caller to DIVIDE by the coherent gain, and
+    // for a hann window of 2 that is a division by nothing.
+    TEST_ASSERT_EQUAL(false, window_is_valid_size(2, WINDOW_HANN));
+    TEST_ASSERT_EQUAL(false, window_is_valid_size(2, WINDOW_BLACKMAN));
+    TEST_ASSERT_EQUAL(false, window_is_valid_size(2, WINDOW_KAISER));
+
+    // A rectangular window takes nothing away, thus it has no ends to fall at.
+    TEST_ASSERT_EQUAL(true, window_is_valid_size(2, WINDOW_RECTANGULAR));
+
+    // A size of 1 is the single value 1, which is well defined and useful.
+    TEST_ASSERT_EQUAL(true, window_is_valid_size(1, WINDOW_HANN));
+
+    TEST_ASSERT_EQUAL(true, window_is_valid_size(3, WINDOW_HANN));
+    TEST_ASSERT_EQUAL(true, window_is_valid_size(1024, WINDOW_BLACKMAN));
+
+    TEST_ASSERT_EQUAL(false, window_is_valid_size(0, WINDOW_HANN));
+    TEST_ASSERT_EQUAL(false, window_is_valid_size(8, (window_kind_t)99));
+}
+
+void test_a_size_the_module_accepts_has_a_gain_worth_dividing_by(void)
+{
+    // The reason window_is_valid_size exists at all.
+    const window_kind_t kinds[5] = {WINDOW_RECTANGULAR, WINDOW_HANN,
+                                    WINDOW_HAMMING, WINDOW_BLACKMAN,
+                                    WINDOW_BLACKMAN_HARRIS};
+    real_t window[16];
+
+    for(uint32_t which = 0; which < 5u; which++)
+    {
+        for(uint32_t size = 1; size <= 16u; size++)
+        {
+            if(!window_is_valid_size(size, kinds[which]))
+            {
+                continue;
+            }
+
+            window_build(window, size, kinds[which]);
+
+            TEST_ASSERT_TRUE(window_coherent_gain(window, size)
+                             > REAL_C(0.01));
+        }
+    }
+}

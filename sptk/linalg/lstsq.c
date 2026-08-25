@@ -166,8 +166,13 @@ bool lstsq_solve(matrix_t* model, matrix_t* readings, matrix_t* answer,
     return lstsq_solve_triangles(factor, column, answer);
 }
 
-bool lstsq_polyfit(const real_t* x, const real_t* y, uint32_t size,
-                   uint32_t order, real_t* coefficients)
+// Fit, and give back the coefficients, with no examination of the answer.
+//
+// Both of the fits the module offers are this one underneath. What parts them
+// is what they do with the places before they get here, and what lstsq_polyfit
+// does with the answer afterwards.
+static bool lstsq_fit_raw(const real_t* x, const real_t* y, uint32_t size,
+                          uint32_t order, real_t* coefficients)
 {
     ASSERT(x != NULL);
     ASSERT(y != NULL);
@@ -256,6 +261,135 @@ void lstsq_scaling(const real_t* x, uint32_t size, real_t* centre,
     *width = (half > REAL_C(0.0)) ? half : REAL_C(1.0);
 }
 
+// Give the total squared error that a set of coefficients leaves.
+static real_t lstsq_total_error(const real_t* x, const real_t* y,
+                                uint32_t size, const real_t* coefficients,
+                                uint32_t order)
+{
+    real_t total = REAL_C(0.0);
+
+    for(uint32_t index = 0; index < size; index++)
+    {
+        real_t error = y[index] - lstsq_evaluate(coefficients, order,
+                                                 x[index]);
+
+        total += error * error;
+    }
+
+    return total;
+}
+
+bool lstsq_polyfit(const real_t* x, const real_t* y, uint32_t size,
+                   uint32_t order, real_t* coefficients)
+{
+    ASSERT(x != NULL);
+    ASSERT(y != NULL);
+    ASSERT(coefficients != NULL);
+
+    // The size is examined before anything is taken from the heap, both
+    // because an allocation that cannot be used is waste and because the
+    // arithmetic below reads the whole of what it allocates.
+    if(!lstsq_is_valid_fit(size, order))
+    {
+        return false;
+    }
+
+    if(!lstsq_fit_raw(x, y, size, order, coefficients))
+    {
+        return false;
+    }
+
+    // HOW A WRONG ANSWER IS FOUND OUT, SINCE NOTHING CHEAPER FINDS IT.
+    //
+    // The guard on the diagonal of the factor catches a model whose columns
+    // say the same thing. It cannot catch the digits lost in FORMING the
+    // normal equations, because by the time the factor is taken the loss has
+    // happened, and the factor of the spent matrix is healthy.
+    //
+    // Reading the answer back does not find it either. MEASURED: over 20000
+    // random sets at 32 bits, the answers that were right leaned on a column
+    // of the model by as much as 8.6 parts in ten thousand, and the answers
+    // that were wrong by as little as 1.2 parts in a hundred thousand. The two
+    // ranges lie across each other, thus no rule about the error left behind
+    // can part them. That road is closed.
+    //
+    // What does part them is the SAME FIT DONE WITH THE PLACES BROUGHT NEAR
+    // ZERO. That fit does not lose the digits, thus where the two disagree it
+    // is the plain one that is wrong. So the module does both and compares the
+    // error each leaves.
+    //
+    // IT COSTS TWICE THE WORK, and that is affordable here and nowhere else: a
+    // fit is worked out once when a calibration is made, not while a device
+    // runs. Where the cost is not wanted, call lstsq_polyfit_scaled, which
+    // does the right fit once and never needs the comparison.
+    real_t centre;
+    real_t width;
+    // Taken as cleared rather than as raw memory. The loop below fills every
+    // place of it, but a compiler cannot see that through the check above, and
+    // a buffer that is read before it is written is worth ruling out rather
+    // than arguing about.
+    real_t* scaled = (real_t*)calloc(size, sizeof(real_t));
+    real_t* other = (real_t*)calloc(LSTSQ_COEFFICIENT_COUNT(order),
+                                    sizeof(real_t));
+
+    if((scaled == NULL) || (other == NULL))
+    {
+        free(scaled);
+        free(other);
+        return false;
+    }
+
+    lstsq_scaling(x, size, &centre, &width);
+
+    for(uint32_t index = 0; index < size; index++)
+    {
+        scaled[index] = (x[index] - centre) / width;
+    }
+
+    bool trustworthy = true;
+
+    if(lstsq_fit_raw(scaled, y, size, order, other))
+    {
+        real_t plain = lstsq_total_error(x, y, size, coefficients, order);
+        real_t brought_near = lstsq_total_error(scaled, y, size, other, order);
+
+        // The size of the readings themselves, which sets the floor below.
+        real_t weight = REAL_C(0.0);
+
+        for(uint32_t index = 0; index < size; index++)
+        {
+            weight += y[index] * y[index];
+        }
+
+        // A fit that leaves more error than another fit of the same order
+        // through the same readings is not the least squares answer, whatever
+        // the arithmetic says.
+        //
+        // TWO ALLOWANCES, AND BOTH ARE NEEDED.
+        //
+        // A part of the error, because the two fits are worked out along
+        // different roads and neither lands exactly.
+        //
+        // AND A FLOOR, because where the readings lie ON the curve both errors
+        // are nothing but rounding. Comparing two such numbers by their ratio
+        // says nothing at all: one may be ten times the other and both be
+        // zero to every digit that matters. Without the floor the module
+        // refuses its easiest cases.
+        real_t room = (brought_near * LSTSQ_LARGEST_EXCESS)
+                      + (weight * LSTSQ_SMALLEST_ERROR);
+
+        if(plain > (brought_near + room))
+        {
+            trustworthy = false;
+        }
+    }
+
+    free(scaled);
+    free(other);
+
+    return trustworthy;
+}
+
 bool lstsq_polyfit_scaled(const real_t* x, const real_t* y, uint32_t size,
                           uint32_t order, real_t* coefficients,
                           real_t* centre, real_t* width)
@@ -285,7 +419,7 @@ bool lstsq_polyfit_scaled(const real_t* x, const real_t* y, uint32_t size,
         scaled[index] = (x[index] - *centre) / *width;
     }
 
-    bool fitted = lstsq_polyfit(scaled, y, size, order, coefficients);
+    bool fitted = lstsq_fit_raw(scaled, y, size, order, coefficients);
 
     free(scaled);
 

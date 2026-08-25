@@ -47,7 +47,7 @@
 // instead: two columns that say almost the same thing leave one diagonal tiny
 // beside the others, and above what the width can hold the fit is refused.
 //
-// THAT GUARD CATCHES ONE FAULT AND NOT THE OTHER, AND THE DIFFERENCE MATTERS.
+// THAT GUARD CATCHES ONE FAULT AND NOT THE OTHER, THUS THERE IS A SECOND ONE.
 //
 //   IT CATCHES columns of the model that say the same thing, or nearly so.
 //   That is a fault of the MODEL, and the factor shows it plainly.
@@ -55,31 +55,40 @@
 //   IT DOES NOT CATCH the digits lost in FORMING the normal equations. Turning
 //   the model round and multiplying it by itself is where the loss happens,
 //   and by the time the factor is taken the loss has already happened. The
-//   factor of a matrix that was built from spent digits looks perfectly
-//   healthy, because it is: it is the healthy factor of the wrong matrix.
+//   factor of a matrix built from spent digits looks perfectly healthy,
+//   because it is: it is the healthy factor of the wrong matrix.
+//
+// READING THE ANSWER BACK DOES NOT FIND IT EITHER, and it is worth saying so
+// because it is the first thing anyone tries. A fit that is right leaves an
+// error holding nothing of any column of the model. Measured over 20000 random
+// sets at 32 bits, the answers that were RIGHT leaned on a column by as much
+// as 8.6 parts in ten thousand, and the answers that were WRONG by as little
+// as 1.2 parts in a hundred thousand. The two ranges lie across each other.
+// No rule about the error left behind can part them.
+//
+// WHAT DOES PART THEM is the same fit done with the places brought near zero,
+// which does not lose the digits. Where the two disagree it is the plain one
+// that is wrong. Thus lstsq_polyfit DOES BOTH and gives nothing back where the
+// plain fit leaves more error than the other. Measured, at 32 bits: not one
+// wrong answer in 20000 sets, and 1.6 fits in every 100 refused. At 64 bits
+// nothing is refused, because nothing is wrong.
+//
+// THE PRICE IS TWICE THE WORK, and it is affordable here and nowhere else: a
+// fit is worked out once when a calibration is made, and not while a device
+// runs. WHERE THE COST IS NOT WANTED, CALL lstsq_polyfit_scaled, which does
+// the right fit once and needs no comparison at all.
 //
 // Measured, on 14 readings whose x runs from 2 to 6, at 32 bits. A curve of a
 // higher order can always do whatever a lower one did, thus the quality must
 // never fall as the order rises:
 //
 //     order            1       2       3       4       5
-//     plain fit     0.171   0.482   0.769   0.527  refused
-//     scaled fit    0.171   0.482   0.769   0.930   0.983
-//     pivot ratio    0.86    0.75    0.67    0.64      -
+//     plain fit     0.171   0.482   0.769  refused  refused
+//     scaled fit    0.171   0.482   0.769   0.930    0.983
 //
-// AT ORDER 4 THE PLAIN FIT FALLS FROM 0.769 TO 0.527 AND THE GUARD SEES
-// NOTHING WRONG: the ratio of the diagonals is 0.64, a thousand times above
-// where the guard sits. The answer is simply wrong, and the module gives it
-// back. At 64 bits the same fit reads 0.930 and the fault does not appear.
-//
-// THEREFORE, TWO THINGS.
-//
-//   USE lstsq_polyfit_scaled. It is not a refinement for awkward data; it is
-//   the one that works. Every reading in the table above is right in the
-//   scaled row, at the same width, on the same data.
-//   LOOK AT lstsq_fit_quality AFTERWARDS. It is what shows this fault: 0.527
-//   where 0.930 was to be had. A fit that is never examined is a fit that is
-//   believed for no reason, and here that is not a figure of speech.
+// Before this check the plain fit gave back 0.527 at order 4 and said nothing
+// was wrong. Now it refuses, and the scaled fit answers 0.930 on the same data
+// at the same width.
 //
 // WHERE X SITS MATTERS AS MUCH AS THE ORDER, AND THIS IS THE TRAP
 //
@@ -119,6 +128,32 @@
 // the header says why it is needed.
 #ifndef LSTSQ_SMALLEST_PIVOT_PART
 #define LSTSQ_SMALLEST_PIVOT_PART       (REAL_C(2.0) * REAL_SQRT(REAL_EPSILON))
+#endif
+
+// How much more error a plain fit may leave than the same fit done with the
+// places brought near zero, before it is refused.
+//
+// The two are worked out along different roads and neither lands exactly, thus
+// a little room is needed. A fit that leaves a hundredth more error than
+// another fit of the same order through the same readings is not the least
+// squares answer at all.
+//
+// Measured over 20000 random sets of readings at 32 bits: at a hundredth, not
+// one wrong answer was given back, and 1.6 in every 100 fits were refused. A
+// wider room lets wrong answers through and a narrower one only refuses more.
+// At 64 bits nothing was refused and nothing was wrong at any setting.
+#ifndef LSTSQ_LARGEST_EXCESS
+#define LSTSQ_LARGEST_EXCESS    REAL_C(0.01)
+#endif
+
+// The smallest error worth comparing, as a part of the size of the readings.
+//
+// Where the readings lie on the curve, both fits leave nothing but rounding.
+// Two such numbers cannot be compared by their ratio: one may be ten times the
+// other and both be zero to every digit that matters. This is the floor below
+// which a difference is not a difference.
+#ifndef LSTSQ_SMALLEST_ERROR
+#define LSTSQ_SMALLEST_ERROR    (REAL_C(1000.0) * REAL_EPSILON)
 #endif
 
 // The highest order of polynomial that the width of the build can carry.

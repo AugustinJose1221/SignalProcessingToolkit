@@ -27,6 +27,18 @@ at once. The turn takes a band of frequencies, and that band is narrower only
 when the filter is longer. This is the width of that turn, and it is the
 reason a low cutoff needs a long filter.
 
+### `FIR_GROUP_DELAY_STEP`
+
+```c
+#define FIR_GROUP_DELAY_STEP    REAL_C(0.00001)
+```
+
+### `FIR_GROUP_DELAY_STEP`
+
+```c
+#define FIR_GROUP_DELAY_STEP    REAL_C(0.0005)
+```
+
 ## Types
 
 ### `fir_t`
@@ -125,14 +137,77 @@ low cutoff must be smaller than the high cutoff, and both must lie between 0
 and 0.5.
 Give false and leave the filter as it was if fir_is_valid_band is false.
 
+### `fir_design_low_pass_with`
+
+```c
+bool fir_design_low_pass_with(fir_t* fir, real_t cutoff, window_kind_t kind, real_t parameter);
+```
+
+Write one coefficient. Use this function to give the filter a set of
+coefficients that another program calculated.
+Build a low pass with the window of your choosing.
+
+The window decides how wide the turn is and how far down the band that is
+stopped lies; the header above measures both for every window. The parameter
+belongs to the window and is ignored where the window takes none.
+
+Give false if the window is unknown, if it cannot be built at this length,
+or if the length cannot hold this cutoff.
+
+### `fir_design_high_pass_with`
+
+```c
+bool fir_design_high_pass_with(fir_t* fir, real_t cutoff, window_kind_t kind, real_t parameter);
+```
+
+Build a high pass with the window of your choosing. The length must be odd,
+for the reason fir_design_high_pass gives.
+
+### `fir_design_band_pass_with`
+
+```c
+bool fir_design_band_pass_with(fir_t* fir, real_t low_cutoff, real_t high_cutoff, window_kind_t kind, real_t parameter);
+```
+
+Build a band pass with the window of your choosing.
+
+### `fir_transition_width`
+
+```c
+real_t fir_transition_width(window_kind_t kind, uint32_t length);
+```
+
+Give how wide the turn from passing to stopping is, for this window at this
+length, as a part of the sample rate.
+
+The turn of a window is a fixed number divided by the length, thus this is
+that number divided by the length. The numbers were measured and they are in
+the table in the header.
+
+### `fir_length_for`
+
+```c
+uint32_t fir_length_for(window_kind_t kind, real_t width);
+```
+
+Give how long a filter must be for the turn to be this narrow.
+
+ASK THIS BEFORE ALLOCATING. A turn of a hundredth of the sample rate wants
+91 coefficients with a Hamming window and 551 with a Blackman-Harris, and
+choosing the window without knowing that is choosing blind.
+
+The answer is always odd, because a high pass and a band stop need a middle
+coefficient. Give 0 where the window is unknown or the width is not above
+nothing.
+
 ### `fir_set_coefficient`
 
 ```c
 void fir_set_coefficient(fir_t* fir, uint32_t index, real_t value);
 ```
 
-Write one coefficient. Use this function to give the filter a set of
-coefficients that another program calculated.
+Write one coefficient directly, for a filter whose shape comes from
+somewhere other than the designs above.
 
 ### `fir_get_coefficient`
 
@@ -177,6 +252,53 @@ real_t fir_get_gain(fir_t* fir, real_t frequency);
 Give the size of the answer of the filter at the given frequency, which is a
 part of the sample rate. A value of 1 says that the frequency passes
 unchanged, and a value of 0 says that the filter stops it.
+
+### `fir_phase`
+
+```c
+real_t fir_phase(fir_t* fir, real_t frequency);
+```
+
+Give how far the filter turns the phase at one frequency, in radians.
+
+The frequency is a part of the sample rate, and the answer runs from -pi to
+pi.
+
+### `fir_group_delay`
+
+```c
+real_t fir_group_delay(fir_t* fir, real_t frequency);
+```
+
+Give how long the filter holds back the frequencies about this one, in
+samples.
+
+THE ANSWER IS THE SAME AT EVERY FREQUENCY FOR A FILTER BUILT BY THE DESIGNS
+ABOVE, and that is the whole reason to choose a filter of this kind. Every
+design here is symmetric, thus every frequency is held back by exactly half
+the length less one half, and a waveform comes out moved along and not bent.
+
+Measured against the iir module, on filters that meet the same
+specification: an FIR holds every frequency back by the same time, while a
+Butterworth of 10 sections rises from 41 samples to 93 across the band that
+passes and an elliptic of 3 rises from 14 to 87. That is what an FIR costs
+its length for.
+
+A filter whose coefficients were written by hand through
+fir_set_coefficient need not be symmetric, and then this is worked out from
+the phase either side, as the iir module does it.
+
+### `fir_is_symmetric`
+
+```c
+bool fir_is_symmetric(fir_t* fir);
+```
+
+True if the coefficients read the same forwards and backwards.
+
+Every design in this module gives a symmetric filter. One built by hand
+through fir_set_coefficient may not be, and only a symmetric filter holds
+every frequency back by the same time.
 
 ### `fir_free`
 

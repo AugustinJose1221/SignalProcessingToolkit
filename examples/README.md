@@ -41,6 +41,7 @@ comment that says so.
 | `RUN_FITCURVE_EXAMPLE` | [fitcurve.c](fitcurve.c) | A pressure sensor read as a count | What curve turns a count into a pressure? |
 | `RUN_SPECTROGRAM_EXAMPLE` | [spectrogram.c](spectrogram.c) | A tone that slides from low to high | When was each frequency there? |
 | `RUN_COHERENCE_EXAMPLE` | [coherence.c](coherence.c) | A machine, a floor and a second machine | Which of these two is shaking the floor? |
+| `RUN_SHAPES_EXAMPLE` | [shapes.c](shapes.c) | One specification, built four ways | Which shape of filter should I use? |
 
 ## What each example shows
 
@@ -194,3 +195,15 @@ machine that really is shaking the floor and 0.00 for the one that is not. The
 example also runs the block count up from 1, so that the trap can be watched:
 below eight blocks the module refuses, because at one block any two signals
 whatever read exactly 1.00.
+
+**shapes.c — which shape of filter to use.** One specification — pass below 500
+Hz, stop above 750 Hz by 60 dB, 1 dB of ripple allowed — built four ways. Every
+one meets it; they differ only in what they cost to run, and an elliptic filter
+does it with 15 multiplications for each sample where a Butterworth needs 50.
+
+Then the part a gain measurement never shows. The example prints the group delay
+across the band that passes, and every shape climbs steeply near its cutoff — but
+by different amounts. A Butterworth rises by a little over twice across the band;
+the elliptic by more than six times. **The shape that costs the fewest
+multiplications costs the most in the shape of the waveform**, and that is the
+trade the table of gains hides.

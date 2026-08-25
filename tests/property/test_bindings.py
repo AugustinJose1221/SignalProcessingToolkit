@@ -29,6 +29,8 @@ PROBE = r"""
 #include <sptk/transform/fft.h>
 #include <sptk/transform/bluestein.h>
 #include <sptk/transform/stft.h>
+#include <sptk/filter/iir.h>
+#include <sptk/filter/fir.h>
 #include <sptk/util/peakdetect.h>
 
 int main(void)
@@ -55,6 +57,10 @@ int main(void)
     printf("Stft %zu %zu %zu %zu\n", sizeof(stft_t),
            offsetof(stft_t, window), offsetof(stft_t, fft),
            offsetof(stft_t, dynamic_alloc));
+    printf("Iir %zu %zu %zu\n", sizeof(iir_t),
+           offsetof(iir_t, coefficient), offsetof(iir_t, dynamic_alloc));
+    printf("Fir %zu %zu %zu\n", sizeof(fir_t),
+           offsetof(fir_t, coefficient), offsetof(fir_t, dynamic_alloc));
     printf("Quaternion %zu %zu %zu\n", sizeof(quaternion_t),
            offsetof(quaternion_t, x), offsetof(quaternion_t, z));
     printf("PeakdetectOptions %zu %zu %zu\n", sizeof(peakdetect_options_t),
@@ -161,6 +167,20 @@ def test_stft_layout(probe_output):
     assert sptk.Stft.window.offset == offset_window
     assert sptk.Stft.fft.offset == offset_fft
     assert sptk.Stft.dynamic_alloc.offset == offset_flag
+
+
+def test_iir_layout(probe_output):
+    size, offset_coefficient, offset_flag = probe_output["Iir"]
+    assert ctypes.sizeof(sptk.Iir) == size
+    assert sptk.Iir.coefficient.offset == offset_coefficient
+    assert sptk.Iir.dynamic_alloc.offset == offset_flag
+
+
+def test_fir_layout(probe_output):
+    size, offset_coefficient, offset_flag = probe_output["Fir"]
+    assert ctypes.sizeof(sptk.Fir) == size
+    assert sptk.Fir.coefficient.offset == offset_coefficient
+    assert sptk.Fir.dynamic_alloc.offset == offset_flag
 
 
 def test_quaternion_layout(probe_output):
