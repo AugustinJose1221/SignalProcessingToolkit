@@ -4,7 +4,7 @@
 #include <sptk/linalg/matrix.h>
 #include <gsl/gsl_matrix.h>
 
-void support_init();
+void support_init(void);
 void support_fill_random_matrix_double(matrix_t *mat, gsl_matrix *gsl_mat, int rows, int cols, float min, float max);
 void support_fill_random_matrix_single(matrix_t *mat, gsl_matrix_float *gsl_mat, int rows, int cols, float min, float max);
 bool support_matrix_addition_check(int rows, int cols, float min, float max);
