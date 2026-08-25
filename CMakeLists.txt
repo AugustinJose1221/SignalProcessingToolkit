@@ -16,6 +16,7 @@ set(SIGNALPROC_SOURCES
     sptk/linalg/cmatrix.c
     sptk/linalg/cnum.c
     sptk/linalg/matrix.c
+    sptk/linalg/eigen.c
     sptk/linalg/lstsq.c
     sptk/linalg/pmatrix.c
     sptk/linalg/quaternion.c

@@ -90,6 +90,7 @@ name and shape of every function.
 | [`pmatrix`](api/pmatrix.md) | Matrices with a parameter |
 | [`cnum`](api/cnum.md) | Complex numbers |
 | [`quaternion`](api/quaternion.md) | Which way something points |
+| [`eigen`](api/eigen.md) | The directions a matrix stretches |
 | [`lstsq`](api/lstsq.md) | Fitting a curve through readings |
 | [`vector`](api/vector.md) | Vectors of float values |
 | [`vector2d`](api/vector2d.md) | Vectors with two values |
