@@ -36,6 +36,6 @@ extern int test_cases_failed;
 #define FLAG_CHECK_TRUE_CASE(a, msg) CONFORMATION_TEST_CASE((a) == true, msg)
 #define FLAG_CHECK_FALSE_CASE(a, msg) CONFORMATION_TEST_CASE((a) == false, msg)
 
-void support_init();
+void support_init(void);
 
 #endif//__CONFORMATION_SUPPORT_H__

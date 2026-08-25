@@ -8,7 +8,7 @@
 #define NUM_OF_ROWS 3
 #define NUM_OF_COLS 3
 
-int main()
+int main(void)
 {
 
     int count = 1;

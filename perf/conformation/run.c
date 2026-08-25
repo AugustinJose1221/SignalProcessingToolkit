@@ -18,7 +18,7 @@ static void run_dynamic_conformation_tests(void)
     run_vector_dynamic_conformation_tests();
 }
 
-int main()
+int main(void)
 {
     run_static_conformation_tests();
     run_dynamic_conformation_tests();
