@@ -49,6 +49,7 @@ name and shape of every function.
 | [`hampel`](api/hampel.md) | Replacing only the samples that are wrong |
 | [`adaptive`](api/adaptive.md) | A filter that finds its own coefficients |
 | [`rls`](api/rls.md) | A filter that solves least squares at every sample |
+| [`lattice`](api/lattice.md) | A filter built as a ladder of stages |
 | [`resample`](api/resample.md) | Changing the rate of a signal |
 | [`filtfilt`](api/filtfilt.md) | Filtering with no delay |
 
