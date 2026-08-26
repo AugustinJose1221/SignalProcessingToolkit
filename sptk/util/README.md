@@ -121,3 +121,48 @@ returns one, at the middle of the flat part.
 
 **A valley is a peak of the signal turned upside down.** There is no separate
 set of these rules for valleys; negate the signal and use these.
+
+## generate
+
+**Every test and example in this library used to write its own sine wave.** That
+is fine for a sine and a trap for anything else.
+
+**A square wave is not a row of ones and minus ones.** Written the obvious way,
+by taking the sign of a sine, it holds every odd harmonic out to infinity — and a
+sampled signal cannot hold anything above half the sample rate, so every harmonic
+above that **folds back** and lands somewhere below it, at a frequency that has
+nothing to do with the note being played.
+
+Measured at 8000 samples in a second: the loudest thing in the answer that is
+**not** a harmonic of the tone, against the tone itself.
+
+| tone Hz | 100 | 300 | 700 | 1300 | 1900 | 3100 |
+|---|---|---|---|---|---|---|
+| samples a turn | 80 | 27 | 11 | 6.2 | 4.2 | 2.6 |
+| naive | -39.3 | -23.9 | -17.3 | -13.9 | -9.2 | -9.2 |
+| `generate` | -49.3 | -33.7 | -29.6 | -39.6 | -25.7 | -39.6 |
+
+Read the naive row across. The fewer samples to a turn, the worse it gets, until
+at 1900 Hz the loudest false tone is only 9 dB below the one that was asked for.
+**A filter tested with that wave is being tested against a signal nobody meant to
+make.**
+
+**It does not remove the folding altogether**, and the table is honest about
+that: the best it reaches is about 50 dB down and the worst about 26. Nothing
+that runs in constant time does better. A test that needs better than that wants
+a sine, which folds nothing because it holds one frequency and no other.
+
+**The phase is carried, not worked out from the sample number.** Working out
+`sin(2πfn/rate)` from `n` goes wrong in two ways: the angle grows without bound
+so a long run loses its digits, and a frequency that changes cannot be written
+that way at all without a jump. Carrying and folding the phase costs nothing and
+allows `generate_design_sweep` — a chirp visits every frequency in one run, and
+one chirp through a filter shows the whole of what the filter does.
+
+**The same seed gives the same noise**, on every machine and at either width. A
+test that cannot be repeated is not a test.
+
+**A note on Unity's assertions.** The macros use what they are given more than
+once for the *expected* argument. A call that moves a generator on must be stored
+in a local first, or the two sides fall out of step with each other rather than
+with the test.
