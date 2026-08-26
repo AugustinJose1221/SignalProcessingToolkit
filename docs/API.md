@@ -48,6 +48,8 @@ name and shape of every function.
 | [`detrend`](api/detrend.md) | Taking the level and the drift out of a block |
 | [`hampel`](api/hampel.md) | Replacing only the samples that are wrong |
 | [`adaptive`](api/adaptive.md) | A filter that finds its own coefficients |
+| [`rls`](api/rls.md) | A filter that solves least squares at every sample |
+| [`lattice`](api/lattice.md) | A filter built as a ladder of stages |
 | [`resample`](api/resample.md) | Changing the rate of a signal |
 | [`filtfilt`](api/filtfilt.md) | Filtering with no delay |
 
@@ -60,6 +62,7 @@ name and shape of every function.
 | [`kalman`](api/kalman.md) | The Kalman filter |
 | [`ekf`](api/ekf.md) | The extended Kalman filter |
 | [`ukf`](api/ukf.md) | The unscented Kalman filter |
+| [`propagate`](api/propagate.md) | Carrying a state forward through a rate of change |
 
 ## Decomposition
 
@@ -90,6 +93,7 @@ name and shape of every function.
 | [`pmatrix`](api/pmatrix.md) | Matrices with a parameter |
 | [`cnum`](api/cnum.md) | Complex numbers |
 | [`quaternion`](api/quaternion.md) | Which way something points |
+| [`eigen`](api/eigen.md) | The directions a matrix stretches |
 | [`lstsq`](api/lstsq.md) | Fitting a curve through readings |
 | [`vector`](api/vector.md) | Vectors of float values |
 | [`vector2d`](api/vector2d.md) | Vectors with two values |

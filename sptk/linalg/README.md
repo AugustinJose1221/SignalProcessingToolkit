@@ -204,3 +204,43 @@ order through twelve calibration points passes through all of them and swings
 wildly between them. Where a table is what is wanted, `interp` reads between its
 points without inventing anything; where a curve is wanted, the third or the
 fourth order is nearly always enough.
+
+## eigen
+
+**A symmetric matrix does one thing: it stretches space**, by different amounts
+in different directions, and those directions stand at right angles. The amounts
+are the eigenvalues and the directions the eigenvectors, and together they are
+the whole of what the matrix does.
+
+**Reading a covariance is the use that matters.** The largest eigenvalue is how
+far a set of measurements spreads at its widest, and the eigenvector beside it
+is which way. For a sensor of three axes watching something that moves along one
+line, `eigen_part_held` reports that one direction holds over 0.99 of the spread
+and the eigenvector names the line — whatever the axes of the sensor happen to
+be. That is what principal components means, and it is two lines once the
+eigenvalues are in hand.
+
+**`eigen_condition` is the number behind two things this library already
+records**: why `lstsq` refuses a fit, and why an RLS filter can run correctly for
+thousands of samples and then fall apart. It says how much a small error in what
+goes in is multiplied on its way out.
+
+**Symmetric only, and that is on purpose.** Every covariance is symmetric, so
+that is the case signal processing asks for — and it is also the case that
+behaves, with real eigenvalues and directions at right angles. A matrix that is
+not symmetric can have complex eigenvalues and directions lying almost on top of
+each other, and needs a method several times larger that holds far less well in a
+float.
+
+**The error does not follow the conditioning**, which is what parts the rotations
+of Jacobi from the methods that are quicker. Measured at 32 bits on matrices of
+order 5 built to a chosen conditioning, checking that the matrix really does
+stretch each direction by its value:
+
+| condition of the matrix | 1 | 10 | 1 000 | 100 000 | 10 000 000 |
+|---|---|---|---|---|---|
+| worst of `A·v` less `λ·v` | 0.0 | 5e-8 | 7e-8 | 9e-8 | 3e-8 |
+
+A matrix whose widest direction is ten million times its narrowest still gives
+directions right to seven digits. A method working through the normal equations,
+as `lstsq` does, would have nothing left by then.

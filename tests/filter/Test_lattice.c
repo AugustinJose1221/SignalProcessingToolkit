@@ -1,0 +1,296 @@
+#include "unity.h"
+#include "real_assert.h"
+#include "lattice.h"
+#include <math.h>
+
+#define STAGES      6u
+
+static uint32_t seed;
+
+void setUp(void)
+{
+    seed = 20260826u;
+}
+
+void tearDown(void)
+{
+
+}
+
+static real_t white(void)
+{
+    seed = (seed * 1103515245u) + 12345u;
+
+    return ((real_t)((seed >> 16u) % 20000u) / REAL_C(10000.0)) - REAL_C(1.0);
+}
+
+void test_lattice_is_valid_rate_and_forgetting(void)
+{
+    TEST_ASSERT_EQUAL(true, lattice_is_valid_rate(REAL_C(0.2)));
+    TEST_ASSERT_EQUAL(true, lattice_is_valid_rate(LATTICE_LARGEST_RATE));
+    TEST_ASSERT_EQUAL(false, lattice_is_valid_rate(REAL_C(0.0)));
+    TEST_ASSERT_EQUAL(false, lattice_is_valid_rate(-REAL_C(0.1)));
+    TEST_ASSERT_EQUAL(false,
+                      lattice_is_valid_rate(LATTICE_LARGEST_RATE
+                                            + REAL_C(0.1)));
+
+    TEST_ASSERT_EQUAL(true, lattice_is_valid_forgetting(REAL_C(0.99)));
+    TEST_ASSERT_EQUAL(true, lattice_is_valid_forgetting(REAL_C(1.0)));
+    TEST_ASSERT_EQUAL(false, lattice_is_valid_forgetting(REAL_C(0.0)));
+    TEST_ASSERT_EQUAL(false, lattice_is_valid_forgetting(REAL_C(1.1)));
+}
+
+void test_the_first_stage_finds_how_much_the_input_leans_on_itself(void)
+{
+    // THE LADDER ITSELF, APART FROM THE WEIGHTS.
+    //
+    // For an input where each sample is 0.9 of the one before plus a little
+    // noise, the first stage must find 0.9 and every stage beyond it must find
+    // nothing: there is nothing left for them to find.
+    lattice_t lattice = lattice_alloc(4);
+
+    lattice_design(&lattice, REAL_C(0.5), REAL_C(0.99));
+
+    real_t last = REAL_C(0.0);
+
+    for(uint32_t step = 0; step < 20000u; step++)
+    {
+        real_t sample = (REAL_C(0.9) * last) + (REAL_C(0.1) * white());
+
+        last = sample;
+        lattice_process_sample(&lattice, sample, REAL_C(0.0));
+    }
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.08), REAL_C(0.9),
+                            lattice_get_reflection(&lattice, 0));
+
+    for(uint32_t stage = 1; stage < 4u; stage++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.15), REAL_C(0.0),
+                                lattice_get_reflection(&lattice, stage));
+    }
+
+    lattice_free(&lattice);
+}
+
+void test_every_reflection_number_stays_between_minus_one_and_one(void)
+{
+    // WHY A LADDER CANNOT RUN AWAY. A number outside this describes a stage
+    // giving out more than it was given, and the arithmetic holds it rather
+    // than trusting it. An rls filter has a whole matrix that nothing holds.
+    lattice_t lattice = lattice_alloc(STAGES);
+
+    lattice_design(&lattice, LATTICE_LARGEST_RATE, REAL_C(0.99));
+
+    real_t last = REAL_C(0.0);
+
+    // A hard input: very heavily leaning, and large.
+    for(uint32_t step = 0; step < 20000u; step++)
+    {
+        real_t sample = (REAL_C(0.99) * last)
+                        + (REAL_C(50.0) * white());
+
+        last = sample;
+        lattice_process_sample(&lattice, sample, REAL_C(100.0) * white());
+
+        for(uint32_t stage = 0; stage < STAGES; stage++)
+        {
+            real_t reflection = lattice_get_reflection(&lattice, stage);
+
+            TEST_ASSERT_TRUE(reflection <= LATTICE_LARGEST_REFLECTION);
+            TEST_ASSERT_TRUE(reflection >= -LATTICE_LARGEST_REFLECTION);
+        }
+    }
+
+    lattice_free(&lattice);
+}
+
+void test_the_ladder_learns_the_response_it_is_shown(void)
+{
+    lattice_t lattice = lattice_alloc(STAGES);
+
+    lattice_design(&lattice, REAL_C(0.2), REAL_C(0.99));
+
+    real_t last = REAL_C(0.0);
+    real_t history[STAGES + 1u];
+
+    for(uint32_t index = 0; index <= STAGES; index++)
+    {
+        history[index] = REAL_C(0.0);
+    }
+
+    real_t error_power = REAL_C(0.0);
+    real_t wanted_power = REAL_C(0.0);
+
+    for(uint32_t step = 0; step < 40000u; step++)
+    {
+        real_t sample = (REAL_C(0.9) * last) + (REAL_C(0.1) * white());
+
+        last = sample;
+
+        for(uint32_t index = STAGES; index > 0u; index--)
+        {
+            history[index] = history[index - 1u];
+        }
+
+        history[0] = sample;
+
+        real_t wanted = (REAL_C(0.8) * history[1])
+                        - (REAL_C(0.5) * history[3]);
+
+        real_t left = lattice_process_sample(&lattice, sample, wanted);
+
+        if(step > 20000u)
+        {
+            error_power += left * left;
+            wanted_power += wanted * wanted;
+        }
+    }
+
+    // Twenty decibels down is a hundredth of the power.
+    TEST_ASSERT_TRUE(error_power < (wanted_power / REAL_C(100.0)));
+
+    lattice_free(&lattice);
+}
+
+void test_what_is_left_after_learning_is_never_the_larger(void)
+{
+    // THE TWO ERRORS, AND THE REASON BOTH ARE OFFERED.
+    //
+    // The error after a sample has been learned from has been told the answer
+    // first, thus it is always the smaller. Reporting it as how well a filter
+    // is doing is how an adaptive filter comes to look better than it is.
+    lattice_t lattice = lattice_alloc(STAGES);
+
+    lattice_design(&lattice, REAL_C(0.2), REAL_C(0.99));
+
+    real_t last = REAL_C(0.0);
+    uint32_t smaller = 0u;
+
+    for(uint32_t step = 0; step < 2000u; step++)
+    {
+        real_t sample = (REAL_C(0.9) * last) + (REAL_C(0.1) * white());
+
+        last = sample;
+
+        lattice_process_sample(&lattice, sample, sample * REAL_C(0.5));
+
+        real_t before = lattice_error_before(&lattice);
+        real_t after = lattice_error_after(&lattice);
+
+        TEST_ASSERT_TRUE(REAL_ABS(after) <= (REAL_ABS(before)
+                                             + REAL_C(0.000001)));
+
+        if(REAL_ABS(after) < REAL_ABS(before))
+        {
+            smaller++;
+        }
+    }
+
+    // And it really is smaller, not merely never larger.
+    TEST_ASSERT_TRUE(smaller > 1000u);
+
+    lattice_free(&lattice);
+}
+
+void test_the_answer_that_comes_back_is_the_error_before_learning(void)
+{
+    lattice_t lattice = lattice_alloc(STAGES);
+
+    lattice_design(&lattice, REAL_C(0.2), REAL_C(0.99));
+
+    for(uint32_t step = 0; step < 100u; step++)
+    {
+        real_t sample = white();
+        real_t given = lattice_process_sample(&lattice, sample,
+                                              sample * REAL_C(0.5));
+
+        TEST_ASSERT_EQUAL_REAL(lattice_error_before(&lattice), given);
+    }
+
+    lattice_free(&lattice);
+}
+
+void test_lattice_design_refuses_what_it_cannot_use(void)
+{
+    lattice_t lattice = lattice_alloc(STAGES);
+
+    TEST_ASSERT_EQUAL(false, lattice_design(&lattice, REAL_C(0.0),
+                                            REAL_C(0.99)));
+    TEST_ASSERT_EQUAL(false, lattice_design(&lattice, REAL_C(2.0),
+                                            REAL_C(0.99)));
+    TEST_ASSERT_EQUAL(false, lattice_design(&lattice, REAL_C(0.2),
+                                            REAL_C(0.0)));
+    TEST_ASSERT_EQUAL(false, lattice_design(&lattice, REAL_C(0.2),
+                                            REAL_C(1.5)));
+
+    TEST_ASSERT_EQUAL(true, lattice_design(&lattice, REAL_C(0.2),
+                                           REAL_C(0.99)));
+
+    lattice_free(&lattice);
+}
+
+void test_lattice_reset_clears_what_was_learned(void)
+{
+    lattice_t lattice = lattice_alloc(STAGES);
+
+    lattice_design(&lattice, REAL_C(0.5), REAL_C(0.99));
+
+    real_t last = REAL_C(0.0);
+
+    for(uint32_t step = 0; step < 2000u; step++)
+    {
+        real_t sample = (REAL_C(0.9) * last) + (REAL_C(0.1) * white());
+
+        last = sample;
+        lattice_process_sample(&lattice, sample, sample);
+    }
+
+    TEST_ASSERT_TRUE(REAL_ABS(lattice_get_reflection(&lattice, 0))
+                     > REAL_C(0.1));
+
+    lattice_reset(&lattice);
+
+    for(uint32_t stage = 0; stage < STAGES; stage++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.0),
+                                lattice_get_reflection(&lattice, stage));
+    }
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.0),
+                            lattice_error_before(&lattice));
+
+    lattice_free(&lattice);
+}
+
+void test_lattice_static_alloc(void)
+{
+    static real_t reflection[STAGES + 1u];
+    static real_t forward[STAGES + 1u];
+    static real_t backward[STAGES + 1u];
+    static real_t held[STAGES + 1u];
+    static real_t energy[STAGES + 1u];
+    static real_t weight[STAGES + 1u];
+
+    lattice_t lattice = lattice_static_alloc(STAGES, reflection, forward,
+                                             backward, held, energy, weight);
+
+    TEST_ASSERT_EQUAL(STAGES, lattice.stages);
+    TEST_ASSERT_EQUAL(true, lattice_design(&lattice, REAL_C(0.5),
+                                           REAL_C(0.99)));
+
+    real_t last = REAL_C(0.0);
+
+    for(uint32_t step = 0; step < 20000u; step++)
+    {
+        real_t sample = (REAL_C(0.9) * last) + (REAL_C(0.1) * white());
+
+        last = sample;
+        lattice_process_sample(&lattice, sample, REAL_C(0.0));
+    }
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.08), REAL_C(0.9),
+                            lattice_get_reflection(&lattice, 0));
+
+    lattice_free(&lattice);
+}

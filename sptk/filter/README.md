@@ -605,3 +605,104 @@ the length less one half. A waveform comes out moved along and not bent. Against
 the same specification, `iir` measures a Butterworth rising from 41 samples to
 93 across the band that passes and an elliptic from 14 to 87. That is what an
 FIR spends its length on.
+
+## rls
+
+**The adaptive module walks downhill; this one solves the whole problem at every
+sample.** Measured on a filter of 16 learning an unknown response, the samples
+taken to bring the coefficients 40 dB towards the truth: `adaptive` needs 163,
+`rls` needs 24.
+
+**But read the other half of that.** Left to run, the two settle at different
+places — at 32 bits `adaptive` reaches −149 dB and `rls` stops at −97 dB, because
+`rls` is limited by the precision of the matrix it carries and `adaptive` is
+limited by nothing. **The choice is not which is better**: it is whether the
+answer is wanted quickly or wanted exactly.
+
+**It is a separate module because of what it costs.** At 32 bits:
+
+| length | `adaptive` | `rls` |
+|---|---|---|
+| 16 | 0.1 kB | 1.3 kB |
+| 64 | 0.5 kB | 17 kB |
+| 256 | 2 kB | 266 kB |
+
+A length of 256 is ordinary for an echo canceller and 266 kB is not ordinary for
+a device. That had to be visible in the type rather than hidden behind an
+enumeration.
+
+**The matrix drifts, and the drift kills the filter.** This is the part that
+surprises people: an RLS filter runs perfectly for thousands of samples and then
+runs away. The matrix it carries should stay symmetric and nothing in the
+arithmetic holds it to that. Measured on a filter of 16 over a million samples at
+32 bits:
+
+| forgetting | halves drift apart by | what happens |
+|---|---|---|
+| worked out apart, 1.000 | 1.03 | held |
+| worked out apart, 0.999 | 1.82 | **fell over at sample 7230** |
+| worked out apart, 0.990 | 1.84 | **fell over at sample 987** |
+| worked out apart, 0.950 | 1.31 | **fell over at sample 216** |
+| written together, all four | 0.00 | held |
+
+The two halves come to differ by **more than the largest element of the matrix**.
+This module works out one half and writes it to both, which holds them exactly
+equal for nothing, for ever — the same thing `ukf` does to its covariance, for the
+same reason. **Ask `rls_is_healthy`**: a filter that has fallen apart still
+answers, and its answers are nonsense.
+
+**A fading past costs cancellation.** Taking away interference of size 0.35 beside
+a signal of size 1, what is left over is 0.030 at a forgetting factor of 1, 0.033
+at 0.999 and 0.117 at 0.99 — that is 21 dB, 20 dB and 9 dB of the interference
+removed. Fade only as fast as the thing being learned really moves.
+
+## lattice
+
+**A ladder of stages rather than a straight list of coefficients.** Each stage
+takes away from the signal whatever the stages before it already explained, so
+each learns at its own pace and none waits for another. That is what makes a
+ladder quick on an input whose samples lean heavily on each other, where a
+straight filter's coefficients are pulled about as a group.
+
+**Read the measurement across, not down.** Twelve stages learning a response of
+three taps from a strongly leaning input, showing how far the error stands below
+the wanted signal:
+
+| samples | 100 | 300 | 1000 | 3000 | 10000 | 30000 |
+|---|---|---|---|---|---|---|
+| `lattice` | -10.5 | -23.0 | -34.9 | -43.0 | -43.7 | -40.0 |
+| `adaptive` | -14.4 | -21.3 | -25.2 | -63.6 | -139.7 | -139.5 |
+| `rls` | -14.7 | -24.4 | -30.8 | -41.9 | -52.2 | -58.1 |
+
+There is a window, from about 300 samples to about 3000, where the ladder is
+ahead of both. Before it the ladder is still finding its stages. **After it the
+ladder stops improving and the others do not** — it settles near −43 dB while
+`adaptive` walks on down past −139 dB.
+
+**So take a ladder where the middle is all there is.** Where the thing being
+learned changes every few thousand samples, no filter ever reaches its floor and
+only that window matters. Where it stands still and there is time, `adaptive`
+ends up far ahead and costs less.
+
+**The rate trades how fast it settles against how low.** The stages never stop
+moving, and their movement keeps stirring what the weights are settling on:
+
+| rate | 1.00 | 0.50 | 0.20 | 0.05 | 0.01 |
+|---|---|---|---|---|---|
+| at 10000 samples | +1.9 | -42.0 | -45.4 | -34.5 | -18.2 |
+| at 100000 samples | -38.5 | -42.1 | -45.9 | -53.2 | -60.3 |
+
+About **0.2** is the best of both for most work. A rate of 1 does not settle at
+all in any useful time.
+
+**It cannot fall apart the way `rls` can.** There is no matrix to lose its
+footing: every stage holds one number and the arithmetic holds that number
+between −1 and 1 rather than trusting it to stay there.
+
+**The two errors are both offered, and the difference matters.** The error *a
+priori* is what the filter would have said had it not been about to learn — the
+honest measure, and the one to watch and record. The error *a posteriori* is what
+is left after the sample has been learned from; it is always the smaller, and it
+is the one to **use** where the filter is taking something away. Reporting the
+second where the first belongs is how an adaptive filter comes to look better
+than it is.

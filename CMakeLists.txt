@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(SignalProcessing VERSION 0.11.1 LANGUAGES C)
+project(SignalProcessing VERSION 0.12.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -16,6 +16,7 @@ set(SIGNALPROC_SOURCES
     sptk/linalg/cmatrix.c
     sptk/linalg/cnum.c
     sptk/linalg/matrix.c
+    sptk/linalg/eigen.c
     sptk/linalg/lstsq.c
     sptk/linalg/pmatrix.c
     sptk/linalg/quaternion.c
@@ -46,9 +47,12 @@ set(SIGNALPROC_SOURCES
     sptk/filter/hampel.c
     sptk/filter/adaptive.c
     sptk/filter/resample.c
+    sptk/filter/lattice.c
+    sptk/filter/rls.c
     sptk/filter/filtfilt.c
     sptk/estimate/ekf.c
     sptk/estimate/kalman.c
+    sptk/estimate/propagate.c
     sptk/estimate/ukf.c
     sptk/decompose/emd.c
     sptk/decompose/imf.c
@@ -92,7 +96,8 @@ if(BUILD_EXAMPLE)
         examples/fitcurve.c
         examples/spectrogram.c
         examples/coherence.c
-        examples/shapes.c)
+        examples/shapes.c
+        examples/continuous.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()

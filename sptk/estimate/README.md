@@ -144,3 +144,39 @@ width, and `ukf_is_valid_spread` says whether a given alpha can be held.
 of Cholesky of the covariance, thus the covariance must stay a real spread.
 Arithmetic can take it out of that state, and `ukf_predict` and `ukf_update`
 both give false when it has.
+
+## propagate
+
+**Every estimator here asks for a discrete step, and nobody writes a model that
+way.** A model of anything physical is written as a rate of change: a temperature
+falls at a rate following how far above the room it is, a pendulum turns back at
+a rate following how far over it leans. `propagate` turns one into the other.
+
+**The three methods differ in how the error falls as the step shrinks**, and that
+is what the order of a method means. Measured on a turning with a known answer,
+across one second at 64 bits:
+
+| step | 0.1 | 0.05 | 0.025 | 0.0125 |
+|---|---|---|---|---|
+| euler | 5.1e-02 | 2.5e-02 | 1.3e-02 | 6.3e-03 |
+| midpoint | 1.7e-03 | 4.2e-04 | 1.0e-04 | 2.6e-05 |
+| runge | 8.3e-07 | 5.2e-08 | 3.3e-09 | 2.0e-10 |
+
+Read along each row: euler halves, midpoint quarters, runge falls to a
+sixteenth — exactly.
+
+**At 32 bits the method outruns the width.** The same measurement gives runge
+8.5e-07, 1.4e-07, 2.3e-07, 1.2e-07 — it stops at about a part in ten million and
+goes no further, because by then the error of the method is below the rounding of
+the state itself and halving the step only adds more roundings. **There is
+nothing to gain from a smaller step than that, and a little to lose.**
+
+**Split the sample interval rather than taking it in one step.** The sample rate
+fixes how far apart the measurements are, and that distance is usually far too
+large for one step. `propagate_state_over` splits it, and splitting costs exactly
+what one step of that total size would have cost.
+
+**Do not reach for the best method every time.** The `continuous` example
+measures midpoint and Runge giving the same answer, because at that step the
+midpoint error had already fallen below the noise on the measurements. Carry the
+model well enough that it is not the worst thing in the answer, then stop.

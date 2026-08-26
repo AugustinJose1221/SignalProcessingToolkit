@@ -1,3 +1,96 @@
+## 0.12.0 (2026-08-26)
+
+Four modules about carrying a covariance forward and what finite precision does
+to it, and one about carrying a state forward through a model written the way
+models are really written.
+
+**`eigen` finds the directions a symmetric matrix stretches**, and how far it
+stretches each, by the rotations of Jacobi. Symmetric only, and on purpose:
+every covariance is symmetric, so that is the case signal processing asks for,
+and it is also the case that behaves.
+
+**The error does not follow the conditioning**, which is what parts this method
+from the ones that are quicker. Measured at 32 bits on matrices of order 5 built
+to a chosen conditioning, checking that the matrix really stretches each
+direction by its value:
+
+| condition of the matrix | 1 | 10 | 1 000 | 100 000 | 10 000 000 |
+| --- | --- | --- | --- | --- | --- |
+| worst of `A·v` less `λ·v` | 0.0 | 5e-8 | 7e-8 | 9e-8 | 3e-8 |
+
+A matrix whose widest direction is ten million times its narrowest still gives
+directions right to seven digits. `eigen_condition` is the number behind two
+things the library already records: why `lstsq` refuses a fit, and how far a
+covariance can be trusted.
+
+**`rls` solves the whole least squares problem at every sample.** Measured on a
+filter of 16, the samples to bring the coefficients 40 dB towards the truth are
+163 for `adaptive` and 24 for this. But left to run, `adaptive` reaches −149 dB
+at 32 bits where `rls` stops at −97 dB, because `rls` is limited by the precision
+of the matrix it carries. The choice is not which is better; it is whether the
+answer is wanted quickly or wanted exactly.
+
+**It is a module of its own because of what it costs**: at 32 bits a length of
+256 takes 266 kB against 2 kB, and a length of 256 is ordinary for an echo
+canceller. That had to be visible in the type.
+
+**And because the matrix it carries can lose its footing.** Written the usual
+way, with each half worked out on its own, measurement over a million samples at
+32 bits shows the two halves coming to differ by more than the largest element of
+the matrix, and the filter running away:
+
+| forgetting | halves drift apart by | what happens |
+| --- | --- | --- |
+| 0.999 | 1.82 | fell over at sample 7230 |
+| 0.990 | 1.84 | fell over at sample 987 |
+| 0.950 | 1.31 | fell over at sample 216 |
+
+This module works out one half and writes it to both, which holds them exactly
+equal for nothing, and all four factors then hold for a million samples. `ukf`
+holds its covariance together the same way. **Ask `rls_is_healthy`**: a filter
+that has fallen apart still answers.
+
+**`lattice` is a ladder of stages** rather than a straight list of coefficients,
+so each learns at its own pace on an input whose samples lean on each other. The
+measurement is recorded rather than the summary, because the summary is not the
+whole of it:
+
+| samples | 100 | 300 | 1000 | 3000 | 10000 | 30000 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `lattice` | -10.5 | -23.0 | -34.9 | -43.0 | -43.7 | -40.0 |
+| `adaptive` | -14.4 | -21.3 | -25.2 | -63.6 | -139.7 | -139.5 |
+| `rls` | -14.7 | -24.4 | -30.8 | -41.9 | -52.2 | -58.1 |
+
+There is a window from about 300 samples to about 3000 where the ladder is ahead
+of both, and after it the ladder stops improving and the others do not. **Take a
+ladder where the middle is all there is** — where the thing being learned changes
+every few thousand samples and no filter ever reaches its floor. It also cannot
+run away as `rls` can: every stage holds one number and the arithmetic holds it
+between −1 and 1.
+
+Both errors are offered. The error **a priori** is what the filter would have
+said had it not been about to learn, which is the honest measure. The error **a
+posteriori** is always the smaller, and reporting it where the first belongs is
+how an adaptive filter comes to look better than it is.
+
+**`propagate` carries a state forward through a rate of change.** Every
+estimator here asks for a discrete step and nobody writes a model that way.
+Measured on a turning with a known answer at 64 bits, halving the step halves the
+error of Euler, quarters the midpoint and cuts Runge to a sixteenth — exactly, in
+every case.
+
+**At 32 bits the method outruns the width**: Runge stops at about a part in ten
+million however small the step is made, because by then its own error is below
+the rounding of the state itself. There is nothing to gain from a smaller step
+than that, and a little to lose.
+
+The new `continuous` example follows a pendulum through a `ukf` with the model
+written as a rate. Euler is twice as far out as the other two on the state that
+is never measured — and then midpoint and Runge give the same answer, because at
+that step the midpoint error has already fallen below the noise on the
+measurements. Carry the model well enough that it is not the worst thing in the
+answer, then stop.
+
 ## 0.11.1 (2026-08-25)
 
 Two examples and one support file were written with `int main()` rather than
