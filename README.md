@@ -18,7 +18,7 @@ directory there:
 | --- | --- | --- | --- |
 | Transforms | `sptk/transform` | `fft`, `bluestein`, `window`, `psd`, `csd`, `stft`, `spectrogram`, `correlate`, `convolve`, `goertzel`, `hilbert`, `hht`, `dwt` | Find which frequencies a signal holds, and where |
 | Filters | `sptk/filter` | `fir`, `iir`, `savgol`, `movavg`, `medfilt`, `dcblock`, `detrend`, `hampel`, `adaptive`, `rls`, `lattice`, `resample`, `filtfilt` | Take a band of frequencies away, or smooth a signal |
-| Estimation | `sptk/estimate` | `kalman`, `ekf`, `ukf` | Follow a state behind a noisy measurement |
+| Estimation | `sptk/estimate` | `kalman`, `ekf`, `ukf`, `propagate` | Follow a state behind a noisy measurement |
 | Decomposition | `sptk/decompose` | `emd`, `imf` | Split a signal into simpler parts |
 | Interpolation | `sptk/interpolate` | `cspline`, `interp` | Give a smooth curve through a set of points |
 | Linear algebra | `sptk/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `quaternion`, `eigen`, `lstsq`, `vector`, `vector2d` | The arithmetic that the areas above need |

@@ -42,6 +42,7 @@ comment that says so.
 | `RUN_SPECTROGRAM_EXAMPLE` | [spectrogram.c](spectrogram.c) | A tone that slides from low to high | When was each frequency there? |
 | `RUN_COHERENCE_EXAMPLE` | [coherence.c](coherence.c) | A machine, a floor and a second machine | Which of these two is shaking the floor? |
 | `RUN_SHAPES_EXAMPLE` | [shapes.c](shapes.c) | One specification, built four ways | Which shape of filter should I use? |
+| `RUN_CONTINUOUS_EXAMPLE` | [continuous.c](continuous.c) | A pendulum measured noisily | How do I use a model written as a rate of change? |
 
 ## What each example shows
 
@@ -207,3 +208,20 @@ by different amounts. A Butterworth rises by a little over twice across the band
 the elliptic by more than six times. **The shape that costs the fewest
 multiplications costs the most in the shape of the waveform**, and that is the
 trade the table of gains hides.
+
+**continuous.c — a model written as a rate of change.** Every estimator in this
+library asks for a function that takes the state now and gives the state at the
+next sample, and **nobody writes a model that way**. A pendulum is written as how
+fast it is turning and how fast that is changing, and turning one into the other
+is what `propagate` does.
+
+The example runs the same `ukf` three times, differing only in how the model is
+carried between measurements, and reports how far the **rate** ends up — the part
+that is never measured at all, and so the part where a badly carried model shows
+first. Euler is twice as far out as the other two.
+
+Then the lesson that matters more: **midpoint and Runge give the same answer
+here**, though Runge asks for the rate twice as often. At this step the midpoint
+error has already fallen below the noise on the measurements, and nothing below
+that noise can help. Carry the model well enough that it is not the worst thing
+in the answer, then stop.
