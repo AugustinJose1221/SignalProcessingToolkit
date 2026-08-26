@@ -605,3 +605,53 @@ the length less one half. A waveform comes out moved along and not bent. Against
 the same specification, `iir` measures a Butterworth rising from 41 samples to
 93 across the band that passes and an elliptic from 14 to 87. That is what an
 FIR spends its length on.
+
+## rls
+
+**The adaptive module walks downhill; this one solves the whole problem at every
+sample.** Measured on a filter of 16 learning an unknown response, the samples
+taken to bring the coefficients 40 dB towards the truth: `adaptive` needs 163,
+`rls` needs 24.
+
+**But read the other half of that.** Left to run, the two settle at different
+places — at 32 bits `adaptive` reaches −149 dB and `rls` stops at −97 dB, because
+`rls` is limited by the precision of the matrix it carries and `adaptive` is
+limited by nothing. **The choice is not which is better**: it is whether the
+answer is wanted quickly or wanted exactly.
+
+**It is a separate module because of what it costs.** At 32 bits:
+
+| length | `adaptive` | `rls` |
+|---|---|---|
+| 16 | 0.1 kB | 1.3 kB |
+| 64 | 0.5 kB | 17 kB |
+| 256 | 2 kB | 266 kB |
+
+A length of 256 is ordinary for an echo canceller and 266 kB is not ordinary for
+a device. That had to be visible in the type rather than hidden behind an
+enumeration.
+
+**The matrix drifts, and the drift kills the filter.** This is the part that
+surprises people: an RLS filter runs perfectly for thousands of samples and then
+runs away. The matrix it carries should stay symmetric and nothing in the
+arithmetic holds it to that. Measured on a filter of 16 over a million samples at
+32 bits:
+
+| forgetting | halves drift apart by | what happens |
+|---|---|---|
+| worked out apart, 1.000 | 1.03 | held |
+| worked out apart, 0.999 | 1.82 | **fell over at sample 7230** |
+| worked out apart, 0.990 | 1.84 | **fell over at sample 987** |
+| worked out apart, 0.950 | 1.31 | **fell over at sample 216** |
+| written together, all four | 0.00 | held |
+
+The two halves come to differ by **more than the largest element of the matrix**.
+This module works out one half and writes it to both, which holds them exactly
+equal for nothing, for ever — the same thing `ukf` does to its covariance, for the
+same reason. **Ask `rls_is_healthy`**: a filter that has fallen apart still
+answers, and its answers are nonsense.
+
+**A fading past costs cancellation.** Taking away interference of size 0.35 beside
+a signal of size 1, what is left over is 0.030 at a forgetting factor of 1, 0.033
+at 0.999 and 0.117 at 0.99 — that is 21 dB, 20 dB and 9 dB of the interference
+removed. Fade only as fast as the thing being learned really moves.
