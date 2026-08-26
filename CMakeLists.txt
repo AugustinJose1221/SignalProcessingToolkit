@@ -52,6 +52,7 @@ set(SIGNALPROC_SOURCES
     sptk/filter/filtfilt.c
     sptk/estimate/ekf.c
     sptk/estimate/kalman.c
+    sptk/estimate/propagate.c
     sptk/estimate/ukf.c
     sptk/decompose/emd.c
     sptk/decompose/imf.c
@@ -95,7 +96,8 @@ if(BUILD_EXAMPLE)
         examples/fitcurve.c
         examples/spectrogram.c
         examples/coherence.c
-        examples/shapes.c)
+        examples/shapes.c
+        examples/continuous.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()
