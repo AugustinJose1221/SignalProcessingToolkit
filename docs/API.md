@@ -48,6 +48,7 @@ name and shape of every function.
 | [`detrend`](api/detrend.md) | Taking the level and the drift out of a block |
 | [`hampel`](api/hampel.md) | Replacing only the samples that are wrong |
 | [`adaptive`](api/adaptive.md) | A filter that finds its own coefficients |
+| [`rls`](api/rls.md) | A filter that solves least squares at every sample |
 | [`resample`](api/resample.md) | Changing the rate of a signal |
 | [`filtfilt`](api/filtfilt.md) | Filtering with no delay |
 

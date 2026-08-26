@@ -62,6 +62,7 @@ SOURCES = [
     "sptk/filter/hampel.c",
     "sptk/filter/adaptive.c",
     "sptk/filter/resample.c",
+    "sptk/filter/rls.c",
     "sptk/filter/filtfilt.c",
     "sptk/estimate/ekf.c",
     "sptk/estimate/kalman.c",
