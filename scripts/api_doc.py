@@ -77,6 +77,7 @@ MODULES = [
     ("adaptive", "sptk/filter/adaptive.h", "A filter that finds its own coefficients"),
     ("resample", "sptk/filter/resample.h", "Changing the rate of a signal"),
     ("filtfilt", "sptk/filter/filtfilt.h", "Filtering with no delay"),
+    ("generate", "sptk/util/generate.h", "Making the signals to test with"),
     ("stats", "sptk/util/stats.h", "Measures of a list of samples"),
     ("binarysearch", "sptk/util/binarysearch.h", "Binary search"),
     ("peakdetect", "sptk/util/peakdetect.h", "Peak detection"),
@@ -185,7 +186,7 @@ AREAS = [
     ("linalg", "Linear algebra", ["matrix", "cmatrix", "pmatrix", "cnum",
                                   "quaternion", "eigen", "lstsq", "vector",
                                   "vector2d"]),
-    ("util", "Utilities", ["stats", "binarysearch", "peakdetect",
+    ("util", "Utilities", ["generate", "stats", "binarysearch", "peakdetect",
                            "valleydetect"]),
     ("core", "Core", ["real", "ringbuf", "point2d", "callback"]),
 ]
