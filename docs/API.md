@@ -94,6 +94,7 @@ name and shape of every function.
 | [`cnum`](api/cnum.md) | Complex numbers |
 | [`quaternion`](api/quaternion.md) | Which way something points |
 | [`eigen`](api/eigen.md) | The directions a matrix stretches |
+| [`poly`](api/poly.md) | Polynomials, and where they cross nothing |
 | [`lstsq`](api/lstsq.md) | Fitting a curve through readings |
 | [`vector`](api/vector.md) | Vectors of float values |
 | [`vector2d`](api/vector2d.md) | Vectors with two values |
@@ -104,6 +105,8 @@ name and shape of every function.
 
 | Module | What it holds |
 | --- | --- |
+| [`generate`](api/generate.md) | Making the signals to test with |
+| [`quantise`](api/quantise.md) | Putting a signal into steps |
 | [`stats`](api/stats.md) | Measures of a list of samples |
 | [`binarysearch`](api/binarysearch.md) | Binary search |
 | [`peakdetect`](api/peakdetect.md) | Peak detection |

@@ -121,3 +121,85 @@ returns one, at the middle of the flat part.
 
 **A valley is a peak of the signal turned upside down.** There is no separate
 set of these rules for valleys; negate the signal and use these.
+
+## generate
+
+**Every test and example in this library used to write its own sine wave.** That
+is fine for a sine and a trap for anything else.
+
+**A square wave is not a row of ones and minus ones.** Written the obvious way,
+by taking the sign of a sine, it holds every odd harmonic out to infinity — and a
+sampled signal cannot hold anything above half the sample rate, so every harmonic
+above that **folds back** and lands somewhere below it, at a frequency that has
+nothing to do with the note being played.
+
+Measured at 8000 samples in a second: the loudest thing in the answer that is
+**not** a harmonic of the tone, against the tone itself.
+
+| tone Hz | 100 | 300 | 700 | 1300 | 1900 | 3100 |
+|---|---|---|---|---|---|---|
+| samples a turn | 80 | 27 | 11 | 6.2 | 4.2 | 2.6 |
+| naive | -39.3 | -23.9 | -17.3 | -13.9 | -9.2 | -9.2 |
+| `generate` | -49.3 | -33.7 | -29.6 | -39.6 | -25.7 | -39.6 |
+
+Read the naive row across. The fewer samples to a turn, the worse it gets, until
+at 1900 Hz the loudest false tone is only 9 dB below the one that was asked for.
+**A filter tested with that wave is being tested against a signal nobody meant to
+make.**
+
+**It does not remove the folding altogether**, and the table is honest about
+that: the best it reaches is about 50 dB down and the worst about 26. Nothing
+that runs in constant time does better. A test that needs better than that wants
+a sine, which folds nothing because it holds one frequency and no other.
+
+**The phase is carried, not worked out from the sample number.** Working out
+`sin(2πfn/rate)` from `n` goes wrong in two ways: the angle grows without bound
+so a long run loses its digits, and a frequency that changes cannot be written
+that way at all without a jump. Carrying and folding the phase costs nothing and
+allows `generate_design_sweep` — a chirp visits every frequency in one run, and
+one chirp through a filter shows the whole of what the filter does.
+
+**The same seed gives the same noise**, on every machine and at either width. A
+test that cannot be repeated is not a test.
+
+**A note on Unity's assertions.** The macros use what they are given more than
+once for the *expected* argument. A call that moves a generator on must be stored
+in a local first, or the two sides fall out of step with each other rather than
+with the test.
+
+## quantise
+
+**Every signal in a device has been through this.** A converter of 12 bits holds
+4096 steps and nothing between them, and what falls between two steps has to go
+to one of them.
+
+**The error is the same size whatever is done.** Nothing here makes it smaller.
+What this module chooses is **what shape it takes**, and that decides whether it
+can be got rid of afterwards.
+
+Measured, a sine of 300 Hz at a hundredth of full scale into 8 bits at 8000
+samples a second, everything against the sine:
+
+| | worst false tone | noise below 1 kHz | noise above it |
+|---|---|---|---|
+| rounded plainly | -15.6 dB | -15.2 dB | -8.0 dB |
+| with dither | -30.9 dB | -7.6 dB | -2.9 dB |
+| with dither and shape | -25.4 dB | -14.2 dB | +1.2 dB |
+
+**Read it a column at a time.** Plain rounding leaves a false tone only 15.6 dB
+below the signal — a harmonic of it, which **no amount of averaging removes**,
+because it is not noise but a signal. Dither takes 15 dB off that and leaves
+noise in its place, and noise averages away.
+
+The second column is what the dither costs: the noise below 1 kHz rises from
+−15.2 to −7.6. The third row is why shaping exists — it takes that back down to
+−14.2, nearly where plain rounding had it, and pays for it above 1 kHz where the
+noise rises to +1.2.
+
+**The noise has not gone anywhere.** It has been moved out of the band the signal
+is in. A signal that fills the whole band gains nothing from shaping and loses a
+little; a signal that sits low down, which most do, gains the whole 6.6 dB.
+
+**A signal beyond the reach is held, never wrapped.** A signal that wraps does
+not sound loud, it sounds broken, and one sample of it can undo a whole
+measurement.

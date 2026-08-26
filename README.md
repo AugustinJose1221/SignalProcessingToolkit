@@ -21,8 +21,8 @@ directory there:
 | Estimation | `sptk/estimate` | `kalman`, `ekf`, `ukf`, `propagate` | Follow a state behind a noisy measurement |
 | Decomposition | `sptk/decompose` | `emd`, `imf` | Split a signal into simpler parts |
 | Interpolation | `sptk/interpolate` | `cspline`, `interp` | Give a smooth curve through a set of points |
-| Linear algebra | `sptk/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `quaternion`, `eigen`, `lstsq`, `vector`, `vector2d` | The arithmetic that the areas above need |
-| Utilities | `sptk/util` | `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
+| Linear algebra | `sptk/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `quaternion`, `eigen`, `poly`, `lstsq`, `vector`, `vector2d` | The arithmetic that the areas above need |
+| Utilities | `sptk/util` | `generate`, `quantise`, `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
 | Core | `sptk/core` | `real`, `ringbuf`, `callback`, `defs`, `point2d` | The type that holds every number, a buffer of the last samples, and the types that every module shares |
 
 Include a module by its area:
