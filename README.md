@@ -22,7 +22,7 @@ directory there:
 | Decomposition | `sptk/decompose` | `emd`, `imf` | Split a signal into simpler parts |
 | Interpolation | `sptk/interpolate` | `cspline`, `interp` | Give a smooth curve through a set of points |
 | Linear algebra | `sptk/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `quaternion`, `eigen`, `lstsq`, `vector`, `vector2d` | The arithmetic that the areas above need |
-| Utilities | `sptk/util` | `generate`, `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
+| Utilities | `sptk/util` | `generate`, `quantise`, `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
 | Core | `sptk/core` | `real`, `ringbuf`, `callback`, `defs`, `point2d` | The type that holds every number, a buffer of the last samples, and the types that every module shares |
 
 Include a module by its area:
