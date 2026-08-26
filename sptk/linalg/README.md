@@ -244,3 +244,49 @@ stretch each direction by its value:
 A matrix whose widest direction is ten million times its narrowest still gives
 directions right to seven digits. A method working through the normal equations,
 as `lstsq` does, would have nothing left by then.
+
+## poly
+
+**A polynomial is a list of numbers, lowest power first** — the same order
+`lstsq` gives its answers in.
+
+**The roots are what this is for, and stability is why.** An `iir` filter is two
+polynomials divided by each other; where the one below crosses nothing the filter
+has a pole, and **a pole outside the unit circle is a filter that runs away**.
+Not a slow drift — the answer doubles every few samples until it is nothing but
+infinities. `poly_is_inside_circle` finds out before it happens. A filter
+designed by the `iir` module is stable by construction; one whose coefficients
+came from a file, or from a design changed by hand, is stable only if somebody
+checked.
+
+**Why the order is capped, and it is not the method that caps it.** Measured on
+polynomials built by multiplying known roots together — both how far each root
+came back from where it was built, and how near nothing the polynomial really is
+there:
+
+| order | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|
+| 32 bits, from intended | 3.5e-05 | 6.0e-06 | 1.4e-05 | 4.3e-02 | 2.9e-01 |
+| 32 bits, `p(root)` | 6.0e-08 | 7.5e-08 | 1.8e-07 | 1.8e-07 | 3.7e-07 |
+| 64 bits, from intended | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+
+**Read the two 32-bit rows against each other.** At order 5 the roots come back a
+twentieth away from where they were built, **and the polynomial is still nearly
+nothing there**. Both are true at once, and what it means is that the module
+found the right roots *of the wrong polynomial* — by order 5 the coefficients
+themselves, held at 32 bits, no longer describe the polynomial that was meant. No
+method finds roots the coefficients no longer hold.
+
+**For a filter this is rarely a limit.** An `iir` filter is a chain of biquads and
+each is order 2, which has a closed form and is exact. Ask about one section at a
+time.
+
+**Order 2 is written so that no two nearly equal numbers are subtracted.** Where
+one root is far larger than the other, the plain form of the quadratic answer
+makes the smaller root out of rounding. Taking the root that adds and reaching
+the other through the product of the two costs nothing and holds every digit — a
+pair standing twelve orders apart still comes back right.
+
+**Every root is polished against the original polynomial** after the deflation.
+Each division carries its own error into what follows, and without the polishing
+the answer at order 4 is out by a sixth rather than by a part in fifty thousand.
