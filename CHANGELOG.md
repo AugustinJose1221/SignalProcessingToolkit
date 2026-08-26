@@ -1,3 +1,71 @@
+## 0.13.0 (2026-08-26)
+
+Making the signals to test with, the numbers they are stored in, and finding
+where a polynomial crosses nothing.
+
+**`generate` makes signals without the faults that come free with them.** Every
+test and example in this library used to write its own sine wave, which is fine
+for a sine and a trap for anything else. A square wave written the obvious way
+holds every odd harmonic out to infinity, and each one above half the sample rate
+folds back to a frequency that has nothing to do with the note being played.
+
+Measured at 8000 samples a second: the loudest thing in the answer that is **not**
+a harmonic of the tone, against the tone itself.
+
+| tone Hz | 100 | 300 | 700 | 1300 | 1900 | 3100 |
+| --- | --- | --- | --- | --- | --- | --- |
+| samples a turn | 80 | 27 | 11 | 6.2 | 4.2 | 2.6 |
+| naive | -39.3 | -23.9 | -17.3 | -13.9 | -9.2 | -9.2 |
+| `generate` | -49.3 | -33.7 | -29.6 | -39.6 | -25.7 | -39.6 |
+
+At 1900 Hz the naive wave holds a false tone only 9 dB below the one asked for. It
+does not remove the folding altogether — the best it reaches is 50 dB down and the
+worst 26 — and the header says so with the same table. A test needing better than
+that wants a sine.
+
+The phase is carried and folded rather than worked out from the sample number,
+which is what allows `generate_design_sweep`: a chirp visits every frequency in
+one run, and one chirp through a filter shows the whole of what the filter does.
+
+**`quantise` chooses what shape the error of a converter takes.** The error is the
+same size whatever is done; what changes is whether it can be got rid of
+afterwards. Measured, a sine of 300 Hz at a hundredth of full scale into 8 bits:
+
+| | worst false tone | noise below 1 kHz | noise above it |
+| --- | --- | --- | --- |
+| rounded plainly | -15.6 dB | -15.2 dB | -8.0 dB |
+| with dither | -30.9 dB | -7.6 dB | -2.9 dB |
+| with dither and shape | -25.4 dB | -14.2 dB | +1.2 dB |
+
+Plain rounding leaves a false tone 15.6 dB below the signal, a harmonic of it,
+which **no amount of averaging removes** because it is not noise but a signal.
+Dither takes 15 dB off that and leaves noise, which averages away. Shaping takes
+the noise back out of the band the signal is in — it does not remove noise, it
+moves it, and a signal filling the whole band gains nothing.
+
+**`poly` finds where a polynomial crosses nothing**, which is what says whether a
+filter is stable. A pole outside the unit circle is a filter whose answer doubles
+every few samples until it is nothing but infinities, and `poly_is_inside_circle`
+finds out before it happens.
+
+Order 1 and 2 have a closed form, so every pole of every filter in this library is
+reached exactly. The quadratic is written so no two nearly equal numbers are
+subtracted, and a pair of roots twelve orders apart still comes back right.
+
+**The order is capped, and it is not the method that caps it.** Measured at 32
+bits, at order 5 the roots come back a twentieth away from the ones they were
+built from **and the polynomial is still nearly nothing there** — the module found
+the right roots of the wrong polynomial, because by that order the coefficients
+themselves can no longer describe the polynomial that was meant. No method finds
+roots the coefficients no longer hold. At 64 bits every order to 12 is exact. For
+a filter this is rarely a limit, since a chain of biquads is order 2 a section.
+
+**A trap worth recording.** Unity's assertion macros use their *expected* argument
+more than once. A call that moves a generator on must be stored in a local first,
+or the two sides fall out of step with each other rather than with the test. The
+existing suite is safe — every case there has a constant in that position — but it
+cost a while to find.
+
 ## 0.12.0 (2026-08-26)
 
 Four modules about carrying a covariance forward and what finite precision does
