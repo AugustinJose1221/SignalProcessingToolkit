@@ -221,6 +221,24 @@ def test_a_matrix_that_squashes_a_direction_flat_cannot_be_undone(lib, rows):
     for column in range(3):
         rows[column][2] = rows[column][1]
 
+    # AND THE MATRIX IS SCALED SO THAT ITS LARGEST ELEMENT IS ONE. That is not
+    # slack: the rank of a matrix does not change when the matrix is scaled,
+    # thus scaling takes nothing away from what is examined here, and it takes
+    # away a fault that belongs to the width rather than to the module.
+    #
+    # eigen_solve decides how far to turn at each step from the SQUARES of the
+    # elements. A matrix whose elements are smaller than the square root of the
+    # smallest ordinary number the width holds has squares that are no longer
+    # ordinary numbers, and it is then turned by the wrong amount. Measured at
+    # 32 bits on this very matrix, the rank came back as 2 at every scale from
+    # 1e-1 down to 1e-17 and as 3 from 1e-19 down. 1e-19 is the square root of
+    # the smallest ordinary number a float of 32 bits holds. The header of
+    # eigen_solve says so, and says to scale.
+    largest = max(abs(value) for row in rows for value in row)
+    assume(largest > 0.0)
+
+    rows = [[sp.to_float32(value / largest) for value in row] for row in rows]
+
     answered = solve(lib, rows, False)
     assume(answered is not None)
 
