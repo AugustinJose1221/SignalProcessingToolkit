@@ -152,6 +152,45 @@ static void draw_bar(real_t value, real_t largest, uint32_t width)
     }
 }
 
+// Draw one sample as a row of a plot: a mark at the place its value stands,
+// with the middle of the row standing for nothing.
+//
+// A waveform is drawn down the page rather than across it because a terminal
+// holds far more rows than it holds columns, and because the two traces can
+// then stand side by side at the SAME SCALE, which is the whole point of the
+// comparison. Drawn at scales of their own they would look alike.
+static void draw_sample(real_t value, real_t reach, uint32_t width, char mark)
+{
+    uint32_t middle = width / 2u;
+    uint32_t at = middle;
+
+    if(reach > REAL_SMALLEST)
+    {
+        real_t part = value / reach;
+
+        if(part > REAL_C(1.0)) { part = REAL_C(1.0); }
+        if(part < -REAL_C(1.0)) { part = -REAL_C(1.0); }
+
+        at = (uint32_t)((real_t)middle + (part * (real_t)(middle - 1u)));
+    }
+
+    for(uint32_t step = 0; step < width; step++)
+    {
+        if(step == at)
+        {
+            printf("%c", mark);
+        }
+        else if(step == middle)
+        {
+            printf(".");
+        }
+        else
+        {
+            printf(" ");
+        }
+    }
+}
+
 // Run a canceller and give BOTH numbers that matter.
 //
 // HOW MUCH SIGNAL SURVIVED is not how large the answer is, which says nothing:
@@ -373,6 +412,92 @@ int main(void)
            "  the signal whole and has not finished learning. The best of\n"
            "  both is near the middle, and neither column alone would have\n"
            "  found it.\n");
+
+    /* ---------------------------------------------------------------- */
+    real_t shown_removed;
+    real_t shown_kept;
+
+    run_it(suggested, REAL_C(0.05), &shown_removed, &shown_kept);
+
+    printf("\n  AND HERE IS WHAT THAT LOOKS LIKE, at the rate the table\n"
+           "  chose. Both traces are drawn to the SAME scale, which is what\n"
+           "  makes the comparison honest:\n\n");
+
+    printf("        %-29s %-29s\n", "raw, at the primary sensor",
+           "filtered, what is left");
+
+    uint32_t from = 24000u;
+    real_t reach = REAL_C(2.0);
+
+    for(uint32_t step = 0; step < 52u; step++)
+    {
+        uint32_t index = from + step;
+
+        printf("  %5u ", step);
+        draw_sample(primary[index], reach, 29u, '#');
+        printf(" ");
+        draw_sample(cleaned[index], reach, 29u, '#');
+        printf("\n");
+    }
+
+    printf("\n  The noise buries everything on the left, and the middle of the\n"
+           "  right hand trace hardly moves. NOTHING OF THE SIGNAL CAN BE SEEN\n"
+           "  IN EITHER at this scale, because at this scale it is small.\n");
+
+    printf("\n  So here is the right hand trace again, drawn four times\n"
+           "  larger, against the signal that was wanted:\n\n");
+
+    printf("        %-29s %-29s\n", "filtered, what is left",
+           "the signal that was wanted");
+
+    reach = REAL_C(0.5);
+
+    for(uint32_t step = 0; step < 52u; step++)
+    {
+        uint32_t index = from + step;
+
+        printf("  %5u ", step);
+        draw_sample(cleaned[index], reach, 29u, '#');
+        printf(" ");
+        draw_sample(wanted_signal[index], reach, 29u, '#');
+        printf("\n");
+    }
+
+    printf("\n  THE TWO SNAKE DOWN THE PAGE TOGETHER, turning at the same\n"
+           "  places and leaning the same way. That is the canceller working:\n"
+           "  what is left is the signal, which was nowhere to be seen in the\n"
+           "  left hand trace of the figure before.\n");
+    // What the two traces really reached across the rows that were drawn,
+    // rather than a number written down beside a picture that shows another.
+    real_t widest_left = REAL_C(0.0);
+    real_t widest_right = REAL_C(0.0);
+
+    for(uint32_t step = 0; step < 52u; step++)
+    {
+        uint32_t index = from + step;
+
+        if(REAL_ABS(cleaned[index]) > widest_left)
+        {
+            widest_left = REAL_ABS(cleaned[index]);
+        }
+
+        if(REAL_ABS(wanted_signal[index]) > widest_right)
+        {
+            widest_right = REAL_ABS(wanted_signal[index]);
+        }
+    }
+
+    printf("\n  IT IS NOT THE SIGNAL EXACTLY, and the plot says so: the left\n"
+           "  hand trace swings wider, reaching %.2f across these rows where\n"
+           "  the signal reaches %.2f. THAT EXTRA WIDTH IS THE NOISE THE\n"
+           "  FILTER COULD NOT REACH, riding on top of the answer. It is the\n"
+           "  %.1f dB of the table above, seen rather than read.\n",
+           (double)widest_left, (double)widest_right, (double)-shown_removed);
+    printf("\n  The %.0f parts in a hundred of signal that the filter ate\n"
+           "  cannot be seen here at all: at this size it is less than the\n"
+           "  width of one character. Some things are only ever numbers, and\n"
+           "  that is what the table is for.\n",
+           (double)((REAL_C(1.0) - shown_kept) * REAL_C(100.0)));
 
     /* ---------------------------------------------------------------- */
     printf("\n=== STEP FOUR: a reference that hears the signal ===\n\n");
