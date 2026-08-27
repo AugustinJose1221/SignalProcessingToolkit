@@ -14,10 +14,18 @@
 // What is wanted is the number of standard deviations t for which the share of
 // a normal distribution above t is the given part. The forward direction has no
 // closed form and neither has this one, thus it is a fit: the rational form
-// below is the one Peter Acklam published, and it holds to about one part in a
-// billion of the answer across the whole range. That is far finer than the
-// noise of any real reading, and the alternative was a search, which would cost
-// far more for an answer nobody could measure the difference of.
+// below is the one Peter Acklam published, and the FIT holds to about one part
+// in a billion of the answer across the whole range.
+//
+// What comes out is only as fine as the width it is worked in. Measured against
+// a table at rates from a half down to a thousand millionth, the answer stands
+// within seven millionths at 32 bits and within a millionth at 64. The first of
+// those is the width and not the fit, and both are far finer than the noise of
+// any real reading: a threshold of 4.75 standard deviations moved by seven
+// millionths changes nothing a caller could measure.
+//
+// The alternative was a search on the forward direction, which would cost far
+// more for an answer nobody could tell apart from this one.
 static real_t matched_normal_above(real_t part);
 
 bool matched_is_valid_length(uint32_t length)
