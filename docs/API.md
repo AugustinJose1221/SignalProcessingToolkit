@@ -99,6 +99,16 @@ name and shape of every function.
 | [`vector`](api/vector.md) | Vectors of float values |
 | [`vector2d`](api/vector2d.md) | Vectors with two values |
 
+## Detection
+
+[How the detect modules work](../sptk/detect/README.md)
+
+| Module | What it holds |
+| --- | --- |
+| [`matched`](api/matched.md) | Looking for a known shape |
+| [`delay`](api/delay.md) | How far one reading stands behind another |
+| [`changepoint`](api/changepoint.md) | Saying when a reading has changed |
+
 ## Utilities
 
 [How the util modules work](../sptk/util/README.md)

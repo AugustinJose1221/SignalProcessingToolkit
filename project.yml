@@ -105,6 +105,7 @@
     - tests/decompose/**
     - tests/util/**
     - tests/core/**
+    - tests/detect/**
   :source:
     - sptk/core/**
     - sptk/linalg/**
@@ -114,6 +115,7 @@
     - sptk/estimate/**
     - sptk/decompose/**
     - sptk/util/**
+    - sptk/detect/**
   :include:
     - sptk/core/**
     - sptk/linalg/**
@@ -123,6 +125,7 @@
     - sptk/estimate/**
     - sptk/decompose/**
     - sptk/util/**
+    - sptk/detect/**
     - tests/support/**
   :support:
     - tests/support/**
