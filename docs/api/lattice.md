@@ -51,6 +51,7 @@ typedef struct{
     real_t forgetting;          // How much of the past the energies keep
     real_t before;              // What was left over before this sample
     real_t after;               // What is left over after it
+    real_t counted;             // How many samples the energies stand for
     bool designed;              // True once lattice_design has been called
     bool dynamic_alloc;         // True if the memory comes from the heap
 }lattice_t;

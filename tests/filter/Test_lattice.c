@@ -294,3 +294,43 @@ void test_lattice_static_alloc(void)
 
     lattice_free(&lattice);
 }
+
+// A filter told to forget nothing must still answer with numbers.
+//
+// The weights divide by the mean loudness of each stage, and that mean used to
+// be worked out by multiplying the running sum by one less the forgetting
+// factor. At a factor of exactly one, which lattice_is_valid_forgetting takes,
+// that multiplier is NOTHING. The whole normalisation then disappeared and
+// each weight was left dividing by its own sample alone, thus one quiet sample
+// moved a weight by thousands and the next loud one carried the answer away.
+// Measured, the answer reached infinity by sample 244 at a rate of 1.0.
+void test_lattice_forgetting_nothing_still_answers(void)
+{
+    real_t rates[2] = {REAL_C(0.5), REAL_C(1.0)};
+
+    for(uint32_t which = 0; which < 2u; which++)
+    {
+        lattice_t lattice = lattice_alloc(2u);
+
+        TEST_ASSERT_EQUAL(true, lattice_design(&lattice, rates[which],
+                                               REAL_C(1.0)));
+
+        seed = 1u;
+
+        real_t last = REAL_C(0.0);
+
+        for(uint32_t step = 0; step < 2000u; step++)
+        {
+            real_t sample = white();
+            real_t wanted = (REAL_C(0.6) * sample) - (REAL_C(0.3) * last);
+
+            last = sample;
+
+            real_t left = lattice_process_sample(&lattice, sample, wanted);
+
+            TEST_ASSERT_TRUE(REAL_ABS(left) < REAL_C(1000.0));
+        }
+
+        lattice_free(&lattice);
+    }
+}
