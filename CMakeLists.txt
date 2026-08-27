@@ -100,7 +100,8 @@ if(BUILD_EXAMPLE)
         examples/spectrogram.c
         examples/coherence.c
         examples/shapes.c
-        examples/continuous.c)
+        examples/continuous.c
+        examples/survey.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()
