@@ -1,3 +1,67 @@
+## 0.13.1 (2026-08-27)
+
+A fault that had come into the repository twice, the check that now catches it,
+and the survey example.
+
+**The continuous example gave a main function in the default build**, which is
+the one build that must give none. The name `RUN_CONTINUOUS_EXAMPLE` was never
+written into `run_example.h`, and the header itself says what that costs: a name
+that is not there counts as zero inside a condition, and zero is the value of
+`RUN_NONE`.
+
+This is the second time. It was fixed for the fitcurve example in 0.11.1 and came
+back with the continuous example in 0.12.0, both times through the same slip: the
+loop that runs what the workflow runs ends by putting `run_example.h` back, which
+throws the new name away along with the line it meant to restore. Both times it
+passed every other check, because each example is built BY NAME and the one whose
+name is missing is the one that compiles.
+
+**Being more careful has now failed twice, so the check is written down instead.**
+`scripts/check_examples.py` runs as its own job and finds five faults: an example
+naming a `RUN_` value that `run_example.h` does not define, an example source
+holding no `RUN_` condition at all, two examples given the same number, an example
+source that `CMakeLists.txt` does not build, and an example the workflow does not
+walk through. It found the fault in the commit before it.
+
+**The survey example** shows the work to do before a canceller is written, in four
+steps, each of which can say the loop is not worth writing.
+
+Step one takes the coherence between the two sensors, which is the ceiling on
+cancellation: 0.99 away from the signal, allowing about 20 dB, and a dip to 0.25
+at the signal itself. That dip is what a good reference looks like, because it has
+never heard the thing being measured.
+
+Step two runs a deliberately over-long `rls` probe and reads the path off its
+coefficients, recovering a delay of 7 samples and a shape of 0.5995, -0.3002,
+0.2002 and 0.1005 against a true 0.6, -0.3, 0.2 and 0.1 — none of which the
+program is told.
+
+Step three measures the learning rate against two things, because picking it for
+the speed of convergence is half the story:
+
+| rate | noise removed | signal kept |
+| --- | --- | --- |
+| 0.50 | -13.8 dB | 0.534 |
+| 0.05 | -20.4 dB | 0.957 |
+| 0.01 | -15.4 dB | 0.992 |
+
+At 0.5 the filter takes half the signal away with the noise **and cancels worse
+for it**. At 0.01 it keeps the signal whole and has not finished learning.
+
+Step four moves the reference nearer the thing being measured. The coherence and
+the cancellation go wrong at once, from 0.251 and 20.4 dB to 0.669 and 3.7 dB. The
+signal column lies for a while: at a small leak it reads better than with no leak,
+because the filter is too busy with the reference to eat it. **The coherence is the
+measurement to trust — it went wrong first, went wrong steadily, and needed no
+canceller to say so.**
+
+It also draws the waveform, down the page rather than across it, with both traces
+at the same scale because drawn at scales of their own they would look alike. The
+filtered trace reaches 0.46 where the signal reaches 0.25, and that extra width is
+the noise the filter could not reach, seen rather than read. The 4 parts in a
+hundred of signal the filter ate is less than one character wide at that size, and
+the example says so rather than claiming the picture shows it.
+
 ## 0.13.0 (2026-08-26)
 
 Making the signals to test with, the numbers they are stored in, and finding
