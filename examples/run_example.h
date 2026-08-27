@@ -43,6 +43,8 @@
 #define RUN_SPECTROGRAM_EXAMPLE     22
 #define RUN_COHERENCE_EXAMPLE       23
 #define RUN_SHAPES_EXAMPLE          24
+#define RUN_CONTINUOUS_EXAMPLE      25
+#define RUN_SURVEY_EXAMPLE          26
 
 #define RUN_EXAMPLE     RUN_NONE
 

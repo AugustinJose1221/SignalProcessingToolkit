@@ -43,6 +43,7 @@ comment that says so.
 | `RUN_COHERENCE_EXAMPLE` | [coherence.c](coherence.c) | A machine, a floor and a second machine | Which of these two is shaking the floor? |
 | `RUN_SHAPES_EXAMPLE` | [shapes.c](shapes.c) | One specification, built four ways | Which shape of filter should I use? |
 | `RUN_CONTINUOUS_EXAMPLE` | [continuous.c](continuous.c) | A pendulum measured noisily | How do I use a model written as a rate of change? |
+| `RUN_SURVEY_EXAMPLE` | [survey.c](survey.c) | Two sensors, before any filter is written | Will a canceller work, and how well? |
 
 ## What each example shows
 
@@ -225,3 +226,57 @@ here**, though Runge asks for the rate twice as often. At this step the midpoint
 error has already fallen below the noise on the measurements, and nothing below
 that noise can help. Carry the model well enough that it is not the worst thing
 in the answer, then stop.
+
+**survey.c — what to measure before writing a canceller.** The `adaptive` example
+shows a canceller running; this one shows the work that comes first, in four
+steps, each of which can tell you the loop is not worth writing.
+
+**Step one** takes the coherence between the two sensors, which is the ceiling on
+cancellation — the part of what the primary sensor hears that the reference can
+account for at all. Away from the signal it reads 0.99, allowing about 20 dB. At
+the signal's own frequency it dips to 0.25, **and that dip is what a good
+reference looks like**: it has never heard the thing being measured.
+
+**Step two** runs a deliberately over-long `rls` probe and reads the path off its
+coefficients. It recovers the delay of 7 samples and the shape of the path
+(0.5995, −0.3002, 0.2002, 0.1005 against a true 0.6, −0.3, 0.2, 0.1) — none of
+which the program was told — and says 14 taps will do.
+
+**Step three** measures the learning rate against **two** things, because the
+usual advice to pick it for convergence speed is half the story:
+
+| rate | noise removed | signal kept |
+|---|---|---|
+| 0.50 | −13.8 dB | 0.534 |
+| 0.10 | −18.5 dB | 0.902 |
+| 0.05 | −20.4 dB | 0.957 |
+| 0.01 | −15.4 dB | 0.992 |
+
+At 0.5 the filter takes half the signal away with the noise **and cancels worse
+for it**. At 0.01 it keeps the signal whole and has not finished learning.
+Neither column alone would have found the middle.
+
+**Step four** moves the reference sensor nearer the thing being measured:
+
+| leak | coherence at 312 Hz | noise removed | signal kept |
+|---|---|---|---|
+| 0.0 | 0.251 | −20.4 dB | 0.957 |
+| 1.0 | 0.260 | −13.4 dB | 0.988 |
+| 4.0 | 0.602 | −5.5 dB | 0.448 |
+| 8.0 | 0.669 | −3.7 dB | 0.087 |
+
+The coherence and the cancellation go wrong at once. **The signal column lies for
+a while** — at a leak of 1 it reads *better* than with no leak, because the filter
+is too busy with the reference to eat it — and then the signal goes quickly. That
+is why the coherence is the measurement to trust: it went wrong first, it went
+wrong steadily, and it needed no canceller to say so.
+
+**It also draws the waveform**, down the page rather than across it, because a
+terminal holds far more rows than columns — and because the two traces can then
+stand side by side at the **same scale**, which is what makes the comparison
+honest. Drawn at scales of their own they would look alike. The raw trace jumps
+about while the filtered one hardly leaves the centre; drawn again four times
+larger against the true signal, the two snake down the page together. The extra
+width of the filtered trace, 0.46 against the signal's 0.25, is the residual
+noise made visible. The 4 parts in a hundred of signal the filter ate cannot be
+seen at all — some things are only ever numbers.

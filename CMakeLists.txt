@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(SignalProcessing VERSION 0.13.0 LANGUAGES C)
+project(SignalProcessing VERSION 0.13.1 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -100,7 +100,8 @@ if(BUILD_EXAMPLE)
         examples/spectrogram.c
         examples/coherence.c
         examples/shapes.c
-        examples/continuous.c)
+        examples/continuous.c
+        examples/survey.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()
