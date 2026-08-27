@@ -78,6 +78,9 @@ SOURCES = [
     "sptk/util/stats.c",
     "sptk/util/peakdetect.c",
     "sptk/util/valleydetect.c",
+    "sptk/detect/matched.c",
+    "sptk/detect/delay.c",
+    "sptk/detect/changepoint.c",
 ]
 
 
@@ -276,6 +279,38 @@ class Lattice(ctypes.Structure):
         ("counted", REAL_T),
         ("designed", ctypes.c_bool),
         ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Matched(ctypes.Structure):
+    _fields_ = [
+        ("pattern", ctypes.POINTER(REAL_T)),
+        ("length", ctypes.c_uint32),
+        ("root_energy", REAL_T),
+        ("designed", ctypes.c_bool),
+    ]
+
+
+DELAY_CORRELATE = 0
+DELAY_PHASE = 1
+
+CHANGEPOINT_NONE = 0
+CHANGEPOINT_ROSE = 1
+CHANGEPOINT_FELL = 2
+
+
+class Changepoint(ctypes.Structure):
+    _fields_ = [
+        ("expected", REAL_T),
+        ("deviation", REAL_T),
+        ("smallest_change", REAL_T),
+        ("threshold", REAL_T),
+        ("high", REAL_T),
+        ("low", REAL_T),
+        ("since_high", ctypes.c_uint32),
+        ("since_low", ctypes.c_uint32),
+        ("counted", ctypes.c_uint32),
+        ("designed", ctypes.c_bool),
     ]
 
 
@@ -963,6 +998,73 @@ def load_library():
     library.quaternion_from_matrix.restype = Quaternion
     library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
     library.quaternion_slerp.restype = Quaternion
+
+    # matched
+    library.matched_is_valid_length.argtypes = [ctypes.c_uint32]
+    library.matched_is_valid_length.restype = ctypes.c_bool
+    library.matched_make.argtypes = []
+    library.matched_make.restype = Matched
+    library.matched_design.argtypes = [ctypes.POINTER(Matched), FLOAT_POINTER,
+                                       ctypes.c_uint32]
+    library.matched_design.restype = ctypes.c_bool
+    library.matched_score_at.argtypes = [ctypes.POINTER(Matched),
+                                         FLOAT_POINTER]
+    library.matched_score_at.restype = REAL_T
+    library.matched_score_block.argtypes = [ctypes.POINTER(Matched),
+                                            FLOAT_POINTER, ctypes.c_uint32,
+                                            FLOAT_POINTER]
+    library.matched_score_block.restype = ctypes.c_bool
+    library.matched_best.argtypes = [ctypes.POINTER(Matched), FLOAT_POINTER,
+                                     ctypes.c_uint32,
+                                     ctypes.POINTER(ctypes.c_uint32),
+                                     FLOAT_POINTER]
+    library.matched_best.restype = ctypes.c_bool
+    library.matched_threshold_for.argtypes = [REAL_T, ctypes.c_uint32]
+    library.matched_threshold_for.restype = REAL_T
+
+    # delay
+    library.delay_is_valid_way.argtypes = [ctypes.c_int]
+    library.delay_is_valid_way.restype = ctypes.c_bool
+    library.delay_refine_peak.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                          ctypes.c_uint32]
+    library.delay_refine_peak.restype = REAL_T
+    library.delay_by_correlation.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32, ctypes.c_uint32,
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             FLOAT_POINTER]
+    library.delay_by_correlation.restype = ctypes.c_bool
+    library.delay_by_phase.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                       ctypes.c_uint32, ctypes.POINTER(Fft),
+                                       ctypes.POINTER(Cnum),
+                                       ctypes.POINTER(Cnum), FLOAT_POINTER]
+    library.delay_by_phase.restype = ctypes.c_bool
+
+    # changepoint
+    for name in ("changepoint_is_valid_deviation",
+                 "changepoint_is_valid_change",
+                 "changepoint_is_valid_threshold"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T]
+        function.restype = ctypes.c_bool
+    library.changepoint_make.argtypes = []
+    library.changepoint_make.restype = Changepoint
+    library.changepoint_design.argtypes = [ctypes.POINTER(Changepoint), REAL_T,
+                                           REAL_T, REAL_T, REAL_T]
+    library.changepoint_design.restype = ctypes.c_bool
+    library.changepoint_process_sample.argtypes = [
+        ctypes.POINTER(Changepoint), REAL_T]
+    library.changepoint_process_sample.restype = ctypes.c_int
+    library.changepoint_began_ago.argtypes = [ctypes.POINTER(Changepoint)]
+    library.changepoint_began_ago.restype = ctypes.c_uint32
+    for name in ("changepoint_running_high", "changepoint_running_low"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Changepoint)]
+        function.restype = REAL_T
+    library.changepoint_delay_for.argtypes = [ctypes.POINTER(Changepoint),
+                                              REAL_T]
+    library.changepoint_delay_for.restype = REAL_T
+    library.changepoint_reset.argtypes = [ctypes.POINTER(Changepoint)]
+    library.changepoint_reset.restype = None
 
     # peakdetect
     library.peakdetect_no_rules.argtypes = []

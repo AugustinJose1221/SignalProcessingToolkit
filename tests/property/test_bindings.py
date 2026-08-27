@@ -33,6 +33,8 @@ PROBE = r"""
 #include <sptk/filter/fir.h>
 #include <sptk/filter/rls.h>
 #include <sptk/filter/lattice.h>
+#include <sptk/detect/matched.h>
+#include <sptk/detect/changepoint.h>
 #include <sptk/util/generate.h>
 #include <sptk/util/quantise.h>
 #include <sptk/util/peakdetect.h>
@@ -76,6 +78,12 @@ int main(void)
            offsetof(generate_t, designed));
     printf("Quantise %zu %zu %zu\n", sizeof(quantise_t),
            offsetof(quantise_t, seed), offsetof(quantise_t, designed));
+    printf("Matched %zu %zu %zu %zu\n", sizeof(matched_t),
+           offsetof(matched_t, length), offsetof(matched_t, root_energy),
+           offsetof(matched_t, designed));
+    printf("Changepoint %zu %zu %zu %zu\n", sizeof(changepoint_t),
+           offsetof(changepoint_t, high), offsetof(changepoint_t, since_high),
+           offsetof(changepoint_t, designed));
     printf("Quaternion %zu %zu %zu\n", sizeof(quaternion_t),
            offsetof(quaternion_t, x), offsetof(quaternion_t, z));
     printf("PeakdetectOptions %zu %zu %zu\n", sizeof(peakdetect_options_t),
@@ -220,6 +228,22 @@ def test_generate_layout(probe_output):
     assert sptk.Generate.seed.offset == offset_seed
     assert sptk.Generate.pink.offset == offset_pink
     assert sptk.Generate.designed.offset == offset_flag
+
+
+def test_matched_layout(probe_output):
+    size, offset_length, offset_energy, offset_flag = probe_output["Matched"]
+    assert ctypes.sizeof(sptk.Matched) == size
+    assert sptk.Matched.length.offset == offset_length
+    assert sptk.Matched.root_energy.offset == offset_energy
+    assert sptk.Matched.designed.offset == offset_flag
+
+
+def test_changepoint_layout(probe_output):
+    size, offset_high, offset_since, offset_flag = probe_output["Changepoint"]
+    assert ctypes.sizeof(sptk.Changepoint) == size
+    assert sptk.Changepoint.high.offset == offset_high
+    assert sptk.Changepoint.since_high.offset == offset_since
+    assert sptk.Changepoint.designed.offset == offset_flag
 
 
 def test_quantise_layout(probe_output):
