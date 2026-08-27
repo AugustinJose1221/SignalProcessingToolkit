@@ -142,6 +142,51 @@ static void poly_quadratic(real_t a, real_t b, real_t c, cnum_t* roots)
 // The step is the one of Newton, which is the value divided by how fast the
 // value is changing. It is taken in complex numbers so that a root off the
 // real line can be reached.
+// How large the polynomial itself is at a place this far from nothing.
+//
+// THIS IS THE NUMBER THAT SAYS WHAT "NEARLY NOTHING" MEANS. Adding up the terms
+// of a polynomial loses digits to the largest of them, thus a value of the
+// polynomial can only be trusted down to about the size of that largest term
+// multiplied by the smallest step the width can tell. A fixed number in its
+// place asks the same of a polynomial whose terms are millions and of one whose
+// terms are millionths, and it is wrong for one of them whichever number is
+// chosen.
+static real_t poly_size_at(const real_t* coefficient, uint32_t order,
+                           real_t how_far)
+{
+    real_t total = REAL_C(0.0);
+    real_t power = REAL_C(1.0);
+
+    for(uint32_t index = 0; index <= order; index++)
+    {
+        total += REAL_ABS(coefficient[index]) * power;
+        power *= how_far;
+    }
+
+    return total;
+}
+
+// How many steps the walk is given for a polynomial of this order.
+//
+// A WALK TOWARDS A ROOT THAT STANDS ALONE ARRIVES IN A HANDFUL OF STEPS. It
+// doubles the digits it has right at every step, thus a dozen steps is plenty.
+// A walk towards a place where SEVERAL roots stand on top of each other does
+// not: it creeps in, keeping the same share of its distance each time, and the
+// share it keeps is one less one over how many roots are there. For a place
+// where m roots stand together it therefore takes about m times as many steps
+// as there are digits to get right, which at 64 bits is about 36m.
+//
+// The budget was a flat 200, which is enough for m up to 6 and not for 7. It
+// showed as x to the seventh: every one of its seven roots stands at nothing,
+// the walk was still creeping towards them when the steps ran out, and
+// poly_roots refused a polynomial whose roots could not be more plainly inside
+// the circle. x to the sixth, needing about 187 steps, passed.
+//
+// The order is the largest m can be, thus this is what covers the worst case.
+// The cost of the steps that are not needed is nothing: a walk that arrives
+// stops.
+#define POLY_WALK_STEPS(order)      (((order) * 50u) + 100u)
+
 static bool poly_one_root(const real_t* coefficient, uint32_t order,
                           cnum_t* found)
 {
@@ -157,11 +202,28 @@ static bool poly_one_root(const real_t* coefficient, uint32_t order,
         return false;
     }
 
-    for(uint32_t step = 0; step < 200u; step++)
+    for(uint32_t step = 0; step < POLY_WALK_STEPS(order); step++)
     {
         cnum_t value = poly_evaluate_complex(coefficient, order, at);
 
-        if(cnum_magnitude(value) <= (REAL_C(100.0) * REAL_EPSILON))
+        // Nearly nothing FOR THIS POLYNOMIAL AT THIS PLACE, and not nearly
+        // nothing on its own.
+        //
+        // This was a fixed 100 times the smallest step the width can tell, and
+        // that stopped the walk early wherever the polynomial is small
+        // everywhere. On 0.000061 - x^4 at 32 bits the walk stopped with the
+        // value still at 0.000012, which is a fifth of the whole polynomial.
+        // The test below that asks whether a root is real then compared that
+        // number against the value at the real part alone, found them within a
+        // factor of ten of each other, and called a root that stands straight
+        // up the imaginary line a real one. A line was divided out where a
+        // quadratic belonged and every root after it was wrong: the first came
+        // back as -1.61 where the four true roots all stand at 0.088.
+        real_t size = poly_size_at(coefficient, order, cnum_magnitude(at));
+
+        // The size cannot be nothing, because the highest coefficient is not
+        // nothing and poly_roots refuses a polynomial where it is.
+        if(cnum_magnitude(value) <= (REAL_C(100.0) * REAL_EPSILON * size))
         {
             *found = at;
             return true;
@@ -195,9 +257,13 @@ static bool poly_one_root(const real_t* coefficient, uint32_t order,
     *found = at;
 
     // It went somewhere and stayed there, thus it is taken as a root only if
-    // the value there really is near nothing.
+    // the value there really is near nothing. Near nothing FOR THIS POLYNOMIAL,
+    // for the reason poly_size_at gives: a fixed number here would take any
+    // place at all as a root of a polynomial whose terms are all smaller than
+    // that number.
     return cnum_magnitude(poly_evaluate_complex(coefficient, order, at))
-           <= REAL_C(0.001);
+           <= (REAL_C(0.001) * poly_size_at(coefficient, order,
+                                            cnum_magnitude(at)));
 }
 
 bool poly_roots(const real_t* coefficient, uint32_t order, cnum_t* roots)
@@ -363,14 +429,28 @@ bool poly_roots(const real_t* coefficient, uint32_t order, cnum_t* roots)
     //
     // The roots above were found from what was LEFT after the earlier ones
     // were divided out, and every division carries its own error into what
-    // follows. A few steps of the same walk against the original polynomial
-    // takes that error back off again, and it is what makes the answer worth
-    // having above the lowest orders.
+    // follows. The same walk against the original polynomial takes that error
+    // back off again, and it is what makes the answer worth having above the
+    // lowest orders.
+    //
+    // AND IT IS GIVEN AS MANY STEPS AS THE FIRST WALK, not a handful. It was a
+    // handful, and a handful is enough only where the last division left the
+    // root somewhere near where it belongs. It does not always: a polynomial
+    // with the same root four times over leaves a quadratic whose coefficients
+    // are mostly the error of three divisions, and at 32 bits the roots of that
+    // quadratic came back at 1536 for four true roots that all stand at 0.571.
+    // Walking in from 1536 costs about thirty five steps before the walk even
+    // reaches the roots, and a root of four is walked towards slowly after
+    // that. With the budget raised the four come back between 0.561 and 0.571,
+    // which is as close as a root of four can be held at this width, and all of
+    // them inside the circle where they belong.
     for(uint32_t index = 0; index < order; index++)
     {
         cnum_t at = roots[index];
+        real_t here = cnum_magnitude(poly_evaluate_complex(coefficient, order,
+                                                           at));
 
-        for(uint32_t step = 0; step < 20u; step++)
+        for(uint32_t step = 0; step < POLY_WALK_STEPS(order); step++)
         {
             cnum_t value = poly_evaluate_complex(coefficient, order, at);
             cnum_t changing = poly_evaluate_complex(slope, order - 1u, at);
@@ -381,15 +461,43 @@ bool poly_roots(const real_t* coefficient, uint32_t order, cnum_t* roots)
             }
 
             cnum_t moved = cnum_subtract(at, cnum_divide(value, changing));
+            real_t there = cnum_magnitude(poly_evaluate_complex(coefficient,
+                                                                order, moved));
 
-            if(cnum_magnitude(cnum_subtract(moved, at))
-               <= (REAL_EPSILON * (cnum_magnitude(at) + REAL_C(1.0))))
+            // A STEP THAT DOES NOT MAKE THE VALUE SMALLER IS NOT TAKEN, and
+            // this guard is what makes polishing safe rather than merely
+            // usually helpful.
+            //
+            // The walk divides the value by the slope. Where several roots
+            // stand on top of each other BOTH of those are nearly nothing, and
+            // the rounding on the slope is then a large part of it. One step
+            // can be enormous, and it goes wherever that rounding pointed.
+            // Measured at 32 bits on a root of four at -0.8125, the divisions
+            // had already left every root within 0.07 of the truth and the
+            // polishing threw two of them out to 114, where the polynomial
+            // reaches 170 million. The answer went from good to worse than
+            // useless, and poly_is_inside_circle then called a stable filter
+            // unstable.
+            //
+            // Written this way round rather than as a test for "worse", so
+            // that a step giving a value that is not a number is not taken
+            // either.
+            if(!(there < here))
             {
-                at = moved;
                 break;
             }
 
+            bool settled = (cnum_magnitude(cnum_subtract(moved, at))
+                            <= (REAL_EPSILON
+                                * (cnum_magnitude(at) + REAL_C(1.0))));
+
             at = moved;
+            here = there;
+
+            if(settled)
+            {
+                break;
+            }
         }
 
         // A root that was found as real stays real. Polishing must not give it
