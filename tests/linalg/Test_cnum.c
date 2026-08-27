@@ -160,3 +160,39 @@ void test_cnum_is_near(void)
     TEST_ASSERT_EQUAL(false, cnum_is_near(a, b, REAL_C(0.0001)));
     TEST_ASSERT_EQUAL(true, cnum_is_near(a, a, REAL_C(0.0)));
 }
+
+// The size of a number must not depend on whether its square fits.
+//
+// The size was worked out as the root of the sum of the squares, which throws
+// away every number whose square the width cannot hold. At 32 bits the square
+// of 6.1e-30 falls below the smallest ordinary number there is, thus the size
+// of 6.1e-30 came back as NOTHING, and at the other end the square of 1e30 runs
+// past the largest number the width holds and the size came back as infinity.
+//
+// It cost a root. poly_roots walked onto a root at 6.1e-30, asked how large the
+// polynomial was there, was told nothing, and took a plain real root for a
+// complex pair. A pole standing outside the circle was then missed and
+// poly_is_inside_circle called an unstable filter stable.
+void test_cnum_magnitude_of_a_very_small_and_a_very_large_number(void)
+{
+    // Small enough that its square is not an ordinary number at 32 bits.
+    cnum_t small = cnum_make(REAL_C(6.1e-30), REAL_C(0.0));
+
+    TEST_ASSERT_TRUE(cnum_magnitude(small) > REAL_C(0.0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(1.0e-32), REAL_C(6.1e-30),
+                            cnum_magnitude(small));
+
+    // And the same the other way round, where the square would run past the
+    // largest number the width holds.
+    cnum_t large = cnum_make(REAL_C(0.0), REAL_C(1.0e30));
+
+    TEST_ASSERT_TRUE(cnum_magnitude(large) < REAL_LARGEST);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(1.0e28), REAL_C(1.0e30),
+                            cnum_magnitude(large));
+
+    // Both parts together, where neither square fits on its own.
+    cnum_t both = cnum_make(REAL_C(3.0e-30), REAL_C(4.0e-30));
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(1.0e-32), REAL_C(5.0e-30),
+                            cnum_magnitude(both));
+}

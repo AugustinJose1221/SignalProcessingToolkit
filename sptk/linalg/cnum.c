@@ -89,7 +89,18 @@ real_t cnum_imaginary(cnum_t a)
 
 real_t cnum_magnitude(cnum_t a)
 {
-    return (real_t)REAL_SQRT(cnum_magnitude_squared(a));
+    // NOT THE ROOT OF cnum_magnitude_squared, and the difference is not a
+    // detail. Squaring first throws away every number whose square the width
+    // cannot hold: at 32 bits the square of 6.1e-30 falls below the smallest
+    // ordinary number there is, thus the size of that number came back as
+    // NOTHING. It cost a root: poly_roots walked onto a root at 6.1e-30, asked
+    // how large the polynomial was there, was told nothing, and took a plain
+    // real root for a complex pair. The same happens the other way at the top
+    // of the range, where the square runs past the largest number the width
+    // holds and the size comes back as infinity.
+    //
+    // hypot is part of the standard library of C and it holds both ends.
+    return REAL_HYPOT(a.re, a.im);
 }
 
 real_t cnum_magnitude_squared(cnum_t a)
