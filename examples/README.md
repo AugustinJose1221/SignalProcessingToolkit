@@ -270,3 +270,13 @@ a while** — at a leak of 1 it reads *better* than with no leak, because the fi
 is too busy with the reference to eat it — and then the signal goes quickly. That
 is why the coherence is the measurement to trust: it went wrong first, it went
 wrong steadily, and it needed no canceller to say so.
+
+**It also draws the waveform**, down the page rather than across it, because a
+terminal holds far more rows than columns — and because the two traces can then
+stand side by side at the **same scale**, which is what makes the comparison
+honest. Drawn at scales of their own they would look alike. The raw trace jumps
+about while the filtered one hardly leaves the centre; drawn again four times
+larger against the true signal, the two snake down the page together. The extra
+width of the filtered trace, 0.46 against the signal's 0.25, is the residual
+noise made visible. The 4 parts in a hundred of signal the filter ate cannot be
+seen at all — some things are only ever numbers.
