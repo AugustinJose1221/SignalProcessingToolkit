@@ -80,6 +80,10 @@ bool delay_by_correlation(const real_t* first, const real_t* second,
     // And the half where it is earlier. This one comes out counting upwards
     // from the middle as well, thus it lands in the front of the list back to
     // front and is turned round afterwards.
+    //
+    // It writes one value past the front half, over the lag of nothing that the
+    // call above left in the middle. That is safe and not luck: the lag of
+    // nothing is the same sum whichever way round the two readings are given.
     if(!correlate_cross(second, first, size, work, largest_lag,
                         CORRELATE_COEFFICIENT))
     {
