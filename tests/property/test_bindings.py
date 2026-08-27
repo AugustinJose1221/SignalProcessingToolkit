@@ -31,6 +31,10 @@ PROBE = r"""
 #include <sptk/transform/stft.h>
 #include <sptk/filter/iir.h>
 #include <sptk/filter/fir.h>
+#include <sptk/filter/rls.h>
+#include <sptk/filter/lattice.h>
+#include <sptk/util/generate.h>
+#include <sptk/util/quantise.h>
 #include <sptk/util/peakdetect.h>
 
 int main(void)
@@ -61,6 +65,17 @@ int main(void)
            offsetof(iir_t, coefficient), offsetof(iir_t, dynamic_alloc));
     printf("Fir %zu %zu %zu\n", sizeof(fir_t),
            offsetof(fir_t, coefficient), offsetof(fir_t, dynamic_alloc));
+    printf("Rls %zu %zu %zu %zu\n", sizeof(rls_t),
+           offsetof(rls_t, coefficient), offsetof(rls_t, length),
+           offsetof(rls_t, dynamic_alloc));
+    printf("Lattice %zu %zu %zu %zu\n", sizeof(lattice_t),
+           offsetof(lattice_t, weight), offsetof(lattice_t, stages),
+           offsetof(lattice_t, dynamic_alloc));
+    printf("Generate %zu %zu %zu %zu\n", sizeof(generate_t),
+           offsetof(generate_t, seed), offsetof(generate_t, pink),
+           offsetof(generate_t, designed));
+    printf("Quantise %zu %zu %zu\n", sizeof(quantise_t),
+           offsetof(quantise_t, seed), offsetof(quantise_t, designed));
     printf("Quaternion %zu %zu %zu\n", sizeof(quaternion_t),
            offsetof(quaternion_t, x), offsetof(quaternion_t, z));
     printf("PeakdetectOptions %zu %zu %zu\n", sizeof(peakdetect_options_t),
@@ -181,6 +196,37 @@ def test_fir_layout(probe_output):
     assert ctypes.sizeof(sptk.Fir) == size
     assert sptk.Fir.coefficient.offset == offset_coefficient
     assert sptk.Fir.dynamic_alloc.offset == offset_flag
+
+
+def test_rls_layout(probe_output):
+    size, offset_coefficient, offset_length, offset_flag = probe_output["Rls"]
+    assert ctypes.sizeof(sptk.Rls) == size
+    assert sptk.Rls.coefficient.offset == offset_coefficient
+    assert sptk.Rls.length.offset == offset_length
+    assert sptk.Rls.dynamic_alloc.offset == offset_flag
+
+
+def test_lattice_layout(probe_output):
+    size, offset_weight, offset_stages, offset_flag = probe_output["Lattice"]
+    assert ctypes.sizeof(sptk.Lattice) == size
+    assert sptk.Lattice.weight.offset == offset_weight
+    assert sptk.Lattice.stages.offset == offset_stages
+    assert sptk.Lattice.dynamic_alloc.offset == offset_flag
+
+
+def test_generate_layout(probe_output):
+    size, offset_seed, offset_pink, offset_flag = probe_output["Generate"]
+    assert ctypes.sizeof(sptk.Generate) == size
+    assert sptk.Generate.seed.offset == offset_seed
+    assert sptk.Generate.pink.offset == offset_pink
+    assert sptk.Generate.designed.offset == offset_flag
+
+
+def test_quantise_layout(probe_output):
+    size, offset_seed, offset_flag = probe_output["Quantise"]
+    assert ctypes.sizeof(sptk.Quantise) == size
+    assert sptk.Quantise.seed.offset == offset_seed
+    assert sptk.Quantise.designed.offset == offset_flag
 
 
 def test_quaternion_layout(probe_output):
