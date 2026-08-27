@@ -68,6 +68,27 @@ jobs:
       - name: Check the names in the sources
         run: python scripts/check_naming.py
 
+  examples-wired:
+    name: Example check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the sources
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check that every example is wired in
+        # An example whose name is missing from run_example.h counts as zero
+        # inside its condition, and zero is RUN_NONE. It then gives a main
+        # function in the default build, which is the one build that must give
+        # none. That fault came into this repository twice and passed every
+        # other check both times, because each example is built by name and the
+        # one whose name is missing is the one that compiles.
+        run: python scripts/check_examples.py
+
   unit-tests:
     # The library holds every number in real_t, which is 32 bits or 64. Both
     # widths must be examined, because a fault can live in one and not in the
@@ -185,7 +206,8 @@ jobs:
           for example in FFT FILTER HHT EKF GOERTZEL DWT SAVGOL EMD MATRIX \
                          RESAMPLE PSD CORRELATE ADAPTIVE CLEAN FILTFILT \
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
-                         SPECTROGRAM COHERENCE SHAPES CONTINUOUS; do
+                         SPECTROGRAM COHERENCE SHAPES CONTINUOUS \
+                         SURVEY; do
             echo "== $example"
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DSPTK_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} > /dev/null
@@ -244,7 +266,8 @@ jobs:
           for example in FFT FILTER HHT EKF GOERTZEL DWT SAVGOL EMD MATRIX \
                          RESAMPLE PSD CORRELATE ADAPTIVE CLEAN FILTFILT \
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
-                         SPECTROGRAM COHERENCE SHAPES CONTINUOUS; do
+                         SPECTROGRAM COHERENCE SHAPES CONTINUOUS \
+                         SURVEY; do
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             for source in examples/*.c; do
               gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
