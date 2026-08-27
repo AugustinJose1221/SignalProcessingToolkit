@@ -709,3 +709,101 @@ void test_fir_phase_stays_inside_one_turn(void)
 
     fir_free(&filter);
 }
+
+void test_fir_the_band_stop_filter_stops_only_the_band(void)
+{
+    fir_t fir = fir_alloc(61);
+
+    TEST_ASSERT_EQUAL(true, fir_design_band_stop(&fir, REAL_C(0.15),
+                                                 REAL_C(0.30)));
+
+    // Inside the band, which is the part that must go.
+    TEST_ASSERT_TRUE(measure_gain(&fir, REAL_C(0.22), 600) < REAL_C(0.1));
+    // Below the band and above it, which must both come through.
+    TEST_ASSERT_TRUE(measure_gain(&fir, REAL_C(0.03), 600) > REAL_C(0.85));
+    TEST_ASSERT_TRUE(measure_gain(&fir, REAL_C(0.45), 600) > REAL_C(0.85));
+
+    fir_free(&fir);
+}
+
+// A band stop is everything less a band pass, thus the two must add up to
+// everything: whatever one lets through at a frequency, the other must stop.
+void test_fir_a_band_stop_and_a_band_pass_add_up_to_everything(void)
+{
+    fir_t stop = fir_alloc(61);
+    fir_t pass = fir_alloc(61);
+
+    TEST_ASSERT_EQUAL(true, fir_design_band_stop(&stop, REAL_C(0.15),
+                                                REAL_C(0.30)));
+    TEST_ASSERT_EQUAL(true, fir_design_band_pass(&pass, REAL_C(0.15),
+                                                REAL_C(0.30)));
+
+    for(uint32_t index = 0; index < 61u; index++)
+    {
+        real_t together = fir_get_coefficient(&stop, index)
+                          + fir_get_coefficient(&pass, index);
+
+        // Everything is a single 1 in the middle and nothing anywhere else.
+        real_t expected = (index == 30u) ? REAL_C(1.0) : REAL_C(0.0);
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), expected, together);
+    }
+
+    fir_free(&stop);
+    fir_free(&pass);
+}
+
+void test_a_band_stop_with_a_chosen_window(void)
+{
+    fir_t filter = fir_alloc(101);
+
+    TEST_ASSERT_EQUAL(true,
+                      fir_design_band_stop_with(&filter, REAL_C(0.15),
+                                                REAL_C(0.35), WINDOW_HANN,
+                                                REAL_C(0.0)));
+
+    TEST_ASSERT_TRUE(fir_get_gain(&filter, REAL_C(0.25)) < REAL_C(0.01));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0),
+                            fir_get_gain(&filter, REAL_C(0.05)));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0),
+                            fir_get_gain(&filter, REAL_C(0.45)));
+
+    fir_free(&filter);
+}
+
+// The change of sign needs a middle coefficient, thus an even length has none
+// and the filter is refused rather than built wrong.
+void test_fir_a_band_stop_of_an_even_length_is_refused(void)
+{
+    fir_t filter = fir_alloc(60);
+
+    TEST_ASSERT_EQUAL(false, fir_design_band_stop(&filter, REAL_C(0.15),
+                                                  REAL_C(0.30)));
+    TEST_ASSERT_EQUAL(false,
+                      fir_design_band_stop_with(&filter, REAL_C(0.15),
+                                                REAL_C(0.30), WINDOW_HANN,
+                                                REAL_C(0.0)));
+
+    fir_free(&filter);
+}
+
+// And a band it cannot build is refused for the same reasons a band pass is.
+void test_fir_a_band_stop_refuses_what_it_cannot_build(void)
+{
+    fir_t filter = fir_alloc(101);
+
+    // The low cutoff above the high one.
+    TEST_ASSERT_EQUAL(false, fir_design_band_stop(&filter, REAL_C(0.30),
+                                                  REAL_C(0.15)));
+    // A band with no room for the turn at this length.
+    TEST_ASSERT_EQUAL(false, fir_design_band_stop(&filter, REAL_C(0.100),
+                                                  REAL_C(0.105)));
+    // A window that is not one of the windows.
+    TEST_ASSERT_EQUAL(false,
+                      fir_design_band_stop_with(&filter, REAL_C(0.15),
+                                                REAL_C(0.35),
+                                                (window_kind_t)99,
+                                                REAL_C(0.0)));
+
+    fir_free(&filter);
+}
