@@ -425,3 +425,97 @@ void test_adaptive_get_coefficient_outside_the_filter_gives_nothing(void)
 
     adaptive_free(&adaptive);
 }
+
+// A BLOCK MUST BE THE SAMPLES ONE AT A TIME. These filters learn from every
+// sample, thus a block form that ran the pass twice, or learned in a different
+// order, would give a different filter at the end and a caller could not mix
+// the two forms.
+void test_adaptive_a_block_is_the_samples_one_at_a_time(void)
+{
+    const uint32_t count = 200u;
+    real_t reference[200];
+    real_t wanted[200];
+    real_t output[200];
+    real_t error[200];
+
+    uint32_t seed = 5u;
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        seed = (seed * 1103515245u) + 12345u;
+        reference[index] = ((real_t)((seed >> 16u) % 2000u)
+                            / REAL_C(1000.0)) - REAL_C(1.0);
+        wanted[index] = (REAL_C(0.6) * reference[index])
+                        - ((index > 0u) ? (REAL_C(0.3) * reference[index - 1u])
+                                        : REAL_C(0.0));
+    }
+
+    adaptive_t together = adaptive_alloc(4u);
+    adaptive_t apart = adaptive_alloc(4u);
+
+    adaptive_design(&together, ADAPTIVE_NORMALISED, REAL_C(0.1));
+    adaptive_design(&apart, ADAPTIVE_NORMALISED, REAL_C(0.1));
+
+    TEST_ASSERT_EQUAL(true, adaptive_process_block(&together, reference,
+                                                   wanted, output, error,
+                                                   count));
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        real_t made = adaptive_process_sample(&apart, reference[index],
+                                              wanted[index]);
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), made, output[index]);
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), wanted[index] - made,
+                                error[index]);
+    }
+
+    // And the two filters ended in the same place.
+    for(uint32_t index = 0; index < 4u; index++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001),
+                                adaptive_get_coefficient(&apart, index),
+                                adaptive_get_coefficient(&together, index));
+    }
+
+    adaptive_free(&together);
+    adaptive_free(&apart);
+}
+
+// Either answer may be left out, and leaving one out must not change the other.
+void test_adaptive_a_block_takes_null_for_either_answer(void)
+{
+    const uint32_t count = 60u;
+    real_t reference[60];
+    real_t wanted[60];
+    real_t error[60];
+    real_t both_error[60];
+    real_t output[60];
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        reference[index] = REAL_SIN((real_t)index * REAL_C(0.4));
+        wanted[index] = REAL_C(0.5) * reference[index];
+    }
+
+    adaptive_t one = adaptive_alloc(3u);
+    adaptive_t other = adaptive_alloc(3u);
+
+    adaptive_design(&one, ADAPTIVE_NORMALISED, REAL_C(0.1));
+    adaptive_design(&other, ADAPTIVE_NORMALISED, REAL_C(0.1));
+
+    TEST_ASSERT_EQUAL(true, adaptive_process_block(&one, reference, wanted,
+                                                   NULL, error, count));
+    TEST_ASSERT_EQUAL(true, adaptive_process_block(&other, reference, wanted,
+                                                   output, both_error,
+                                                   count));
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), both_error[index],
+                                error[index]);
+    }
+
+    adaptive_free(&one);
+    adaptive_free(&other);
+}

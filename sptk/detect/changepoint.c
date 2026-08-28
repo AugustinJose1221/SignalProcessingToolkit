@@ -161,6 +161,50 @@ changepoint_way_t changepoint_process_sample(changepoint_t* changepoint,
     return CHANGEPOINT_NONE;
 }
 
+bool changepoint_process_block(changepoint_t* changepoint,
+                               const real_t* input, uint32_t count,
+                               changepoint_way_t* way, uint32_t* at)
+{
+    ASSERT(changepoint != NULL);
+    ASSERT(input != NULL);
+
+    bool found = false;
+    changepoint_way_t which = CHANGEPOINT_NONE;
+    uint32_t where = 0u;
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        changepoint_way_t said = changepoint_process_sample(changepoint,
+                                                            input[index]);
+
+        // THE WHOLE BLOCK IS READ EVEN AFTER A CHANGE IS FOUND. Stopping at the
+        // first would leave the watcher standing part way through the block,
+        // and the next block would then be read as though the samples between
+        // had never happened.
+        if((said != CHANGEPOINT_NONE) && !found)
+        {
+            found = true;
+            which = said;
+            where = index;
+        }
+    }
+
+    if(found)
+    {
+        if(way != NULL)
+        {
+            *way = which;
+        }
+
+        if(at != NULL)
+        {
+            *at = where;
+        }
+    }
+
+    return found;
+}
+
 uint32_t changepoint_began_ago(const changepoint_t* changepoint)
 {
     ASSERT(changepoint != NULL);

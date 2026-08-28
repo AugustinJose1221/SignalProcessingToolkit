@@ -362,3 +362,111 @@ void test_changepoint_reset_puts_the_sums_back(void)
     // And what it was told about the reading is kept.
     TEST_ASSERT_EQUAL(true, watcher.designed);
 }
+
+// A block reports the first change in it, and reads the whole block whether it
+// found one or not.
+void test_changepoint_a_block_reports_the_first_change_in_it(void)
+{
+    changepoint_t watcher = changepoint_make();
+
+    TEST_ASSERT_EQUAL(true, changepoint_design(&watcher, REAL_C(0.0),
+                                               REAL_C(1.0), REAL_C(1.0),
+                                               REAL_C(5.0)));
+
+    // Twenty samples where nothing happens and then a clean step of two, which
+    // the watcher finds four samples later.
+    real_t block[40];
+
+    for(uint32_t index = 0; index < 40u; index++)
+    {
+        block[index] = (index < 20u) ? REAL_C(0.0) : REAL_C(2.0);
+    }
+
+    changepoint_way_t way = CHANGEPOINT_NONE;
+    uint32_t at = 0u;
+
+    TEST_ASSERT_EQUAL(true, changepoint_process_block(&watcher, block, 40u,
+                                                      &way, &at));
+    TEST_ASSERT_EQUAL(CHANGEPOINT_ROSE, way);
+    TEST_ASSERT_EQUAL(23u, at);
+
+    // And how long before the alarm the reading started walking away.
+    TEST_ASSERT_EQUAL(4u, changepoint_began_ago(&watcher));
+}
+
+// A block holding nothing gives false and leaves both answers untouched.
+void test_changepoint_a_block_with_no_change_says_so(void)
+{
+    changepoint_t watcher = changepoint_make();
+
+    TEST_ASSERT_EQUAL(true, changepoint_design(&watcher, REAL_C(0.0),
+                                               REAL_C(1.0), REAL_C(1.0),
+                                               REAL_C(5.0)));
+
+    real_t block[200];
+
+    for(uint32_t index = 0; index < 200u; index++)
+    {
+        block[index] = REAL_C(0.0);
+    }
+
+    changepoint_way_t way = CHANGEPOINT_FELL;
+    uint32_t at = 77u;
+
+    TEST_ASSERT_EQUAL(false, changepoint_process_block(&watcher, block, 200u,
+                                                       &way, &at));
+    TEST_ASSERT_EQUAL(CHANGEPOINT_FELL, way);
+    TEST_ASSERT_EQUAL(77u, at);
+
+    // Either answer may be left out.
+    TEST_ASSERT_EQUAL(false, changepoint_process_block(&watcher, block, 200u,
+                                                       NULL, NULL));
+}
+
+// THE WHOLE BLOCK IS READ EVEN AFTER A CHANGE IS FOUND. Stopping at the first
+// would leave the watcher part way through, and the next block would then be
+// read as though the samples between had never happened.
+void test_changepoint_a_block_is_the_samples_one_at_a_time(void)
+{
+    changepoint_t together = changepoint_make();
+    changepoint_t apart = changepoint_make();
+
+    TEST_ASSERT_EQUAL(true, changepoint_design(&together, REAL_C(0.0),
+                                               REAL_C(1.0), REAL_C(1.0),
+                                               REAL_C(5.0)));
+    TEST_ASSERT_EQUAL(true, changepoint_design(&apart, REAL_C(0.0),
+                                               REAL_C(1.0), REAL_C(1.0),
+                                               REAL_C(5.0)));
+
+    // A block holding several changes, so that the two must agree past the
+    // first of them.
+    real_t block[120];
+
+    for(uint32_t index = 0; index < 120u; index++)
+    {
+        block[index] = ((index / 20u) % 2u) ? REAL_C(2.0) : -REAL_C(2.0);
+    }
+
+    changepoint_process_block(&together, block, 120u, NULL, NULL);
+
+    uint32_t alarms = 0u;
+
+    for(uint32_t index = 0; index < 120u; index++)
+    {
+        if(changepoint_process_sample(&apart, block[index])
+           != CHANGEPOINT_NONE)
+        {
+            alarms++;
+        }
+    }
+
+    // Both watchers ended in the same place, which they could not have done
+    // had the block stopped at its first alarm.
+    TEST_ASSERT_TRUE(alarms > 1u);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001),
+                            changepoint_running_high(&apart),
+                            changepoint_running_high(&together));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001),
+                            changepoint_running_low(&apart),
+                            changepoint_running_low(&together));
+}

@@ -34,6 +34,21 @@ static void state_stays(const matrix_t* state, const matrix_t* input,
     matrix_copy((matrix_t*)state, result);
 }
 
+// A model that is DRIVEN FROM OUTSIDE: the state grows by whatever the input
+// says at each step.
+//
+// Every other model in this file writes (void)input and ignores it, and every
+// call of ukf_step here passes NULL for the input. Between them, the input of
+// the filter was never read at all.
+static void driven_state(const matrix_t* state, const matrix_t* input,
+                         matrix_t* result)
+{
+    real_t held = matrix_get_element((matrix_t*)state, 0, 0);
+    real_t drive = matrix_get_element((matrix_t*)input, 0, 0);
+
+    matrix_add_element(result, 0, 0, held + drive);
+}
+
 // A measurement that does not bend: it reads the state straight.
 static void measures_the_state(const matrix_t* state, matrix_t* result)
 {
@@ -618,4 +633,220 @@ void test_ukf_works_when_the_state_and_the_measurement_differ_in_size(void)
     matrix_free(&start);
     matrix_free(&predicted);
     ukf_free(&larger);
+}
+
+// THE INPUT IS WHAT DRIVES THE STATE FROM OUTSIDE. A throttle, a heater, a
+// steering angle: something the filter is told rather than something it works
+// out.
+void test_ukf_the_input_drives_the_state(void)
+{
+    ukf_t ukf = ukf_alloc(1, 1, 1);
+
+    ukf_set_state_function(&ukf, driven_state);
+    ukf_set_measurement_function(&ukf, measures_the_state);
+
+    matrix_t x = matrix_create_zero_matrix(1, 1);
+
+    ukf_set_state_matrix(&ukf, &x);
+
+    matrix_t none = matrix_create_zero_matrix(1, 1);
+
+    ukf_set_input_matrix(&ukf, &none);
+    TEST_ASSERT_EQUAL(true, ukf_predict(&ukf));
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0),
+                            matrix_get_element(ukf_get_state_matrix(&ukf),
+                                               0, 0));
+
+    matrix_t u = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&u, 0, 0, REAL_C(2.0));
+
+    ukf_set_input_matrix(&ukf, &u);
+
+    TEST_ASSERT_EQUAL(true, ukf_predict(&ukf));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(2.0),
+                            matrix_get_element(ukf_get_state_matrix(&ukf),
+                                               0, 0));
+
+    TEST_ASSERT_EQUAL(true, ukf_predict(&ukf));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(4.0),
+                            matrix_get_element(ukf_get_state_matrix(&ukf),
+                                               0, 0));
+
+    matrix_free(&x);
+    matrix_free(&none);
+    matrix_free(&u);
+    ukf_free(&ukf);
+}
+
+// ukf_step takes the input as well, and gives it to the same place. A caller
+// that used the short form rather than predict and update apart must get the
+// same answer.
+void test_ukf_step_carries_the_input_too(void)
+{
+    ukf_t apart = ukf_alloc(1, 1, 1);
+    ukf_t together = ukf_alloc(1, 1, 1);
+
+    matrix_t q = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&q, 0, 0, REAL_C(0.01));
+    matrix_t r = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&r, 0, 0, REAL_C(0.25));
+    matrix_t u = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&u, 0, 0, REAL_C(1.0));
+    matrix_t y = matrix_create_zero_matrix(1, 1);
+
+    ukf_t* both[2] = {&apart, &together};
+
+    for(uint32_t which = 0; which < 2u; which++)
+    {
+        ukf_set_state_function(both[which], driven_state);
+        ukf_set_measurement_function(both[which], measures_the_state);
+        ukf_set_process_noise_covariance_matrix(both[which], &q);
+        ukf_set_measurement_covariance_matrix(both[which], &r);
+    }
+
+    for(uint32_t index = 0; index < 20u; index++)
+    {
+        matrix_add_element(&y, 0, 0, (real_t)index);
+
+        ukf_set_input_matrix(&apart, &u);
+        ukf_set_measurement_matrix(&apart, &y);
+        TEST_ASSERT_EQUAL(true, ukf_predict(&apart));
+        TEST_ASSERT_EQUAL(true, ukf_update(&apart));
+
+        TEST_ASSERT_EQUAL(true, ukf_step(&together, &u, &y));
+
+        TEST_ASSERT_REAL_WITHIN(
+            REAL_C(0.0001),
+            matrix_get_element(ukf_get_state_matrix(&apart), 0, 0),
+            matrix_get_element(ukf_get_state_matrix(&together), 0, 0));
+    }
+
+    matrix_free(&q);
+    matrix_free(&r);
+    matrix_free(&u);
+    matrix_free(&y);
+    ukf_free(&apart);
+    ukf_free(&together);
+}
+
+// THE GAIN SAYS HOW FAR THE FILTER MOVED FOR EACH UNIT THE MEASUREMENT
+// DIFFERED. Reading it is how a caller tells a filter that is still listening
+// to its measurements from one that has stopped: a gain falling towards nothing
+// is a filter that has made up its mind.
+void test_ukf_the_gain_says_how_much_the_measurement_was_believed(void)
+{
+    ukf_t ukf = ukf_alloc(1, 1, 1);
+
+    TEST_ASSERT_EQUAL_PTR(&ukf.k, ukf_get_gain_matrix(&ukf));
+
+    matrix_t q = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&q, 0, 0, REAL_C(0.0001));
+    matrix_t r = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&r, 0, 0, REAL_C(0.25));
+    matrix_t y = matrix_create_zero_matrix(1, 1);
+
+    ukf_set_state_function(&ukf, state_stays);
+    ukf_set_measurement_function(&ukf, measures_the_state);
+    ukf_set_process_noise_covariance_matrix(&ukf, &q);
+    ukf_set_measurement_covariance_matrix(&ukf, &r);
+
+    matrix_add_element(&y, 0, 0, REAL_C(7.0));
+    TEST_ASSERT_EQUAL(true, ukf_step(&ukf, NULL, &y));
+
+    real_t at_first = matrix_get_element(ukf_get_gain_matrix(&ukf), 0, 0);
+
+    // The gain is a share of the difference, thus it stands between nothing
+    // and one, and at the first step the filter knows nothing and believes the
+    // measurement almost entirely.
+    TEST_ASSERT_TRUE(at_first > REAL_C(0.0));
+    TEST_ASSERT_TRUE(at_first <= REAL_C(1.0));
+
+    for(uint32_t index = 0; index < 200u; index++)
+    {
+        matrix_add_element(&y, 0, 0, REAL_C(7.0));
+        TEST_ASSERT_EQUAL(true, ukf_step(&ukf, NULL, &y));
+    }
+
+    real_t settled = matrix_get_element(ukf_get_gain_matrix(&ukf), 0, 0);
+
+    // Once it has heard the same thing two hundred times it believes each new
+    // reading far less than it believed the first.
+    TEST_ASSERT_TRUE(settled < at_first);
+    TEST_ASSERT_TRUE(settled > REAL_C(0.0));
+
+    matrix_free(&q);
+    matrix_free(&r);
+    matrix_free(&y);
+    ukf_free(&ukf);
+}
+
+// THERE IS NO ukf_reset, AND THIS IS WHY THERE NEED NOT BE. The sigma points
+// and their weights are worked out afresh at every predict, thus the state and
+// the covariance are the whole of what the filter remembers, and the caller
+// sets both.
+void test_ukf_putting_the_state_and_covariance_back_is_a_reset(void)
+{
+    ukf_t used = ukf_alloc(1, 1, 1);
+    ukf_t fresh = ukf_alloc(1, 1, 1);
+
+    matrix_t q = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&q, 0, 0, REAL_C(0.01));
+    matrix_t r = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&r, 0, 0, REAL_C(0.25));
+    matrix_t x = matrix_create_zero_matrix(1, 1);
+    matrix_t p = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&p, 0, 0, REAL_C(1.0));
+    matrix_t y = matrix_create_zero_matrix(1, 1);
+
+    ukf_t* both[2] = {&used, &fresh};
+
+    for(uint32_t which = 0; which < 2u; which++)
+    {
+        ukf_set_state_function(both[which], state_stays);
+        ukf_set_measurement_function(both[which], measures_the_state);
+        ukf_set_process_noise_covariance_matrix(both[which], &q);
+        ukf_set_measurement_covariance_matrix(both[which], &r);
+        ukf_set_state_matrix(both[which], &x);
+        ukf_set_covariance_matrix(both[which], &p);
+    }
+
+    for(uint32_t index = 0; index < 200u; index++)
+    {
+        matrix_add_element(&y, 0, 0, REAL_C(9.0));
+        TEST_ASSERT_EQUAL(true, ukf_step(&used, NULL, &y));
+    }
+
+    TEST_ASSERT_TRUE(
+        REAL_ABS(matrix_get_element(ukf_get_state_matrix(&used), 0, 0)
+                 - matrix_get_element(ukf_get_state_matrix(&fresh), 0, 0))
+        > REAL_C(1.0));
+
+    ukf_set_state_matrix(&used, &x);
+    ukf_set_covariance_matrix(&used, &p);
+
+    for(uint32_t index = 0; index < 50u; index++)
+    {
+        real_t reading = REAL_C(3.0) + ((real_t)(index % 7u) * REAL_C(0.1));
+
+        matrix_add_element(&y, 0, 0, reading);
+
+        TEST_ASSERT_EQUAL(true, ukf_step(&used, NULL, &y));
+        TEST_ASSERT_EQUAL(true, ukf_step(&fresh, NULL, &y));
+
+        TEST_ASSERT_EQUAL_REAL(
+            matrix_get_element(ukf_get_state_matrix(&fresh), 0, 0),
+            matrix_get_element(ukf_get_state_matrix(&used), 0, 0));
+        TEST_ASSERT_EQUAL_REAL(
+            matrix_get_element(ukf_get_covariance_matrix(&fresh), 0, 0),
+            matrix_get_element(ukf_get_covariance_matrix(&used), 0, 0));
+    }
+
+    matrix_free(&q);
+    matrix_free(&r);
+    matrix_free(&x);
+    matrix_free(&p);
+    matrix_free(&y);
+    ukf_free(&used);
+    ukf_free(&fresh);
 }
