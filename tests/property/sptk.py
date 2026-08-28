@@ -78,6 +78,9 @@ SOURCES = [
     "sptk/util/stats.c",
     "sptk/util/peakdetect.c",
     "sptk/util/valleydetect.c",
+    "sptk/detect/matched.c",
+    "sptk/detect/delay.c",
+    "sptk/detect/changepoint.c",
 ]
 
 
@@ -245,6 +248,100 @@ class Fir(ctypes.Structure):
     ]
 
 
+class Rls(ctypes.Structure):
+    _fields_ = [
+        ("history", Ringbuf),
+        ("coefficient", ctypes.POINTER(REAL_T)),
+        ("inverse", ctypes.POINTER(REAL_T)),
+        ("gain", ctypes.POINTER(REAL_T)),
+        ("carried", ctypes.POINTER(REAL_T)),
+        ("length", ctypes.c_uint32),
+        ("forgetting", REAL_T),
+        ("doubt", REAL_T),
+        ("healthy", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Lattice(ctypes.Structure):
+    _fields_ = [
+        ("reflection", ctypes.POINTER(REAL_T)),
+        ("forward", ctypes.POINTER(REAL_T)),
+        ("backward", ctypes.POINTER(REAL_T)),
+        ("held", ctypes.POINTER(REAL_T)),
+        ("energy", ctypes.POINTER(REAL_T)),
+        ("weight", ctypes.POINTER(REAL_T)),
+        ("stages", ctypes.c_uint32),
+        ("rate", REAL_T),
+        ("forgetting", REAL_T),
+        ("before", REAL_T),
+        ("after", REAL_T),
+        ("counted", REAL_T),
+        ("designed", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Matched(ctypes.Structure):
+    _fields_ = [
+        ("pattern", ctypes.POINTER(REAL_T)),
+        ("length", ctypes.c_uint32),
+        ("root_energy", REAL_T),
+        ("designed", ctypes.c_bool),
+    ]
+
+
+DELAY_CORRELATE = 0
+DELAY_PHASE = 1
+
+CHANGEPOINT_NONE = 0
+CHANGEPOINT_ROSE = 1
+CHANGEPOINT_FELL = 2
+
+
+class Changepoint(ctypes.Structure):
+    _fields_ = [
+        ("expected", REAL_T),
+        ("deviation", REAL_T),
+        ("smallest_change", REAL_T),
+        ("threshold", REAL_T),
+        ("high", REAL_T),
+        ("low", REAL_T),
+        ("since_high", ctypes.c_uint32),
+        ("since_low", ctypes.c_uint32),
+        ("counted", ctypes.c_uint32),
+        ("designed", ctypes.c_bool),
+    ]
+
+
+GENERATE_PINK_PARTS = 7
+
+
+class Generate(ctypes.Structure):
+    _fields_ = [
+        ("kind", ctypes.c_int),
+        ("phase", REAL_T),
+        ("step", REAL_T),
+        ("sweep", REAL_T),
+        ("last_step", REAL_T),
+        ("seed", ctypes.c_uint32),
+        ("pink", REAL_T * GENERATE_PINK_PARTS),
+        ("counted", ctypes.c_uint32),
+        ("designed", ctypes.c_bool),
+    ]
+
+
+class Quantise(ctypes.Structure):
+    _fields_ = [
+        ("way", ctypes.c_int),
+        ("step", REAL_T),
+        ("reach", REAL_T),
+        ("carried", REAL_T),
+        ("seed", ctypes.c_uint32),
+        ("designed", ctypes.c_bool),
+    ]
+
+
 class Quaternion(ctypes.Structure):
     _fields_ = [
         ("w", REAL_T),
@@ -264,6 +361,11 @@ class PeakdetectOptions(ctypes.Structure):
 
 
 FLOAT_POINTER = ctypes.POINTER(REAL_T)
+
+# How a model of a rate of change is written, so that a Python function can be
+# handed to the propagate module as one.
+RATE_FUNCTION = ctypes.CFUNCTYPE(None, REAL_T, FLOAT_POINTER, FLOAT_POINTER,
+                                 FLOAT_POINTER, ctypes.c_uint32)
 
 # The enumerations of the library. A test that writes 0 and 1 says nothing
 # about what it is asking for; these names say it.
@@ -301,6 +403,30 @@ IIR_SHAPES = (IIR_BUTTERWORTH, IIR_CHEBYSHEV_I, IIR_CHEBYSHEV_II,
 # The shapes that ripple in the band that passes, in the order of how sharply
 # they fall.
 IIR_SHAPES_BY_SHARPNESS = (IIR_BUTTERWORTH, IIR_CHEBYSHEV_I, IIR_ELLIPTIC)
+
+GENERATE_SINE = 0
+GENERATE_SQUARE = 1
+GENERATE_SAWTOOTH = 2
+GENERATE_TRIANGLE = 3
+GENERATE_WHITE_NOISE = 4
+GENERATE_PINK_NOISE = 5
+
+# The shapes that hold one frequency and follow a phase, which is every kind
+# but the two noises.
+GENERATE_WAVES = (GENERATE_SINE, GENERATE_SQUARE, GENERATE_SAWTOOTH,
+                  GENERATE_TRIANGLE)
+
+QUANTISE_PLAIN = 0
+QUANTISE_DITHER = 1
+QUANTISE_SHAPED = 2
+
+QUANTISE_WAYS = (QUANTISE_PLAIN, QUANTISE_DITHER, QUANTISE_SHAPED)
+
+PROPAGATE_EULER = 0
+PROPAGATE_MIDPOINT = 1
+PROPAGATE_RUNGE = 2
+
+PROPAGATE_METHODS = (PROPAGATE_EULER, PROPAGATE_MIDPOINT, PROPAGATE_RUNGE)
 
 
 def load_library():
@@ -690,6 +816,156 @@ def load_library():
     library.fir_free.argtypes = [ctypes.POINTER(Fir)]
     library.fir_free.restype = None
 
+    # eigen
+    library.eigen_is_valid_matrix.argtypes = [ctypes.POINTER(Matrix)]
+    library.eigen_is_valid_matrix.restype = ctypes.c_bool
+    library.eigen_solve.argtypes = [ctypes.POINTER(Matrix), FLOAT_POINTER,
+                                    ctypes.POINTER(Matrix)]
+    library.eigen_solve.restype = ctypes.c_bool
+    library.eigen_condition.argtypes = [FLOAT_POINTER, ctypes.c_uint32]
+    library.eigen_condition.restype = REAL_T
+    library.eigen_rank.argtypes = [FLOAT_POINTER, ctypes.c_uint32, REAL_T]
+    library.eigen_rank.restype = ctypes.c_uint32
+    library.eigen_part_held.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                        ctypes.c_uint32]
+    library.eigen_part_held.restype = REAL_T
+
+    # poly
+    library.poly_is_valid_order.argtypes = [ctypes.c_uint32]
+    library.poly_is_valid_order.restype = ctypes.c_bool
+    library.poly_evaluate.argtypes = [FLOAT_POINTER, ctypes.c_uint32, REAL_T]
+    library.poly_evaluate.restype = REAL_T
+    library.poly_evaluate_complex.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                              Cnum]
+    library.poly_evaluate_complex.restype = Cnum
+    library.poly_multiply.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                      FLOAT_POINTER, ctypes.c_uint32,
+                                      FLOAT_POINTER, ctypes.c_uint32]
+    library.poly_multiply.restype = ctypes.c_bool
+    library.poly_derivative.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                        FLOAT_POINTER]
+    library.poly_derivative.restype = ctypes.c_bool
+    library.poly_roots.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                   ctypes.POINTER(Cnum)]
+    library.poly_roots.restype = ctypes.c_bool
+    library.poly_is_inside_circle.argtypes = [FLOAT_POINTER, ctypes.c_uint32]
+    library.poly_is_inside_circle.restype = ctypes.c_bool
+
+    # rls
+    library.rls_is_valid_forgetting.argtypes = [REAL_T]
+    library.rls_is_valid_forgetting.restype = ctypes.c_bool
+    library.rls_alloc.argtypes = [ctypes.c_uint32]
+    library.rls_alloc.restype = Rls
+    library.rls_design.argtypes = [ctypes.POINTER(Rls), REAL_T, REAL_T]
+    library.rls_design.restype = ctypes.c_bool
+    for name in ("rls_process_sample", "rls_error"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Rls), REAL_T, REAL_T]
+        function.restype = REAL_T
+    library.rls_is_healthy.argtypes = [ctypes.POINTER(Rls)]
+    library.rls_is_healthy.restype = ctypes.c_bool
+    library.rls_get_coefficient.argtypes = [ctypes.POINTER(Rls),
+                                            ctypes.c_uint32]
+    library.rls_get_coefficient.restype = REAL_T
+    library.rls_reset.argtypes = [ctypes.POINTER(Rls)]
+    library.rls_reset.restype = None
+    library.rls_free.argtypes = [ctypes.POINTER(Rls)]
+    library.rls_free.restype = None
+
+    # lattice
+    library.lattice_is_valid_rate.argtypes = [REAL_T]
+    library.lattice_is_valid_rate.restype = ctypes.c_bool
+    library.lattice_is_valid_forgetting.argtypes = [REAL_T]
+    library.lattice_is_valid_forgetting.restype = ctypes.c_bool
+    library.lattice_alloc.argtypes = [ctypes.c_uint32]
+    library.lattice_alloc.restype = Lattice
+    library.lattice_design.argtypes = [ctypes.POINTER(Lattice), REAL_T, REAL_T]
+    library.lattice_design.restype = ctypes.c_bool
+    library.lattice_process_sample.argtypes = [ctypes.POINTER(Lattice), REAL_T,
+                                               REAL_T]
+    library.lattice_process_sample.restype = REAL_T
+    for name in ("lattice_error_before", "lattice_error_after"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Lattice)]
+        function.restype = REAL_T
+    library.lattice_get_reflection.argtypes = [ctypes.POINTER(Lattice),
+                                               ctypes.c_uint32]
+    library.lattice_get_reflection.restype = REAL_T
+    library.lattice_reset.argtypes = [ctypes.POINTER(Lattice)]
+    library.lattice_reset.restype = None
+    library.lattice_free.argtypes = [ctypes.POINTER(Lattice)]
+    library.lattice_free.restype = None
+
+    # generate
+    library.generate_is_valid_kind.argtypes = [ctypes.c_int]
+    library.generate_is_valid_kind.restype = ctypes.c_bool
+    library.generate_is_valid_frequency.argtypes = [REAL_T, REAL_T]
+    library.generate_is_valid_frequency.restype = ctypes.c_bool
+    library.generate_make.argtypes = [ctypes.c_int]
+    library.generate_make.restype = Generate
+    library.generate_design.argtypes = [ctypes.POINTER(Generate), REAL_T,
+                                        REAL_T]
+    library.generate_design.restype = ctypes.c_bool
+    library.generate_design_sweep.argtypes = [ctypes.POINTER(Generate), REAL_T,
+                                              REAL_T, REAL_T, ctypes.c_uint32]
+    library.generate_design_sweep.restype = ctypes.c_bool
+    library.generate_set_seed.argtypes = [ctypes.POINTER(Generate),
+                                          ctypes.c_uint32]
+    library.generate_set_seed.restype = None
+    library.generate_sample.argtypes = [ctypes.POINTER(Generate)]
+    library.generate_sample.restype = REAL_T
+    library.generate_block.argtypes = [ctypes.POINTER(Generate), FLOAT_POINTER,
+                                       ctypes.c_uint32]
+    library.generate_block.restype = ctypes.c_bool
+    library.generate_reset.argtypes = [ctypes.POINTER(Generate)]
+    library.generate_reset.restype = None
+    library.generate_get_phase.argtypes = [ctypes.POINTER(Generate)]
+    library.generate_get_phase.restype = REAL_T
+    library.generate_set_phase.argtypes = [ctypes.POINTER(Generate), REAL_T]
+    library.generate_set_phase.restype = None
+
+    # quantise
+    library.quantise_is_valid_way.argtypes = [ctypes.c_int]
+    library.quantise_is_valid_way.restype = ctypes.c_bool
+    library.quantise_is_valid_bits.argtypes = [ctypes.c_uint32]
+    library.quantise_is_valid_bits.restype = ctypes.c_bool
+    library.quantise_make.argtypes = []
+    library.quantise_make.restype = Quantise
+    library.quantise_design.argtypes = [ctypes.POINTER(Quantise), ctypes.c_int,
+                                        ctypes.c_uint32, REAL_T]
+    library.quantise_design.restype = ctypes.c_bool
+    library.quantise_set_seed.argtypes = [ctypes.POINTER(Quantise),
+                                          ctypes.c_uint32]
+    library.quantise_set_seed.restype = None
+    library.quantise_sample.argtypes = [ctypes.POINTER(Quantise), REAL_T]
+    library.quantise_sample.restype = REAL_T
+    library.quantise_block.argtypes = [ctypes.POINTER(Quantise), FLOAT_POINTER,
+                                       FLOAT_POINTER, ctypes.c_uint32]
+    library.quantise_block.restype = ctypes.c_bool
+    library.quantise_step_of.argtypes = [ctypes.POINTER(Quantise)]
+    library.quantise_step_of.restype = REAL_T
+    library.quantise_noise_floor.argtypes = [ctypes.c_uint32]
+    library.quantise_noise_floor.restype = REAL_T
+    library.quantise_reset.argtypes = [ctypes.POINTER(Quantise)]
+    library.quantise_reset.restype = None
+
+    # propagate
+    library.propagate_is_valid_method.argtypes = [ctypes.c_int]
+    library.propagate_is_valid_method.restype = ctypes.c_bool
+    library.propagate_is_valid_count.argtypes = [ctypes.c_uint32]
+    library.propagate_is_valid_count.restype = ctypes.c_bool
+    library.propagate_asks_for_each_step.argtypes = [ctypes.c_int]
+    library.propagate_asks_for_each_step.restype = ctypes.c_uint32
+    library.propagate_state.argtypes = [ctypes.c_int, RATE_FUNCTION, REAL_T,
+                                        REAL_T, FLOAT_POINTER, FLOAT_POINTER,
+                                        ctypes.c_uint32]
+    library.propagate_state.restype = ctypes.c_bool
+    library.propagate_state_over.argtypes = [ctypes.c_int, RATE_FUNCTION,
+                                             REAL_T, REAL_T, ctypes.c_uint32,
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32]
+    library.propagate_state_over.restype = ctypes.c_bool
+
     # quaternion
     library.quaternion_make.argtypes = [REAL_T, REAL_T, REAL_T, REAL_T]
     library.quaternion_make.restype = Quaternion
@@ -722,6 +998,73 @@ def load_library():
     library.quaternion_from_matrix.restype = Quaternion
     library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
     library.quaternion_slerp.restype = Quaternion
+
+    # matched
+    library.matched_is_valid_length.argtypes = [ctypes.c_uint32]
+    library.matched_is_valid_length.restype = ctypes.c_bool
+    library.matched_make.argtypes = []
+    library.matched_make.restype = Matched
+    library.matched_design.argtypes = [ctypes.POINTER(Matched), FLOAT_POINTER,
+                                       ctypes.c_uint32]
+    library.matched_design.restype = ctypes.c_bool
+    library.matched_score_at.argtypes = [ctypes.POINTER(Matched),
+                                         FLOAT_POINTER]
+    library.matched_score_at.restype = REAL_T
+    library.matched_score_block.argtypes = [ctypes.POINTER(Matched),
+                                            FLOAT_POINTER, ctypes.c_uint32,
+                                            FLOAT_POINTER]
+    library.matched_score_block.restype = ctypes.c_bool
+    library.matched_best.argtypes = [ctypes.POINTER(Matched), FLOAT_POINTER,
+                                     ctypes.c_uint32,
+                                     ctypes.POINTER(ctypes.c_uint32),
+                                     FLOAT_POINTER]
+    library.matched_best.restype = ctypes.c_bool
+    library.matched_threshold_for.argtypes = [REAL_T, ctypes.c_uint32]
+    library.matched_threshold_for.restype = REAL_T
+
+    # delay
+    library.delay_is_valid_way.argtypes = [ctypes.c_int]
+    library.delay_is_valid_way.restype = ctypes.c_bool
+    library.delay_refine_peak.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                          ctypes.c_uint32]
+    library.delay_refine_peak.restype = REAL_T
+    library.delay_by_correlation.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32, ctypes.c_uint32,
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             FLOAT_POINTER]
+    library.delay_by_correlation.restype = ctypes.c_bool
+    library.delay_by_phase.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                       ctypes.c_uint32, ctypes.POINTER(Fft),
+                                       ctypes.POINTER(Cnum),
+                                       ctypes.POINTER(Cnum), FLOAT_POINTER]
+    library.delay_by_phase.restype = ctypes.c_bool
+
+    # changepoint
+    for name in ("changepoint_is_valid_deviation",
+                 "changepoint_is_valid_change",
+                 "changepoint_is_valid_threshold"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T]
+        function.restype = ctypes.c_bool
+    library.changepoint_make.argtypes = []
+    library.changepoint_make.restype = Changepoint
+    library.changepoint_design.argtypes = [ctypes.POINTER(Changepoint), REAL_T,
+                                           REAL_T, REAL_T, REAL_T]
+    library.changepoint_design.restype = ctypes.c_bool
+    library.changepoint_process_sample.argtypes = [
+        ctypes.POINTER(Changepoint), REAL_T]
+    library.changepoint_process_sample.restype = ctypes.c_int
+    library.changepoint_began_ago.argtypes = [ctypes.POINTER(Changepoint)]
+    library.changepoint_began_ago.restype = ctypes.c_uint32
+    for name in ("changepoint_running_high", "changepoint_running_low"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Changepoint)]
+        function.restype = REAL_T
+    library.changepoint_delay_for.argtypes = [ctypes.POINTER(Changepoint),
+                                              REAL_T]
+    library.changepoint_delay_for.restype = REAL_T
+    library.changepoint_reset.argtypes = [ctypes.POINTER(Changepoint)]
+    library.changepoint_reset.restype = None
 
     # peakdetect
     library.peakdetect_no_rules.argtypes = []

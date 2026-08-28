@@ -277,3 +277,158 @@ void test_a_filter_that_cannot_be_judged_is_not_called_stable(void)
 
     TEST_ASSERT_EQUAL(false, poly_is_inside_circle(lower, 2u));
 }
+
+// Every root of a polynomial whose terms are all small must still be a root.
+//
+// The walk that finds a root used to stop when the value reached a fixed 100
+// times the smallest step the width can tell. That number says nothing about a
+// polynomial whose whole size is near it: on 0.000061 - x^4 at 32 bits the walk
+// stopped with the value still at 0.000012, a fifth of the polynomial.
+//
+// The test that follows it asks whether a root is real by comparing the value
+// at the root against the value at its real part alone. Given a value that had
+// stopped short, the two stood within a factor of ten of each other, and a root
+// standing straight up the imaginary line was called real. A line was then
+// divided out where a quadratic belonged and every root after it was wrong: the
+// first came back as -1.61, where all four true roots stand at 0.0884.
+void test_poly_roots_of_a_polynomial_that_is_small_everywhere(void)
+{
+    // 0.000061 - x^4, whose four roots stand at 0.0884 turned a quarter of the
+    // way round each time.
+    real_t coefficient[5] = {REAL_C(0.00006103515625), REAL_C(0.0),
+                             REAL_C(0.0), REAL_C(0.0), -REAL_C(1.0)};
+    cnum_t roots[5];
+
+    TEST_ASSERT_EQUAL(true, poly_roots(coefficient, 4u, roots));
+
+    // How large the polynomial gets near its roots, which is what the value at
+    // a root must be measured against.
+    real_t size = REAL_C(0.00006103515625) + REAL_C(1.0);
+
+    for(uint32_t index = 0; index < 4u; index++)
+    {
+        cnum_t value = poly_evaluate_complex(coefficient, 4u, roots[index]);
+
+        TEST_ASSERT_TRUE(cnum_magnitude(value) < (REAL_C(0.001) * size));
+
+        // And every one of them really stands where the four roots stand.
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(0.0883883),
+                                cnum_magnitude(roots[index]));
+    }
+}
+
+// A polynomial with the same root four times over.
+//
+// This is the worst a root finder meets. Dividing out one root of a set that
+// stand on top of each other leaves a polynomial made mostly of the error of
+// that division, thus the roots found last are found from almost nothing. At 32
+// bits the leftover quadratic gave roots at 1536, for four true roots that all
+// stand at 0.571, and poly_is_inside_circle then called a stable filter
+// unstable.
+//
+// What was wrong was the polish: the roots ARE walked back against the original
+// polynomial afterwards, but with too few steps to walk in from 1536.
+void test_poly_roots_of_a_root_repeated_four_times(void)
+{
+    // (x - 0.5707710)^4, worked out and written down as its coefficients.
+    real_t coefficient[5] = {REAL_C(0.10604707151651382),
+                             -REAL_C(0.7433340549468994),
+                             REAL_C(1.9538923501968384),
+                             -REAL_C(2.282625675201416),
+                             REAL_C(1.0)};
+    cnum_t roots[5];
+
+    TEST_ASSERT_EQUAL(true, poly_roots(coefficient, 4u, roots));
+
+    for(uint32_t index = 0; index < 4u; index++)
+    {
+        // A root of four cannot be held closely at any width: the answer moves
+        // by the fourth root of whatever the coefficients moved by. What must
+        // hold is that every one of them stands near the place they all share.
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.02), REAL_C(0.5707710),
+                                cnum_magnitude(roots[index]));
+    }
+
+    // And the filter these poles describe is stable, which is the question a
+    // caller actually asks.
+    TEST_ASSERT_EQUAL(true, poly_is_inside_circle(coefficient, 4u));
+}
+
+// Polishing must never make a root worse.
+//
+// The walk divides the value of the polynomial by its slope. Where several
+// roots stand on top of each other both of those are nearly nothing, thus the
+// rounding on the slope is a large part of it and one step can go anywhere.
+//
+// Measured at 32 bits on a root of four at -0.8125: the divisions had already
+// left every root within 0.07 of the truth, and polishing threw two of them out
+// to 114, where the polynomial reaches 170 million. poly_is_inside_circle then
+// called a stable filter unstable. A step that does not make the value smaller
+// is no longer taken.
+void test_poly_polishing_never_makes_a_root_worse(void)
+{
+    real_t places[4] = {-REAL_C(0.8125), REAL_C(0.8125), -REAL_C(0.95),
+                        REAL_C(0.99)};
+
+    for(uint32_t which = 0; which < 4u; which++)
+    {
+        real_t away = -places[which];
+
+        // (x - place)^4, written down as its coefficients.
+        real_t coefficient[5] = {away * away * away * away,
+                                 REAL_C(4.0) * away * away * away,
+                                 REAL_C(6.0) * away * away,
+                                 REAL_C(4.0) * away,
+                                 REAL_C(1.0)};
+        cnum_t roots[5];
+
+        TEST_ASSERT_EQUAL(true, poly_roots(coefficient, 4u, roots));
+
+        for(uint32_t index = 0; index < 4u; index++)
+        {
+            // Every root stands near the place they all share, and none of them
+            // has been thrown out of the circle.
+            TEST_ASSERT_REAL_WITHIN(REAL_C(0.03), REAL_ABS(places[which]),
+                                    cnum_magnitude(roots[index]));
+            TEST_ASSERT_TRUE(cnum_magnitude(roots[index]) < REAL_C(1.0));
+        }
+
+        TEST_ASSERT_EQUAL(true, poly_is_inside_circle(coefficient, 4u));
+    }
+}
+
+// Every root of x to the power n stands at nothing, which is as plainly inside
+// the circle as a set of roots can be.
+//
+// The walk towards a place where several roots stand together creeps in rather
+// than rushing, keeping a share of its distance at every step, thus it needs
+// about as many steps as there are roots there multiplied by the digits to get
+// right. The budget was a flat 200. That covers six roots together and not
+// seven: poly_roots refused x to the seventh, and poly_is_inside_circle then
+// said no about the plainest stable filter there is. The budget now follows the
+// order.
+void test_poly_roots_of_every_root_at_nothing(void)
+{
+    for(uint32_t order = 2u; order <= POLY_LARGEST_ROOT_ORDER; order++)
+    {
+        real_t coefficient[POLY_COEFFICIENT_COUNT(POLY_LARGEST_ROOT_ORDER)];
+        cnum_t roots[POLY_COEFFICIENT_COUNT(POLY_LARGEST_ROOT_ORDER)];
+
+        for(uint32_t index = 0; index <= order; index++)
+        {
+            coefficient[index] = REAL_C(0.0);
+        }
+
+        coefficient[order] = REAL_C(1.0);
+
+        TEST_ASSERT_EQUAL(true, poly_roots(coefficient, order, roots));
+
+        for(uint32_t index = 0; index < order; index++)
+        {
+            TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0),
+                                    cnum_magnitude(roots[index]));
+        }
+
+        TEST_ASSERT_EQUAL(true, poly_is_inside_circle(coefficient, order));
+    }
+}

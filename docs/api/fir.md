@@ -137,6 +137,21 @@ low cutoff must be smaller than the high cutoff, and both must lie between 0
 and 0.5.
 Give false and leave the filter as it was if fir_is_valid_band is false.
 
+### `fir_design_band_stop`
+
+```c
+bool fir_design_band_stop(fir_t* fir, real_t low_cutoff, real_t high_cutoff);
+```
+
+Build the coefficients of a filter that stops a band of frequencies and lets
+everything else pass. Reach for this where one narrow thing must go and the
+rest of the band must stay: the hum of a mains supply under a measurement,
+or a carrier that a sensor leaks into its own reading. A low pass or a high
+pass would take half the band with it.
+
+The length must be odd, for the reason fir_design_high_pass gives.
+Give false and leave the filter as it was if fir_is_valid_band is false.
+
 ### `fir_design_low_pass_with`
 
 ```c
@@ -170,6 +185,21 @@ bool fir_design_band_pass_with(fir_t* fir, real_t low_cutoff, real_t high_cutoff
 ```
 
 Build a band pass with the window of your choosing.
+
+### `fir_design_band_stop_with`
+
+```c
+bool fir_design_band_stop_with(fir_t* fir, real_t low_cutoff, real_t high_cutoff, window_kind_t kind, real_t parameter);
+```
+
+Build a band stop with the window of your choosing. The length must be odd,
+for the reason fir_design_high_pass gives.
+
+THE WINDOW MATTERS MORE HERE THAN ANYWHERE ELSE. What a band stop is asked
+to do is take one thing out and leave what stands beside it, thus how far
+down the stopped band lies is the whole of its worth. The plain window in
+the table reaches 21 dB down, which leaves a tenth of the hum. Choose one
+that reaches further.
 
 ### `fir_transition_width`
 

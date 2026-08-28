@@ -20,6 +20,7 @@ directory there:
 | Filters | `sptk/filter` | `fir`, `iir`, `savgol`, `movavg`, `medfilt`, `dcblock`, `detrend`, `hampel`, `adaptive`, `rls`, `lattice`, `resample`, `filtfilt` | Take a band of frequencies away, or smooth a signal |
 | Estimation | `sptk/estimate` | `kalman`, `ekf`, `ukf`, `propagate` | Follow a state behind a noisy measurement |
 | Decomposition | `sptk/decompose` | `emd`, `imf` | Split a signal into simpler parts |
+| Detection | `sptk/detect` | `matched`, `delay`, `changepoint` | Say whether an event is in a reading, and when |
 | Interpolation | `sptk/interpolate` | `cspline`, `interp` | Give a smooth curve through a set of points |
 | Linear algebra | `sptk/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `quaternion`, `eigen`, `poly`, `lstsq`, `vector`, `vector2d` | The arithmetic that the areas above need |
 | Utilities | `sptk/util` | `generate`, `quantise`, `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Find a place, a peak or a valley in a list |
@@ -35,8 +36,8 @@ Include a module by its area:
 Each area holds a guide that says **how** its modules work and which one to
 reach for: [transform](sptk/transform), [filter](sptk/filter),
 [estimate](sptk/estimate), [decompose](sptk/decompose),
-[interpolate](sptk/interpolate), [linalg](sptk/linalg), [util](sptk/util),
-[core](sptk/core).
+[detect](sptk/detect), [interpolate](sptk/interpolate),
+[linalg](sptk/linalg), [util](sptk/util), [core](sptk/core).
 
 [docs/API.md](docs/API.md) gives the exact name and shape of every function.
 The directory [examples](examples) holds a small program for each area. The

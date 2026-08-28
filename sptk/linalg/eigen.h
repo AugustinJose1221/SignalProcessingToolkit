@@ -127,6 +127,19 @@ bool eigen_is_valid_matrix(matrix_t* matrix);
 // The vectors may be NULL where only the values are wanted, and the work is
 // then a little less.
 //
+// THE MATRIX MUST CARRY A SIZE THE WIDTH CAN SQUARE. Deciding how far to turn
+// at each step works on the SQUARES of the elements, thus a matrix whose
+// elements are so small that their squares are no longer ordinary numbers is
+// turned by the wrong amount and the answer is rounding. The bound is the
+// square root of the smallest ordinary number the width holds: about 1e-19 at
+// 32 bits and about 1e-154 at 64. Measured on a matrix known to stretch two
+// directions and squash the third, eigen_rank gave 2 at every scale from 1e-1
+// down to 1e-17 at 32 bits and 3 from 1e-19 down.
+//
+// This costs nothing to avoid. Multiply the matrix up until its largest element
+// is about 1, solve, and multiply the values back down: the directions do not
+// move at all and the values move by exactly what the matrix was multiplied by.
+//
 // Give false if the matrix is not one eigen_is_valid_matrix accepts, if the
 // vectors are the wrong order, or if the rotations did not settle within
 // EIGEN_LARGEST_SWEEPS sweeps.
@@ -149,6 +162,17 @@ real_t eigen_condition(const real_t* values, uint32_t count);
 // A part of about 1000 times the smallest step the width can tell is the usual
 // choice. Below that the answer counts directions that are nothing but
 // rounding.
+//
+// THE VALUES MUST CARRY A SIZE THE WIDTH CAN HOLD. The number every value is
+// measured against is the largest of them multiplied by the part, and where the
+// values are near the smallest the width holds, that product falls below it and
+// becomes nothing. Every value then stands above nothing and the answer is the
+// count and not the rank.
+//
+// That is the second of two bounds and the looser one. eigen_solve has already
+// stopped giving the right values below about 1e-19 at 32 bits, and its header
+// says why and what to do about it. The answer is the same for both: scale the
+// matrix up before asking. The rank does not change when it is scaled.
 uint32_t eigen_rank(const real_t* values, uint32_t count, real_t part);
 
 // How much of the whole spread the first few directions hold, from 0 to 1.

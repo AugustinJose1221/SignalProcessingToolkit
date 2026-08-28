@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(SignalProcessing VERSION 0.13.1 LANGUAGES C)
+project(SignalProcessing VERSION 0.14.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -62,7 +62,10 @@ set(SIGNALPROC_SOURCES
     sptk/util/quantise.c
     sptk/util/stats.c
     sptk/util/peakdetect.c
-    sptk/util/valleydetect.c)
+    sptk/util/valleydetect.c
+    sptk/detect/matched.c
+    sptk/detect/delay.c
+    sptk/detect/changepoint.c)
 
 # The repository gives a library, thus the first target is a library. A library
 # needs no main function, and it always builds.
@@ -101,7 +104,8 @@ if(BUILD_EXAMPLE)
         examples/coherence.c
         examples/shapes.c
         examples/continuous.c
-        examples/survey.c)
+        examples/survey.c
+        examples/detect.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()
