@@ -66,6 +66,7 @@ SOURCES = [
     "sptk/filter/lattice.c",
     "sptk/filter/rls.c",
     "sptk/filter/filtfilt.c",
+    "sptk/filter/farrow.c",
     "sptk/estimate/ekf.c",
     "sptk/estimate/kalman.c",
     "sptk/estimate/propagate.c",
@@ -312,6 +313,17 @@ class Changepoint(ctypes.Structure):
         ("since_low", ctypes.c_uint32),
         ("counted", ctypes.c_uint32),
         ("designed", ctypes.c_bool),
+    ]
+
+
+class Farrow(ctypes.Structure):
+    _fields_ = [
+        ("history", Ringbuf),
+        ("weight", ctypes.POINTER(REAL_T)),
+        ("working", ctypes.POINTER(REAL_T)),
+        ("order", ctypes.c_uint32),
+        ("delay", REAL_T),
+        ("dynamic_alloc", ctypes.c_bool),
     ]
 
 
@@ -1076,6 +1088,32 @@ def load_library():
     library.quaternion_from_matrix.restype = Quaternion
     library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
     library.quaternion_slerp.restype = Quaternion
+
+    # farrow
+    library.farrow_is_valid_order.argtypes = [ctypes.c_uint32]
+    library.farrow_is_valid_order.restype = ctypes.c_bool
+    for name in ("farrow_smallest_delay", "farrow_largest_delay"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.c_uint32]
+        function.restype = REAL_T
+    library.farrow_is_valid_delay.argtypes = [ctypes.POINTER(Farrow), REAL_T]
+    library.farrow_is_valid_delay.restype = ctypes.c_bool
+    library.farrow_alloc.argtypes = [ctypes.c_uint32]
+    library.farrow_alloc.restype = Farrow
+    library.farrow_set_delay.argtypes = [ctypes.POINTER(Farrow), REAL_T]
+    library.farrow_set_delay.restype = ctypes.c_bool
+    library.farrow_get_delay.argtypes = [ctypes.POINTER(Farrow)]
+    library.farrow_get_delay.restype = REAL_T
+    library.farrow_process_sample.argtypes = [ctypes.POINTER(Farrow), REAL_T]
+    library.farrow_process_sample.restype = REAL_T
+    library.farrow_process_block.argtypes = [ctypes.POINTER(Farrow),
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32]
+    library.farrow_process_block.restype = ctypes.c_bool
+    library.farrow_reset.argtypes = [ctypes.POINTER(Farrow)]
+    library.farrow_reset.restype = None
+    library.farrow_free.argtypes = [ctypes.POINTER(Farrow)]
+    library.farrow_free.restype = None
 
     # correlate
     library.correlate_is_valid_scaling.argtypes = [ctypes.c_int]
