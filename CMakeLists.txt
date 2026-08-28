@@ -51,6 +51,7 @@ set(SIGNALPROC_SOURCES
     sptk/filter/lattice.c
     sptk/filter/rls.c
     sptk/filter/filtfilt.c
+    sptk/filter/farrow.c
     sptk/estimate/ekf.c
     sptk/estimate/kalman.c
     sptk/estimate/propagate.c

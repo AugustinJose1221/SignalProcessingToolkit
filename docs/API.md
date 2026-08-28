@@ -52,6 +52,7 @@ name and shape of every function.
 | [`lattice`](api/lattice.md) | A filter built as a ladder of stages |
 | [`resample`](api/resample.md) | Changing the rate of a signal |
 | [`filtfilt`](api/filtfilt.md) | Filtering with no delay |
+| [`farrow`](api/farrow.md) | Delaying by a part of a sample |
 
 ## Estimation
 
