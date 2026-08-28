@@ -1145,6 +1145,10 @@ def load_library():
     library.peakdetect_width.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
                                          ctypes.c_uint32, REAL_T]
     library.peakdetect_width.restype = REAL_T
+    for name in ("peakdetect_refine", "peakdetect_refine_height"):
+        function = getattr(library, name)
+        function.argtypes = [FLOAT_POINTER, ctypes.c_uint32, ctypes.c_uint32]
+        function.restype = REAL_T
     library.peakdetect_find.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
                                         ctypes.POINTER(PeakdetectOptions),
                                         ctypes.POINTER(ctypes.c_uint32),
