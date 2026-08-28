@@ -26,6 +26,21 @@ static void constant_state(const matrix_t* state, const matrix_t* input,
     matrix_add_element(result, 0, 0, matrix_get_element((matrix_t*)state, 0, 0));
 }
 
+// A model that is DRIVEN FROM OUTSIDE: the state grows by whatever the input
+// says at each step.
+//
+// Every other model in this file writes (void)input and ignores it, which is
+// why the input of the filter went untested for so long: nothing that was ever
+// predicted with could tell whether the input had been read at all.
+static void driven_state(const matrix_t* state, const matrix_t* input,
+                         matrix_t* result)
+{
+    real_t held = matrix_get_element((matrix_t*)state, 0, 0);
+    real_t drive = matrix_get_element((matrix_t*)input, 0, 0);
+
+    matrix_add_element(result, 0, 0, held + drive);
+}
+
 // The measurement is the square of the state. Its slope at the point x is 2x.
 static void square_measurement(const matrix_t* state, matrix_t* result)
 {
@@ -496,4 +511,83 @@ void test_ekf_free_releases_a_dynamic_filter(void)
 
     ekf_free(&ekf);
     TEST_ASSERT_NULL(ekf.mempool);
+}
+
+// THE INPUT IS WHAT DRIVES THE STATE FROM OUTSIDE. A throttle, a heater, a
+// steering angle: something the filter is told rather than something it works
+// out. Without it a filter can only watch, and every model in this file but one
+// ignores it.
+void test_ekf_the_input_drives_the_state(void)
+{
+    ekf_t ekf = ekf_alloc(1, 1, 1);
+
+    ekf_set_state_function(&ekf, driven_state);
+
+    real_t begins[1] = {REAL_C(0.0)};
+    matrix_t x = make_matrix(1, 1, begins);
+
+    ekf_set_state_matrix(&ekf, &x);
+
+    // With nothing driving it the state stays where it is.
+    real_t nothing[1] = {REAL_C(0.0)};
+    matrix_t none = make_matrix(1, 1, nothing);
+
+    ekf_set_input_matrix(&ekf, &none);
+    ekf_predict(&ekf);
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0),
+                            matrix_get_element(&ekf.x, 0, 0));
+
+    // And with something driving it, it moves by that much at every step.
+    real_t drive[1] = {REAL_C(2.0)};
+    matrix_t u = make_matrix(1, 1, drive);
+
+    ekf_set_input_matrix(&ekf, &u);
+
+    ekf_predict(&ekf);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(2.0),
+                            matrix_get_element(&ekf.x, 0, 0));
+
+    ekf_predict(&ekf);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(4.0),
+                            matrix_get_element(&ekf.x, 0, 0));
+
+    matrix_free(&x);
+    matrix_free(&none);
+    matrix_free(&u);
+    ekf_free(&ekf);
+}
+
+// THE INPUT IS COPIED AND NOT HELD BY REFERENCE. A caller that set the input
+// from a matrix on the stack and then let that matrix go would otherwise be
+// giving the filter memory that is no longer theirs, and the filter would carry
+// on predicting from it.
+void test_ekf_the_input_matrix_is_copied(void)
+{
+    ekf_t ekf = ekf_alloc(1, 1, 1);
+
+    ekf_set_state_function(&ekf, driven_state);
+
+    real_t begins[1] = {REAL_C(0.0)};
+    matrix_t x = make_matrix(1, 1, begins);
+
+    ekf_set_state_matrix(&ekf, &x);
+
+    real_t drive[1] = {REAL_C(5.0)};
+    matrix_t u = make_matrix(1, 1, drive);
+
+    ekf_set_input_matrix(&ekf, &u);
+
+    // Change what the caller holds AFTER giving it to the filter. The filter
+    // must carry on with what it was given.
+    matrix_add_element(&u, 0, 0, REAL_C(100.0));
+
+    ekf_predict(&ekf);
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(5.0),
+                            matrix_get_element(&ekf.x, 0, 0));
+
+    matrix_free(&x);
+    matrix_free(&u);
+    ekf_free(&ekf);
 }
