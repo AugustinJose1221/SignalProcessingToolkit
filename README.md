@@ -216,6 +216,32 @@ branch merges into `development`. When `development` is stable, a branch with
 the name `release/vX.Y.Z` comes from it. Only fixes go into a release branch,
 and that branch then merges into `main`.
 
+### The feature freeze
+
+**From the release of 0.17.0 this library is in a feature freeze.** It takes
+fixes, tests and documentation. It does not take new modules or new public
+functions.
+
+The freeze is not a note in a file. `scripts/check_freeze.py` counts the public
+functions in every header and compares them against the counts recorded at
+0.17.0, and it runs as its own job in the workflow. Adding a function fails the
+build, and so does taking one away: removing one changes what callers may rely
+on, and a freeze is exactly the time not to do that by accident.
+
+To lift it on purpose for a release, run
+
+```bash
+python3 scripts/check_freeze.py --show
+```
+
+and paste the answer into `FROZEN` in that file, so that the change is one a
+reviewer can see in the diff.
+
+**What the freeze is for.** An audit before it found 96.5 percent of lines
+covered and no function between nothing and sixty percent, but 21 modules that
+no generated test has ever exercised. Every catch-up round on that has found
+real faults. The freeze is the time to close it.
+
 ### Making a release
 
 The bump command of commitizen is not in use, thus a release is made by hand.
