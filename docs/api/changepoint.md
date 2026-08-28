@@ -137,6 +137,26 @@ the next alarm is about the next change and not about the same one still
 running. Where the change is still there, the sums build again and the alarm
 comes again after the same delay.
 
+### `changepoint_process_block`
+
+```c
+bool changepoint_process_block(changepoint_t* changepoint, const real_t* input, uint32_t count, changepoint_way_t* way, uint32_t* at);
+```
+
+Give a whole block to the watcher and hear about the FIRST change in it.
+
+Gives true where a change was found, and writes which way it went and the
+sample of the block it was reported at. Gives false where the block held
+none, leaving both untouched. Either may be NULL.
+
+THE WHOLE BLOCK IS ALWAYS READ, whether a change was found in it or not, thus
+the watcher is left standing at the end of it and the next block carries on.
+A block holding more than one change reports only the first: reach for
+changepoint_process_sample where every one of them matters.
+
+changepoint_began_ago still says how long before the alarm the reading
+started walking away, and must be read straight after this.
+
 ### `changepoint_began_ago`
 
 ```c

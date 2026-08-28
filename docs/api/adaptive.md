@@ -128,6 +128,26 @@ real_t adaptive_error(adaptive_t* adaptive, real_t reference, real_t wanted);
 Put one pair in and give what is left when the filter has taken away what it
 could. THIS IS THE ANSWER for taking noise away.
 
+### `adaptive_process_block`
+
+```c
+bool adaptive_process_block(adaptive_t* adaptive, const real_t* reference, const real_t* wanted, real_t* output, real_t* error, uint32_t count);
+```
+
+Run a whole block through, learning from every sample of it.
+
+The output takes what the filter made of the reference and the error takes
+what is left when that has been taken away. EITHER MAY BE NULL, and a caller
+that wants only one should give NULL for the other rather than a list it
+throws away.
+
+THE ERROR IS ALMOST ALWAYS THE ANSWER. The output is the interference as the
+filter learned it; the error is what remains, which is the thing that was
+wanted. A caller taking the output has taken the noise.
+
+The lists may not overlap the two inputs. Give false if the filter holds no
+coefficients.
+
 ### `adaptive_get_coefficient`
 
 ```c

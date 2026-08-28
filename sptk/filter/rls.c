@@ -277,3 +277,35 @@ void rls_free(rls_t* rls)
     rls->length = 0u;
     rls->healthy = false;
 }
+
+bool rls_process_block(rls_t* rls, const real_t* reference,
+                       const real_t* wanted, real_t* output, real_t* error,
+                       uint32_t count)
+{
+    ASSERT(rls != NULL);
+    ASSERT(reference != NULL);
+    ASSERT(wanted != NULL);
+
+    if(rls->coefficient == NULL)
+    {
+        return false;
+    }
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        real_t made = rls_process_sample(rls, reference[index],
+                                         wanted[index]);
+
+        if(output != NULL)
+        {
+            output[index] = made;
+        }
+
+        if(error != NULL)
+        {
+            error[index] = wanted[index] - made;
+        }
+    }
+
+    return rls_is_healthy(rls);
+}

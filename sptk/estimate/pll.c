@@ -223,3 +223,23 @@ uint32_t pll_settle_samples(const pll_t* pll)
     // the thing and the signal decides the rest.
     return (uint32_t)(REAL_C(2.0) / pll->bandwidth);
 }
+
+bool pll_process_block(pll_t* pll, const real_t* input, real_t* output,
+                       uint32_t count)
+{
+    ASSERT(pll != NULL);
+    ASSERT(input != NULL);
+    ASSERT(output != NULL);
+
+    if(!pll->designed)
+    {
+        return false;
+    }
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        output[index] = pll_process_sample(pll, input[index]);
+    }
+
+    return true;
+}

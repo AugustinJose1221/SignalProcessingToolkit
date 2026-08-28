@@ -113,6 +113,17 @@ Give the loop one sample and take back its own tone at the phase it has
 arrived at. That tone is the carrier recovered: it holds the frequency and the
 phase of what arrived and none of its noise.
 
+### `pll_process_block`
+
+```c
+bool pll_process_block(pll_t* pll, const real_t* input, real_t* output, uint32_t count);
+```
+
+Run a whole block through and take back the loop's own tone at every sample.
+
+The loop is left standing where the block ended, thus the next block carries
+on from it. Give false if the loop was never designed.
+
 ### `pll_get_frequency`
 
 ```c

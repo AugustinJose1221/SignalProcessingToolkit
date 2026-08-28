@@ -150,6 +150,25 @@ real_t rls_error(rls_t* rls, real_t reference, real_t wanted);
 
 The same, giving what is left over rather than what the filter produced.
 
+### `rls_process_block`
+
+```c
+bool rls_process_block(rls_t* rls, const real_t* reference, const real_t* wanted, real_t* output, real_t* error, uint32_t count);
+```
+
+Run a whole block through, learning from every sample of it.
+
+The output takes what the filter made of the reference and the error takes
+what is left when that has been taken away. Either may be NULL.
+
+THE ERROR IS ALMOST ALWAYS THE ANSWER, for the reason adaptive gives: the
+output is the interference as the filter learned it and the error is what
+remains.
+
+Give false if the filter holds no memory, or if the matrix has stopped being
+a real one part way through. A block that fails part way has still changed
+the filter, thus rls_is_healthy is the thing to read afterwards.
+
 ### `rls_is_healthy`
 
 ```c

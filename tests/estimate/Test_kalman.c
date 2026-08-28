@@ -543,3 +543,73 @@ void test_kalman_static_filter_gives_the_same_result_as_a_dynamic_filter(void)
     kalman_free(&dynamic_filter);
     kalman_free(&static_filter);
 }
+
+// THERE IS NO kalman_reset, AND THIS IS WHY THERE NEED NOT BE.
+//
+// Every other filter here that carries state has a reset, because its state is
+// private. Here the state and the covariance ARE the memory of the filter and
+// the caller sets both, thus putting them back is the reset. Nothing else
+// survives a step: the gain, the innovation and the working matrices are all
+// written afresh at every predict and update.
+//
+// This holds that claim to the last digit. If it ever stops holding, a reset is
+// needed and this test is what says so.
+void test_kalman_putting_the_state_and_covariance_back_is_a_reset(void)
+{
+    kalman_t used = make_scalar_filter(REAL_C(0.0), REAL_C(1.0), REAL_C(0.0),
+                                       REAL_C(1.0));
+    kalman_t fresh = make_scalar_filter(REAL_C(0.0), REAL_C(1.0), REAL_C(0.0),
+                                        REAL_C(1.0));
+
+    matrix_t y = matrix_create_zero_matrix(1, 1);
+
+    // Drive one of them hard, so that it has learned something to forget.
+    for(uint32_t index = 0; index < 200u; index++)
+    {
+        matrix_add_element(&y, 0, 0, REAL_C(9.0));
+        kalman_set_measurement_matrix(&used, &y);
+        kalman_predict(&used);
+        kalman_update(&used);
+    }
+
+    TEST_ASSERT_TRUE(REAL_ABS(matrix_get_element(&used.x, 0, 0)
+                              - matrix_get_element(&fresh.x, 0, 0))
+                     > REAL_C(1.0));
+
+    // Put back only the two the caller owns.
+    real_t begins[1] = {REAL_C(0.0)};
+    real_t doubt[1] = {REAL_C(1.0)};
+    matrix_t x = make_matrix(1, 1, begins);
+    matrix_t p = make_matrix(1, 1, doubt);
+
+    kalman_set_state_matrix(&used, &x);
+    kalman_set_covariance_matrix(&used, &p);
+
+    // From here the two must answer alike, and not nearly alike.
+    for(uint32_t index = 0; index < 50u; index++)
+    {
+        real_t reading = REAL_C(3.0)
+                         + ((real_t)(index % 7u) * REAL_C(0.1));
+
+        matrix_add_element(&y, 0, 0, reading);
+
+        kalman_set_measurement_matrix(&used, &y);
+        kalman_predict(&used);
+        kalman_update(&used);
+
+        kalman_set_measurement_matrix(&fresh, &y);
+        kalman_predict(&fresh);
+        kalman_update(&fresh);
+
+        TEST_ASSERT_EQUAL_REAL(matrix_get_element(&fresh.x, 0, 0),
+                               matrix_get_element(&used.x, 0, 0));
+        TEST_ASSERT_EQUAL_REAL(matrix_get_element(&fresh.p, 0, 0),
+                               matrix_get_element(&used.p, 0, 0));
+    }
+
+    matrix_free(&x);
+    matrix_free(&p);
+    matrix_free(&y);
+    kalman_free(&used);
+    kalman_free(&fresh);
+}
