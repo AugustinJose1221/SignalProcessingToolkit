@@ -591,3 +591,62 @@ void test_ekf_the_input_matrix_is_copied(void)
     matrix_free(&u);
     ekf_free(&ekf);
 }
+
+// THERE IS NO ekf_reset, AND THIS IS WHY THERE NEED NOT BE. The state and the
+// covariance ARE the memory of the filter and the caller sets both; nothing
+// else survives a step. If this ever stops holding, a reset is needed and this
+// test is what says so.
+void test_ekf_putting_the_state_and_covariance_back_is_a_reset(void)
+{
+    ekf_t used = ekf_alloc(1, 1, 1);
+    ekf_t fresh = ekf_alloc(1, 1, 1);
+
+    ekf_t* both[2] = {&used, &fresh};
+
+    for(uint32_t which = 0; which < 2u; which++)
+    {
+        ekf_set_state_function(both[which], constant_state);
+        ekf_set_measurement_function(both[which], direct_measurement);
+        set_scalar(both[which], ekf_set_process_noise_covariance_matrix,
+                   REAL_C(0.01));
+        set_scalar(both[which], ekf_set_measurement_covariance_matrix,
+                   REAL_C(0.25));
+        set_scalar(both[which], ekf_set_state_matrix, REAL_C(0.0));
+        set_scalar(both[which], ekf_set_covariance_matrix, REAL_C(1.0));
+    }
+
+    for(uint32_t index = 0; index < 200u; index++)
+    {
+        set_scalar(&used, ekf_set_measurement_matrix, REAL_C(9.0));
+        ekf_predict(&used);
+        ekf_update(&used);
+    }
+
+    TEST_ASSERT_TRUE(REAL_ABS(matrix_get_element(&used.x, 0, 0)
+                              - matrix_get_element(&fresh.x, 0, 0))
+                     > REAL_C(1.0));
+
+    set_scalar(&used, ekf_set_state_matrix, REAL_C(0.0));
+    set_scalar(&used, ekf_set_covariance_matrix, REAL_C(1.0));
+
+    for(uint32_t index = 0; index < 50u; index++)
+    {
+        real_t reading = REAL_C(3.0) + ((real_t)(index % 7u) * REAL_C(0.1));
+
+        set_scalar(&used, ekf_set_measurement_matrix, reading);
+        ekf_predict(&used);
+        ekf_update(&used);
+
+        set_scalar(&fresh, ekf_set_measurement_matrix, reading);
+        ekf_predict(&fresh);
+        ekf_update(&fresh);
+
+        TEST_ASSERT_EQUAL_REAL(matrix_get_element(&fresh.x, 0, 0),
+                               matrix_get_element(&used.x, 0, 0));
+        TEST_ASSERT_EQUAL_REAL(matrix_get_element(&fresh.p, 0, 0),
+                               matrix_get_element(&used.p, 0, 0));
+    }
+
+    ekf_free(&used);
+    ekf_free(&fresh);
+}

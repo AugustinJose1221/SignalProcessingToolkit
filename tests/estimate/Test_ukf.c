@@ -780,3 +780,73 @@ void test_ukf_the_gain_says_how_much_the_measurement_was_believed(void)
     matrix_free(&y);
     ukf_free(&ukf);
 }
+
+// THERE IS NO ukf_reset, AND THIS IS WHY THERE NEED NOT BE. The sigma points
+// and their weights are worked out afresh at every predict, thus the state and
+// the covariance are the whole of what the filter remembers, and the caller
+// sets both.
+void test_ukf_putting_the_state_and_covariance_back_is_a_reset(void)
+{
+    ukf_t used = ukf_alloc(1, 1, 1);
+    ukf_t fresh = ukf_alloc(1, 1, 1);
+
+    matrix_t q = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&q, 0, 0, REAL_C(0.01));
+    matrix_t r = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&r, 0, 0, REAL_C(0.25));
+    matrix_t x = matrix_create_zero_matrix(1, 1);
+    matrix_t p = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&p, 0, 0, REAL_C(1.0));
+    matrix_t y = matrix_create_zero_matrix(1, 1);
+
+    ukf_t* both[2] = {&used, &fresh};
+
+    for(uint32_t which = 0; which < 2u; which++)
+    {
+        ukf_set_state_function(both[which], state_stays);
+        ukf_set_measurement_function(both[which], measures_the_state);
+        ukf_set_process_noise_covariance_matrix(both[which], &q);
+        ukf_set_measurement_covariance_matrix(both[which], &r);
+        ukf_set_state_matrix(both[which], &x);
+        ukf_set_covariance_matrix(both[which], &p);
+    }
+
+    for(uint32_t index = 0; index < 200u; index++)
+    {
+        matrix_add_element(&y, 0, 0, REAL_C(9.0));
+        TEST_ASSERT_EQUAL(true, ukf_step(&used, NULL, &y));
+    }
+
+    TEST_ASSERT_TRUE(
+        REAL_ABS(matrix_get_element(ukf_get_state_matrix(&used), 0, 0)
+                 - matrix_get_element(ukf_get_state_matrix(&fresh), 0, 0))
+        > REAL_C(1.0));
+
+    ukf_set_state_matrix(&used, &x);
+    ukf_set_covariance_matrix(&used, &p);
+
+    for(uint32_t index = 0; index < 50u; index++)
+    {
+        real_t reading = REAL_C(3.0) + ((real_t)(index % 7u) * REAL_C(0.1));
+
+        matrix_add_element(&y, 0, 0, reading);
+
+        TEST_ASSERT_EQUAL(true, ukf_step(&used, NULL, &y));
+        TEST_ASSERT_EQUAL(true, ukf_step(&fresh, NULL, &y));
+
+        TEST_ASSERT_EQUAL_REAL(
+            matrix_get_element(ukf_get_state_matrix(&fresh), 0, 0),
+            matrix_get_element(ukf_get_state_matrix(&used), 0, 0));
+        TEST_ASSERT_EQUAL_REAL(
+            matrix_get_element(ukf_get_covariance_matrix(&fresh), 0, 0),
+            matrix_get_element(ukf_get_covariance_matrix(&used), 0, 0));
+    }
+
+    matrix_free(&q);
+    matrix_free(&r);
+    matrix_free(&x);
+    matrix_free(&p);
+    matrix_free(&y);
+    ukf_free(&used);
+    ukf_free(&fresh);
+}
