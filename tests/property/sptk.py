@@ -347,6 +347,33 @@ class Farrow(ctypes.Structure):
     ]
 
 
+class Goertzel(ctypes.Structure):
+    _fields_ = [
+        ("coefficient", REAL_T),
+        ("sine", REAL_T),
+        ("cosine", REAL_T),
+        ("first", REAL_T),
+        ("second", REAL_T),
+        ("block_size", ctypes.c_uint32),
+        ("count", ctypes.c_uint32),
+    ]
+
+
+class Psd(ctypes.Structure):
+    _fields_ = [
+        ("block", ctypes.c_uint32),
+        ("overlap", ctypes.c_uint32),
+        ("kind", ctypes.c_int),
+        ("parameter", REAL_T),
+        ("window", ctypes.POINTER(REAL_T)),
+        ("windowed", ctypes.POINTER(REAL_T)),
+        ("spectrum", ctypes.POINTER(Cnum)),
+        ("fft", Fft),
+        ("window_power", REAL_T),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
 class Cepstrum(ctypes.Structure):
     _fields_ = [
         ("fft", Fft),
@@ -1179,6 +1206,66 @@ def load_library():
     library.farrow_reset.restype = None
     library.farrow_free.argtypes = [ctypes.POINTER(Farrow)]
     library.farrow_free.restype = None
+
+    # goertzel
+    library.goertzel_init.argtypes = [REAL_T, REAL_T, ctypes.c_uint32]
+    library.goertzel_init.restype = Goertzel
+    library.goertzel_process_sample.argtypes = [ctypes.POINTER(Goertzel),
+                                                REAL_T]
+    library.goertzel_process_sample.restype = None
+    library.goertzel_process_block.argtypes = [ctypes.POINTER(Goertzel),
+                                               FLOAT_POINTER,
+                                               ctypes.c_uint32]
+    library.goertzel_process_block.restype = None
+    library.goertzel_is_block_complete.argtypes = [ctypes.POINTER(Goertzel)]
+    library.goertzel_is_block_complete.restype = ctypes.c_bool
+    for name in ("goertzel_magnitude_squared", "goertzel_magnitude",
+                 "goertzel_phase"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Goertzel)]
+        function.restype = REAL_T
+    library.goertzel_reset.argtypes = [ctypes.POINTER(Goertzel)]
+    library.goertzel_reset.restype = None
+
+    # hilbert
+    library.hilbert_analytic_signal.argtypes = [ctypes.POINTER(Fft),
+                                                FLOAT_POINTER,
+                                                ctypes.POINTER(Cnum)]
+    library.hilbert_analytic_signal.restype = None
+    for name in ("hilbert_amplitude", "hilbert_phase"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cnum), FLOAT_POINTER,
+                             ctypes.c_uint32]
+        function.restype = None
+    library.hilbert_frequency.argtypes = [ctypes.POINTER(Cnum), FLOAT_POINTER,
+                                          ctypes.c_uint32, REAL_T]
+    library.hilbert_frequency.restype = None
+
+    # psd
+    library.psd_is_valid_block.argtypes = [ctypes.c_uint32]
+    library.psd_is_valid_block.restype = ctypes.c_bool
+    library.psd_alloc.argtypes = [ctypes.c_uint32]
+    library.psd_alloc.restype = Psd
+    library.psd_design.argtypes = [ctypes.POINTER(Psd), ctypes.c_uint32,
+                                   ctypes.c_int, REAL_T]
+    library.psd_design.restype = ctypes.c_bool
+    library.psd_bin_count.argtypes = [ctypes.POINTER(Psd)]
+    library.psd_bin_count.restype = ctypes.c_uint32
+    library.psd_block_count.argtypes = [ctypes.POINTER(Psd), ctypes.c_uint32]
+    library.psd_block_count.restype = ctypes.c_uint32
+    library.psd_bin_frequency.argtypes = [ctypes.POINTER(Psd),
+                                          ctypes.c_uint32, REAL_T]
+    library.psd_bin_frequency.restype = REAL_T
+    library.psd_bin_width.argtypes = [ctypes.POINTER(Psd), REAL_T]
+    library.psd_bin_width.restype = REAL_T
+    library.psd_estimate.argtypes = [ctypes.POINTER(Psd), FLOAT_POINTER,
+                                     ctypes.c_uint32, REAL_T, FLOAT_POINTER]
+    library.psd_estimate.restype = ctypes.c_bool
+    library.psd_band_power.argtypes = [ctypes.POINTER(Psd), FLOAT_POINTER,
+                                       REAL_T, REAL_T, REAL_T]
+    library.psd_band_power.restype = REAL_T
+    library.psd_free.argtypes = [ctypes.POINTER(Psd)]
+    library.psd_free.restype = None
 
     # cepstrum
     library.cepstrum_is_valid_size.argtypes = [ctypes.c_uint32]
