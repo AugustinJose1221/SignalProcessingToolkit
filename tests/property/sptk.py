@@ -70,6 +70,7 @@ SOURCES = [
     "sptk/estimate/ekf.c",
     "sptk/estimate/kalman.c",
     "sptk/estimate/propagate.c",
+    "sptk/estimate/pll.c",
     "sptk/estimate/ukf.c",
     "sptk/decompose/emd.c",
     "sptk/decompose/imf.c",
@@ -312,6 +313,23 @@ class Changepoint(ctypes.Structure):
         ("since_high", ctypes.c_uint32),
         ("since_low", ctypes.c_uint32),
         ("counted", ctypes.c_uint32),
+        ("designed", ctypes.c_bool),
+    ]
+
+
+class Pll(ctypes.Structure):
+    _fields_ = [
+        ("phase", REAL_T),
+        ("step", REAL_T),
+        ("free_step", REAL_T),
+        ("fast", REAL_T),
+        ("slow", REAL_T),
+        ("gathered", REAL_T),
+        ("loudness", REAL_T),
+        ("quality", REAL_T),
+        ("quality_keep", REAL_T),
+        ("bandwidth", REAL_T),
+        ("damping", REAL_T),
         ("designed", ctypes.c_bool),
     ]
 
@@ -1088,6 +1106,29 @@ def load_library():
     library.quaternion_from_matrix.restype = Quaternion
     library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
     library.quaternion_slerp.restype = Quaternion
+
+    # pll
+    for name in ("pll_is_valid_bandwidth", "pll_is_valid_damping"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T]
+        function.restype = ctypes.c_bool
+    library.pll_make.argtypes = []
+    library.pll_make.restype = Pll
+    library.pll_design.argtypes = [ctypes.POINTER(Pll), REAL_T, REAL_T,
+                                   REAL_T, REAL_T]
+    library.pll_design.restype = ctypes.c_bool
+    library.pll_process_sample.argtypes = [ctypes.POINTER(Pll), REAL_T]
+    library.pll_process_sample.restype = REAL_T
+    library.pll_get_frequency.argtypes = [ctypes.POINTER(Pll), REAL_T]
+    library.pll_get_frequency.restype = REAL_T
+    for name in ("pll_get_phase", "pll_lock_quality", "pll_pull_range"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Pll)]
+        function.restype = REAL_T
+    library.pll_settle_samples.argtypes = [ctypes.POINTER(Pll)]
+    library.pll_settle_samples.restype = ctypes.c_uint32
+    library.pll_reset.argtypes = [ctypes.POINTER(Pll)]
+    library.pll_reset.restype = None
 
     # farrow
     library.farrow_is_valid_order.argtypes = [ctypes.c_uint32]
