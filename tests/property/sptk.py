@@ -41,6 +41,7 @@ SOURCES = [
     "sptk/interpolate/cspline.c",
     "sptk/interpolate/interp.c",
     "sptk/transform/bluestein.c",
+    "sptk/transform/dct.c",
     "sptk/transform/dwt.c",
     "sptk/transform/fft.c",
     "sptk/transform/goertzel.c",
@@ -1106,6 +1107,17 @@ def load_library():
     library.quaternion_from_matrix.restype = Quaternion
     library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
     library.quaternion_slerp.restype = Quaternion
+
+    # dct
+    library.dct_is_valid_size.argtypes = [ctypes.c_uint32]
+    library.dct_is_valid_size.restype = ctypes.c_bool
+    for name in ("dct_forward", "dct_inverse"):
+        function = getattr(library, name)
+        function.argtypes = [FLOAT_POINTER, FLOAT_POINTER, ctypes.c_uint32]
+        function.restype = ctypes.c_bool
+    library.dct_count_for_share.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                            REAL_T]
+    library.dct_count_for_share.restype = ctypes.c_uint32
 
     # pll
     for name in ("pll_is_valid_bandwidth", "pll_is_valid_damping"):

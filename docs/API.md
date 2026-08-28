@@ -32,6 +32,7 @@ name and shape of every function.
 | [`hilbert`](api/hilbert.md) | The Hilbert transform |
 | [`hht`](api/hht.md) | The Hilbert-Huang transform |
 | [`dwt`](api/dwt.md) | The discrete wavelet transform |
+| [`dct`](api/dct.md) | Turning a signal into cosines |
 
 ## Filters
 
