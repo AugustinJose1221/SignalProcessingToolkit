@@ -1,6 +1,7 @@
 #include "unity.h"
 #include "real_assert.h"
 #include "peakdetect.h"
+#include "curve.h"
 
 void setUp(void)
 {
@@ -304,5 +305,141 @@ void test_peakdetect_finds_the_beats_of_a_heart_where_a_local_maximum_cannot(voi
         uint32_t apart = (found[beat] > expected) ? (found[beat] - expected)
                                                   : (expected - found[beat]);
         TEST_ASSERT_TRUE(apart <= 3u);
+    }
+}
+
+// A peak almost never stands on a sample, and rounding to the nearest one is
+// out by up to half a sample in every measurement equally.
+void test_peakdetect_refine_finds_the_top_between_two_samples(void)
+{
+    // A curve of the second order whose top stands a quarter of a sample to
+    // the right of the middle point. Three points fix it exactly, thus the
+    // answer must be exact.
+    real_t values[3];
+
+    for(uint32_t index = 0; index < 3u; index++)
+    {
+        real_t at = (real_t)index - REAL_C(1.0) - REAL_C(0.25);
+
+        values[index] = REAL_C(4.0) - (at * at);
+    }
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.25),
+                            peakdetect_refine(values, 3u, 1u));
+
+    // And it says how high the top reaches, which the largest sample
+    // under-reports: the sample stands a quarter away, thus it is lower by the
+    // square of a quarter.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(4.0),
+                            peakdetect_refine_height(values, 3u, 1u));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(4.0) - REAL_C(0.0625),
+                            values[1]);
+
+    // Three even points have their top on the middle one.
+    real_t even[3] = {REAL_C(1.0), REAL_C(2.0), REAL_C(1.0)};
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.0),
+                            peakdetect_refine(even, 3u, 1u));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(2.0),
+                            peakdetect_refine_height(even, 3u, 1u));
+}
+
+// There are not three points at either end, and three points that do not bend
+// downwards hold no top between them.
+void test_peakdetect_refine_gives_nothing_where_there_is_no_peak(void)
+{
+    real_t rising[4] = {REAL_C(1.0), REAL_C(2.0), REAL_C(3.0), REAL_C(4.0)};
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.0),
+                            peakdetect_refine(rising, 4u, 0u));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.0),
+                            peakdetect_refine(rising, 4u, 3u));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.0),
+                            peakdetect_refine(rising, 4u, 2u));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.0),
+                            peakdetect_refine(rising, 2u, 1u));
+
+    // With nothing to fit, the height that can be said is the sample itself.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(3.0),
+                            peakdetect_refine_height(rising, 4u, 2u));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(1.0),
+                            peakdetect_refine_height(rising, 4u, 0u));
+}
+
+// THE NUMBERS IN THE HEADER, HELD TO. A peak whose top is known exactly is
+// sampled five to a width with the top moved between two samples, and what the
+// refinement says is set against where the top really stands.
+void test_peakdetect_refine_beats_rounding_on_every_shape(void)
+{
+    curve_shape_t shapes[3] = {CURVE_GAUSSIAN, CURVE_LORENTZIAN,
+                               CURVE_SKEWED_GAUSSIAN};
+    real_t skews[3] = {REAL_C(0.0), REAL_C(0.0), REAL_C(2.0)};
+    // The worst the refinement was measured to be, in samples.
+    real_t allowed[3] = {REAL_C(0.005), REAL_C(0.010), REAL_C(0.050)};
+
+    for(uint32_t which = 0; which < 3u; which++)
+    {
+        real_t width = REAL_C(1.0);
+        real_t step = width / REAL_C(5.0);
+
+        // THE WORST ACROSS EVERY PLACE THE TOP CAN FALL, and not the error at
+        // each place on its own. Where the top happens to land almost exactly
+        // ON a sample, rounding to that sample is already perfect and refining
+        // can only add a little to it. What the refinement is for is the other
+        // places, and the worst is what says whether it is worth doing.
+        real_t worst_refined = REAL_C(0.0);
+        real_t worst_rounded = REAL_C(0.0);
+        real_t worst_height = REAL_C(0.0);
+        real_t worst_largest = REAL_C(0.0);
+
+        for(uint32_t moved = 0; moved < 20u; moved++)
+        {
+            real_t middle = ((real_t)moved / REAL_C(20.0)) * step;
+            real_t top = (shapes[which] == CURVE_SKEWED_GAUSSIAN)
+                         ? curve_skewed_gaussian_top(middle, width,
+                                                     skews[which])
+                         : middle;
+
+            real_t values[41];
+            uint32_t best = 0u;
+
+            for(uint32_t index = 0; index < 41u; index++)
+            {
+                real_t at = ((real_t)index - REAL_C(20.0)) * step;
+
+                values[index] = curve_value(shapes[which], at, middle, width,
+                                            skews[which]);
+
+                if(values[index] > values[best]) { best = index; }
+            }
+
+            real_t at_best = ((real_t)best - REAL_C(20.0)) * step;
+            real_t refined = at_best
+                             + (peakdetect_refine(values, 41u, best) * step);
+            real_t height = peakdetect_refine_height(values, 41u, best);
+
+            real_t off_refined = REAL_ABS(refined - top) / step;
+            real_t off_rounded = REAL_ABS(at_best - top) / step;
+
+            if(off_refined > worst_refined) { worst_refined = off_refined; }
+            if(off_rounded > worst_rounded) { worst_rounded = off_rounded; }
+
+            real_t off_height = REAL_ABS(height - REAL_C(1.0));
+            real_t off_largest = REAL_ABS(values[best] - REAL_C(1.0));
+
+            if(off_height > worst_height) { worst_height = off_height; }
+            if(off_largest > worst_largest) { worst_largest = off_largest; }
+        }
+
+        // Inside what the header promises, and far better than rounding.
+        TEST_ASSERT_TRUE(worst_refined <= allowed[which]);
+        TEST_ASSERT_TRUE(worst_refined < (REAL_C(0.25) * worst_rounded));
+
+        // Rounding really is out by about half a sample at its worst, which is
+        // what makes the comparison worth making.
+        TEST_ASSERT_TRUE(worst_rounded > REAL_C(0.4));
+
+        // And the height it gives beats the largest sample by a wide margin.
+        TEST_ASSERT_TRUE(worst_height < (REAL_C(0.5) * worst_largest));
     }
 }

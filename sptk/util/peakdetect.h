@@ -104,6 +104,83 @@ real_t peakdetect_prominence(const real_t* input, uint32_t size, uint32_t peak);
 real_t peakdetect_width(const real_t* input, uint32_t size, uint32_t peak,
                         real_t part);
 
+// Where the top of a peak really stands, as an offset from the sample it was
+// found at, between -0.5 and 0.5.
+//
+// A PEAK ALMOST NEVER STANDS ON A SAMPLE. What is measured is a smooth thing
+// read at fixed places, and the largest of those places is merely the nearest
+// one to the top. Taking that place as the answer rounds the top to the nearest
+// sample, and the error does not go away with a longer run: it is there in
+// every measurement equally.
+//
+// Three points fix one curve of the second order, and the top of that curve is
+// where the top of a smooth thing stands. Add this offset to the index to get
+// the place.
+//
+// HOW CLOSE IT COMES DEPENDS ON THE SHAPE, and the answer is exact only for a
+// peak that really is of the second order. Measured against the shapes in
+// curve.h, sampled five to a width, with the top moved through a hundred places
+// between two samples and the worst of them taken. In samples:
+//
+//   shape                        refined     rounded to the nearest sample
+//   -------------------------   --------     -----------------------------
+//   gaussian                      0.0019                             0.5000
+//   lorentzian                    0.0049                             0.5000
+//   skewed gaussian, skew 2       0.0346                             0.5070
+//   skewed gaussian, skew 4       0.1263                             0.5256
+//   skewed gaussian, skew 8       0.3403                             0.5948
+//
+// READ THE TWO COLUMNS TOGETHER. Refining beats rounding on every shape, thus
+// it is always worth doing, and HOW MUCH it beats it by falls away as the peak
+// leans: by two hundred and sixty times on a gaussian, by four times at a skew
+// of 4, and by only one and three quarter times at a skew of 8. A fitter tested
+// only on a gaussian is being tested on the kindest shape there is.
+//
+// THE TABLE IS THE WORST ACROSS EVERY PLACE THE TOP CAN FALL, and not the error
+// at each place on its own. Where the top happens to land almost exactly ON a
+// sample, rounding to that sample is already right and refining can only add a
+// little to it. That is not a fault and it is not worth guarding against: a
+// caller cannot know which case it has, and the worst is what a measurement
+// must be trusted to within.
+//
+// Give 0 where the peak stands at either end, because there are not three
+// points there, and where the three points do not bend downwards, because then
+// the middle one is not a peak at all.
+real_t peakdetect_refine(const real_t* input, uint32_t size, uint32_t peak);
+
+// How tall the peak really is, which the largest sample under-reports.
+//
+// The same curve that says where the top stands says how high it reaches, and
+// it comes free with it. A SAMPLED PEAK IS ALWAYS SHORTER THAN THE REAL ONE,
+// because the nearest sample stands to one side of the top and the shape has
+// already begun to fall there. The shortfall is largest exactly when the top
+// falls half way between two samples.
+//
+// Measured the same way as above, as a share of a top of one:
+//
+//   shape                        refined     the largest sample
+//   -------------------------   --------     ------------------
+//   gaussian                      0.0001                 0.0050
+//   lorentzian                    0.0004                 0.0064
+//   skewed gaussian, skew 2       0.0017                 0.0119
+//   skewed gaussian, skew 4       0.0067                 0.0191
+//   skewed gaussian, skew 8       0.0303                 0.0270
+//
+// Across most of that the gain is larger than it is for the place, because the
+// curve is flattest exactly where the top is and a small error in the place
+// costs almost nothing in the height.
+//
+// READ THE LAST ROW. AT A SKEW OF 8 THIS IS WORSE THAN DOING NOTHING. The
+// largest sample always stands BELOW the real top; the fitted curve stands
+// above it, and on a peak that leans that hard it overshoots by more than the
+// sample undershoots. The place is still worth refining there and the height is
+// not. Past about a skew of 4, take the largest sample as the height.
+//
+// Give the value at the peak itself where there are not three points to fit, or
+// where they do not bend downwards.
+real_t peakdetect_refine_height(const real_t* input, uint32_t size,
+                                uint32_t peak);
+
 // Find the peaks that pass every rule, and write their indices in the order
 // they stand in the signal.
 //

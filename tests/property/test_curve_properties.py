@@ -291,3 +291,116 @@ def test_a_curve_fitted_through_three_points_leans_by_the_shape(lib, middle,
 
     assert abs(refined - top) < abs(places[1] - top) + (0.5 * step)
     assert abs(refined - top) <= step
+
+
+@given(SHAPES, MIDDLES, WIDTHS, SKEWS)
+@RUNS
+def test_refining_a_peak_beats_rounding_it_to_the_nearest_sample(lib, shape,
+                                                                 middle,
+                                                                 width, skew):
+    """THE CLAIM peakdetect_refine MAKES, held against peaks whose tops are
+    known exactly.
+
+    A peak is sampled five to a width and the top is moved through the places
+    it can fall between two samples. What must hold is not that refining is
+    better at every one of those places -- where the top lands almost on a
+    sample, rounding is already right -- but that the WORST it does across all
+    of them beats the worst rounding does. That worst is what a measurement has
+    to be trusted to."""
+    step = width / 5.0
+    count = 41
+
+    worst_refined = 0.0
+    worst_rounded = 0.0
+    worst_height = 0.0
+    worst_largest = 0.0
+
+    # THE GRID OF SAMPLES STAYS PUT AND THE PEAK MOVES THROUGH IT. Built the
+    # other way round -- the grid laid out from the middle of the peak -- the
+    # top lands exactly on a sample every time however far the peak is moved,
+    # rounding is then perfect, and the test measures nothing at all.
+    places = [middle + ((index - (count // 2)) * step) for index in range(count)]
+
+    for moved in range(12):
+        shifted = middle + ((moved / 12.0) * step)
+
+        top = shifted
+
+        if shape == sptk.CURVE_SKEWED_GAUSSIAN:
+            top = lib.curve_skewed_gaussian_top(sp.to_float32(shifted),
+                                                sp.to_float32(width),
+                                                sp.to_float32(skew))
+
+        values = [value(lib, shape, at, shifted, width, skew)
+                  for at in places]
+
+        best = max(range(count), key=lambda index: values[index])
+
+        # The top must be inside the run, with a sample either side of it.
+        assume(0 < best < count - 1)
+
+        given_values = sptk.float_array(values)
+
+        refined = places[best] + (lib.peakdetect_refine(given_values, count,
+                                                        best) * step)
+        height = lib.peakdetect_refine_height(given_values, count, best)
+
+        worst_refined = max(worst_refined, abs(refined - top) / step)
+        worst_rounded = max(worst_rounded, abs(places[best] - top) / step)
+        worst_height = max(worst_height, abs(height - 1.0))
+        worst_largest = max(worst_largest, abs(values[best] - 1.0))
+
+    # Rounding really is out by about half a sample at its worst, which is what
+    # makes the comparison worth making at all.
+    assert worst_rounded > 0.35
+
+    # And refining beats it on every shape, however hard the peak leans.
+    assert worst_refined < worst_rounded
+
+    # On a shape that does not lean, by a long way.
+    if shape != sptk.CURVE_SKEWED_GAUSSIAN or skew == 0.0:
+        assert worst_refined < (0.05 * worst_rounded)
+
+    # THE HEIGHT IS A DIFFERENT STORY AND THE BOUND SAYS SO. The largest sample
+    # always stands below the real top and the fitted curve stands above it, and
+    # on a peak that leans hard the curve overshoots by more than the sample
+    # undershoots. Measured, at a skew of 8 the fitted height is out by 0.0303
+    # where the largest sample is out by 0.0270, thus refining the height there
+    # is worse than doing nothing. It is held only where the header says it
+    # holds.
+    if abs(skew) <= 4.0:
+        assert worst_height <= worst_largest + 1e-6
+
+
+@given(st.lists(sp.elements(4.0), min_size=3, max_size=32))
+def test_a_refined_height_is_never_below_the_sample_it_was_found_at(lib,
+                                                                    values):
+    """A peak sampled at fixed places is always SHORTER than the real one,
+    because the nearest sample stands to one side of the top and the shape has
+    already begun to fall there. The fitted top can therefore never come out
+    below the sample it was fitted through."""
+    count = len(values)
+
+    for peak in range(1, count - 1):
+        if not (values[peak] > values[peak - 1]
+                and values[peak] > values[peak + 1]):
+            continue
+
+        given_values = sptk.float_array(values)
+        height = lib.peakdetect_refine_height(given_values, count, peak)
+
+        scale = 1e-4 * (1.0 + abs(values[peak]))
+
+        assert height >= values[peak] - scale
+
+
+@given(st.lists(sp.elements(4.0), min_size=3, max_size=32))
+def test_the_two_names_for_refining_a_peak_give_one_answer(lib, values):
+    """delay_refine_peak is peakdetect_refine under another name. Two copies of
+    one question would be two things to keep right."""
+    count = len(values)
+    given_values = sptk.float_array(values)
+
+    for peak in range(count):
+        assert (lib.delay_refine_peak(given_values, count, peak)
+                == lib.peakdetect_refine(given_values, count, peak))

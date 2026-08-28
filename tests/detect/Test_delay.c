@@ -4,6 +4,7 @@
 #include "fft.h"
 #include "cnum.h"
 #include "correlate.h"
+#include "peakdetect.h"
 #include <math.h>
 
 #define SIZE            1024u

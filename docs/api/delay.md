@@ -42,10 +42,10 @@ real_t delay_refine_peak(const real_t* values, uint32_t count, uint32_t peak);
 Fit a curve through a peak and its two neighbours, and give how far the top
 of that curve stands from the middle point, between -0.5 and 0.5.
 
-Three points fix one curve of the second order, and the top of that curve is
-where the true peak of a smooth thing stands. Reach for this wherever a
-measurement lands on a peak of a list and the list is a sampled version of
-something smooth: a correlation, a spectrum, a fitted error.
+THIS IS peakdetect_refine UNDER ANOTHER NAME, and it gives exactly what that
+gives. It is here because refining the peak of a correlation is what this
+module does with it, and a caller working on delays should not have to know
+that the same question is asked of a spectrum. Reach for either.
 
 Give 0 where the peak stands at either end, because there are not three
 points there, and where the three points do not curve downwards, because then
