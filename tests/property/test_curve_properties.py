@@ -34,6 +34,27 @@ def value(lib, shape, at, middle, width, skew=0.0):
                            sp.to_float32(width), sp.to_float32(skew))
 
 
+def room_at(middle, width, base=1e-5):
+    """How far two answers may stand apart when the PLACES they were read at
+    cannot themselves be written down exactly.
+
+    THIS IS NOT SLACK. A place near 1024 written as a float of 32 bits sits on
+    a grid whose steps are about 0.00012 apart, thus asking for a place a
+    distance away on one side and the same distance on the other gives two
+    places that are NOT the same distance out: each is rounded to its own
+    nearest grid point. The shape is even in the arithmetic; the caller cannot
+    say where to read it evenly enough to show that at every scale.
+
+    What the answer can move by is how far the place moved multiplied by how
+    steeply the shape falls, and these shapes fall by at most about 0.61 of
+    their top across one width. Measured, the case that found this: a middle of
+    1024 and a width of 1 gave two sides differing by 2.6e-5 where the room was
+    1e-5."""
+    spacing = abs(middle) * (2.0 ** -24 if not sptk.REAL_64 else 2.0 ** -53)
+
+    return base + (2.0 * spacing / width)
+
+
 @given(EVEN_SHAPES, MIDDLES, WIDTHS)
 @RUNS
 def test_every_shape_falls_to_the_same_share_at_one_width(lib, shape, middle,
@@ -47,7 +68,7 @@ def test_every_shape_falls_to_the_same_share_at_one_width(lib, shape, middle,
         at = middle + (side * width)
 
         assert abs(value(lib, shape, at, middle, width)
-                   - sptk.CURVE_AT_ONE_WIDTH) <= 1e-4
+                   - sptk.CURVE_AT_ONE_WIDTH) <= room_at(middle, width, 1e-4)
 
 
 @given(EVEN_SHAPES, MIDDLES, WIDTHS, sp.elements(8.0))
@@ -60,7 +81,7 @@ def test_an_even_shape_is_the_same_on_both_sides(lib, shape, middle, width,
     above = value(lib, shape, middle + away, middle, width)
     below = value(lib, shape, middle - away, middle, width)
 
-    assert abs(above - below) <= 1e-5
+    assert abs(above - below) <= room_at(middle, width)
 
 
 @given(SHAPES, MIDDLES, WIDTHS, SKEWS, sp.elements(8.0))
@@ -91,7 +112,8 @@ def test_every_shape_really_reaches_one_at_its_top(lib, shape, middle, width,
                                             sp.to_float32(width),
                                             sp.to_float32(skew))
 
-    assert abs(value(lib, shape, top, middle, width, skew) - 1.0) <= 1e-4
+    assert abs(value(lib, shape, top, middle, width, skew)
+               - 1.0) <= room_at(middle, width, 1e-4)
 
 
 @given(MIDDLES, WIDTHS, st.sampled_from([2.0, 3.0, 5.0, 10.0]))
@@ -119,7 +141,7 @@ def test_a_skew_of_nothing_is_the_plain_gaussian(lib, middle, width, away):
     plain = value(lib, sptk.CURVE_GAUSSIAN, at, middle, width)
     skewed = value(lib, sptk.CURVE_SKEWED_GAUSSIAN, at, middle, width, 0.0)
 
-    assert abs(plain - skewed) <= 1e-4
+    assert abs(plain - skewed) <= room_at(middle, width, 1e-4)
 
 
 @given(MIDDLES, WIDTHS, st.sampled_from([0.5, 2.0, 4.0, 8.0]))
@@ -133,7 +155,7 @@ def test_turning_the_skew_round_mirrors_the_shape(lib, middle, width, skew):
         other = value(lib, sptk.CURVE_SKEWED_GAUSSIAN, middle - (away * width),
                       middle, width, -skew)
 
-        assert abs(one - other) <= 1e-4
+        assert abs(one - other) <= room_at(middle, width, 1e-4)
 
     above = lib.curve_skewed_gaussian_top(sp.to_float32(middle),
                                           sp.to_float32(width),
@@ -160,7 +182,7 @@ def test_the_top_that_is_given_is_really_the_top(lib, middle, width, skew):
         at = top + ((step / 10.0) * width)
 
         assert value(lib, sptk.CURVE_SKEWED_GAUSSIAN, at, middle, width,
-                     skew) <= tallest + 1e-5
+                     skew) <= tallest + room_at(middle, width)
 
 
 @given(MIDDLES, WIDTHS, st.sampled_from([1.0, 2.0, 4.0, 8.0]))
@@ -204,7 +226,8 @@ def test_a_block_is_the_places_read_one_at_a_time(lib, shape, middle, width,
         at = low + (between * index)
 
         assert abs(written[index]
-                   - value(lib, shape, at, middle, width, skew)) <= 1e-4
+                   - value(lib, shape, at, middle, width, skew)) <= room_at(
+                       middle, width, 1e-4)
 
 
 @given(st.floats(min_value=-4.0, max_value=4.0, width=32))
