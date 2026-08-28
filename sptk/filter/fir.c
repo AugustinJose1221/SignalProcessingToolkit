@@ -271,6 +271,44 @@ bool fir_design_band_pass_with(fir_t* fir, real_t low_cutoff,
     return true;
 }
 
+// Turn a band pass into a band stop, in place.
+//
+// A band stop is everything less a band pass, and everything is a single 1 in
+// the middle. The sign of every coefficient is turned and the middle one has 1
+// added to it, which is the same step that makes a high pass out of a low
+// pass. It needs a middle coefficient, thus the length must be odd.
+static void fir_turn_band_pass_round(real_t* coefficient, uint32_t length)
+{
+    for(uint32_t index = 0; index < length; index++)
+    {
+        coefficient[index] = -coefficient[index];
+    }
+
+    coefficient[length / 2u] += REAL_C(1.0);
+}
+
+bool fir_design_band_stop_with(fir_t* fir, real_t low_cutoff,
+                               real_t high_cutoff, window_kind_t kind,
+                               real_t parameter)
+{
+    ASSERT(fir != NULL);
+
+    if((fir->length % 2u) != 1u)
+    {
+        return false;
+    }
+
+    if(!fir_design_band_pass_with(fir, low_cutoff, high_cutoff, kind,
+                                  parameter))
+    {
+        return false;
+    }
+
+    fir_turn_band_pass_round(fir->coefficient, fir->length);
+
+    return true;
+}
+
 bool fir_design_low_pass(fir_t* fir, real_t cutoff)
 {
     ASSERT(fir != NULL);
@@ -333,6 +371,28 @@ bool fir_design_band_pass(fir_t* fir, real_t low_cutoff, real_t high_cutoff)
         real_t lower = REAL_C(2.0) * low_cutoff * fir_sinc(REAL_C(2.0) * low_cutoff * position);
         fir->coefficient[index] -= lower * fir_hamming(index, fir->length);
     }
+
+    return true;
+}
+
+bool fir_design_band_stop(fir_t* fir, real_t low_cutoff, real_t high_cutoff)
+{
+    ASSERT(fir != NULL);
+    // The change of the sign works with a middle coefficient only, thus the
+    // length must be odd.
+    ASSERT((fir->length % 2) == 1);
+
+    if((fir->length % 2u) != 1u)
+    {
+        return false;
+    }
+
+    if(!fir_design_band_pass(fir, low_cutoff, high_cutoff))
+    {
+        return false;
+    }
+
+    fir_turn_band_pass_round(fir->coefficient, fir->length);
 
     return true;
 }

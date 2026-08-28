@@ -104,6 +104,7 @@ void lattice_reset(lattice_t* lattice)
         lattice->weight[index] = REAL_C(0.0);
         lattice->before = REAL_C(0.0);
         lattice->after = REAL_C(0.0);
+        lattice->counted = REAL_C(0.0);
 
         // The energies begin at the floor rather than at nothing, so that the
         // first sample cannot divide by zero.
@@ -246,17 +247,31 @@ real_t lattice_process_sample(lattice_t* lattice, real_t reference,
     // stages learning as fast as the loud ones.
     // The energies above are running SUMS, which is what the reflection steps
     // want. A weight is a plain amount of its stage and wants the running MEAN
-    // instead, which is the sum multiplied by one less the forgetting factor.
-    // Dividing a weight by the sum makes its step a hundredth of what it
-    // should be, and the ladder then settles more slowly than a straight
+    // instead. Dividing a weight by the sum makes its step a hundredth of what
+    // it should be, and the ladder then settles more slowly than a straight
     // filter, which is the opposite of the point.
+    //
+    // THE MEAN IS THE SUM DIVIDED BY HOW MANY SAMPLES THE SUM STANDS FOR, and
+    // that count fades exactly as the sum does. Once a run has settled the
+    // count reaches one divided by one less the forgetting factor, thus this
+    // is the same as multiplying by one less the factor. It differs in the two
+    // places that matter. At the start of a run the count is small and gives
+    // the true mean of the few samples there have been, where multiplying gave
+    // a number far too small and steps far too large. And at a forgetting
+    // factor of exactly one, which asks the filter to forget nothing at all,
+    // multiplying gives NOTHING: the whole normalisation disappears, each
+    // weight is left dividing by its own sample alone, and a quiet sample then
+    // moves a weight by thousands. Measured, the answer ran away to infinity
+    // by sample 244.
     // AND THE RATE IS SHARED AMONG THE STAGES. Each stage is normalised on its
     // own here, thus every one of them takes a step of the size the rate asks
     // for and the steps add. A ladder of twelve stages at a rate of 0.5 would
     // move six times as far as a plain normalised filter at that rate, which
     // no filter is stable at. Sharing the rate keeps the whole step the size
     // the caller asked for, whatever the number of stages.
-    real_t to_mean = REAL_C(1.0) - lattice->forgetting;
+    lattice->counted = (lattice->forgetting * lattice->counted)
+                       + REAL_C(1.0);
+
     real_t shared = lattice->rate / (real_t)(stages + 1u);
 
     for(uint32_t stage = 0; stage <= stages; stage++)
@@ -265,7 +280,7 @@ real_t lattice_process_sample(lattice_t* lattice, real_t reference,
         real_t loudness = (stage < stages) ? lattice->energy[stage]
                                            : lattice->energy[stages - 1u];
 
-        real_t against = loudness * to_mean;
+        real_t against = loudness / lattice->counted;
 
         // AND THE STEP IS HELD SO THAT IT CANNOT OVERSHOOT.
         //

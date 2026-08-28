@@ -49,6 +49,12 @@ The one type that holds every number. Declared in `sptk/core/real.h`.
 #define REAL_SQRT(x)        sqrt(x)
 ```
 
+### `REAL_HYPOT`
+
+```c
+#define REAL_HYPOT(x, y)    hypot((x), (y))
+```
+
 ### `REAL_SIN`
 
 ```c
@@ -185,6 +191,12 @@ The one type that holds every number. Declared in `sptk/core/real.h`.
 
 ```c
 #define REAL_SQRT(x)        sqrtf(x)
+```
+
+### `REAL_HYPOT`
+
+```c
+#define REAL_HYPOT(x, y)    hypotf((x), (y))
 ```
 
 ### `REAL_SIN`

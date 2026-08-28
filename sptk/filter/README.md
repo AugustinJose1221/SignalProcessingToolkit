@@ -182,7 +182,7 @@ answers which question.
 | Low pass | `iir_design_low_pass`, `fir_design_low_pass` | Take away everything fast |
 | High pass | `iir_design_high_pass`, `fir_design_high_pass` | Take away the wander |
 | Band pass | `iir_design_band_pass`, `fir_design_band_pass` | Keep one range of frequencies |
-| Band stop, notch | `iir_design_band_stop`, `iir_design_notch` | Take away one frequency |
+| Band stop, notch | `iir_design_band_stop`, `fir_design_band_stop`, `iir_design_notch` | Take away one frequency |
 | Peak | `iir_design_peak` | Follow one frequency |
 
 **The notch is the answer to the hum of the mains**, which is the most common

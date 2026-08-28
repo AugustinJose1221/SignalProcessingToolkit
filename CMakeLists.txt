@@ -62,7 +62,10 @@ set(SIGNALPROC_SOURCES
     sptk/util/quantise.c
     sptk/util/stats.c
     sptk/util/peakdetect.c
-    sptk/util/valleydetect.c)
+    sptk/util/valleydetect.c
+    sptk/detect/matched.c
+    sptk/detect/delay.c
+    sptk/detect/changepoint.c)
 
 # The repository gives a library, thus the first target is a library. A library
 # needs no main function, and it always builds.
@@ -101,7 +104,8 @@ if(BUILD_EXAMPLE)
         examples/coherence.c
         examples/shapes.c
         examples/continuous.c
-        examples/survey.c)
+        examples/survey.c
+        examples/detect.c)
 
     target_link_libraries(signalproc_example signalproc m)
 endif()

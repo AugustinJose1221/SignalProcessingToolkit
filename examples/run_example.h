@@ -45,6 +45,7 @@
 #define RUN_SHAPES_EXAMPLE          24
 #define RUN_CONTINUOUS_EXAMPLE      25
 #define RUN_SURVEY_EXAMPLE          26
+#define RUN_DETECT_EXAMPLE          27
 
 #define RUN_EXAMPLE     RUN_NONE
 
