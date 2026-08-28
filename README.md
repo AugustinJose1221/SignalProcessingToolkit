@@ -246,17 +246,39 @@ When `development` is stable:
 6. Merge the branch into `main` and into `development`, and make the tag:
 
    ```bash
-   git checkout main && git merge --ff-only release/vX.Y.Z
-   git checkout development && git merge --ff-only release/vX.Y.Z
-   git tag -a X.Y.Z -m "X.Y.Z"
+   git checkout main && git merge --no-ff release/vX.Y.Z -m "Merge branch 'release/vX.Y.Z'"
+   ```
+
+   ```bash
+   git checkout development && git merge --no-ff release/vX.Y.Z -m "Merge branch 'release/vX.Y.Z' into development"
+   ```
+
+   ```bash
+   git tag -a X.Y.Z -m "X.Y.Z" main
+   ```
+
+   ```bash
    git push origin main development X.Y.Z
    ```
+
+**Both of those are merges and neither can be a fast forward.** The release
+branch is merged into two branches, thus each of them gets a merge commit of its
+own and from that moment neither branch holds the other. The tags up to 0.8.0
+name a plain commit and a fast forward worked then; 0.9.0 is the first that
+names a merge commit, and no fast forward onto `main` has been possible since.
+These steps said `--ff-only` until 0.14.0, which aborts.
+
+**The tag names `main`.** Both branches hold the same tree at this point but they
+are different commits, and every tag from 0.1.0 onwards names the commit on
+`main`. Leaving the branch off tags whichever branch happens to be checked out,
+which is `development` if the steps are followed in the order above.
 
 The name of the tag holds no letter v, but the name of the branch does. The
 tag 0.1.0 set that rule.
 
 Each push runs the workflow in
 [.github/workflows/tests.yml](.github/workflows/tests.yml). It runs the
-documentation check, the naming check, the unit tests, the property based
-tests, the build, and a build with the warnings of the compiler switched on. A
-warning stops the workflow.
+documentation check, the naming check, the example check, the unit tests, the
+property based tests, the build, and a build with the warnings of the compiler
+switched on. Everything but the first three runs at both widths, which makes
+eleven jobs. A warning stops the workflow.
