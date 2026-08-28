@@ -221,3 +221,38 @@ void adaptive_free(adaptive_t* adaptive)
         adaptive->dynamic_alloc = false;
     }
 }
+
+bool adaptive_process_block(adaptive_t* adaptive, const real_t* reference,
+                            const real_t* wanted, real_t* output,
+                            real_t* error, uint32_t count)
+{
+    ASSERT(adaptive != NULL);
+    ASSERT(reference != NULL);
+    ASSERT(wanted != NULL);
+
+    if(adaptive->coefficient == NULL)
+    {
+        return false;
+    }
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        // ONE PASS AND NOT TWO. Calling the sample form twice would let the
+        // filter learn from the same sample twice over and give an error taken
+        // against coefficients that had already moved.
+        real_t made = adaptive_process_sample(adaptive, reference[index],
+                                              wanted[index]);
+
+        if(output != NULL)
+        {
+            output[index] = made;
+        }
+
+        if(error != NULL)
+        {
+            error[index] = wanted[index] - made;
+        }
+    }
+
+    return true;
+}

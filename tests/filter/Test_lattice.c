@@ -334,3 +334,67 @@ void test_lattice_forgetting_nothing_still_answers(void)
         lattice_free(&lattice);
     }
 }
+
+// A BLOCK MUST BE THE SAMPLES ONE AT A TIME. Every stage learns from every
+// sample, thus a block form that differed would leave a different ladder.
+void test_lattice_a_block_is_the_samples_one_at_a_time(void)
+{
+    const uint32_t count = 300u;
+    static real_t reference[300];
+    static real_t wanted[300];
+    static real_t error[300];
+
+    seed = 13u;
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        reference[index] = white();
+        wanted[index] = (REAL_C(0.6) * reference[index])
+                        - ((index > 0u) ? (REAL_C(0.3) * reference[index - 1u])
+                                        : REAL_C(0.0));
+    }
+
+    lattice_t together = lattice_alloc(4u);
+    lattice_t apart = lattice_alloc(4u);
+
+    lattice_design(&together, REAL_C(0.5), REAL_C(0.99));
+    lattice_design(&apart, REAL_C(0.5), REAL_C(0.99));
+
+    TEST_ASSERT_EQUAL(true, lattice_process_block(&together, reference,
+                                                  wanted, error, count));
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        real_t left = lattice_process_sample(&apart, reference[index],
+                                             wanted[index]);
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), left, error[index]);
+    }
+
+    for(uint32_t stage = 0; stage < 4u; stage++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001),
+                                lattice_get_reflection(&apart, stage),
+                                lattice_get_reflection(&together, stage));
+    }
+
+    lattice_free(&together);
+    lattice_free(&apart);
+}
+
+// A ladder that was never designed has no stages to run a block through.
+void test_lattice_a_block_of_an_undesigned_ladder_is_refused(void)
+{
+    real_t reference[4] = {REAL_C(1.0), REAL_C(0.0), REAL_C(0.0), REAL_C(0.0)};
+    real_t wanted[4] = {REAL_C(1.0), REAL_C(0.0), REAL_C(0.0), REAL_C(0.0)};
+    real_t error[4];
+
+    lattice_t lattice = lattice_alloc(2u);
+
+    lattice.designed = false;
+
+    TEST_ASSERT_EQUAL(false, lattice_process_block(&lattice, reference,
+                                                   wanted, error, 4u));
+
+    lattice_free(&lattice);
+}

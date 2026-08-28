@@ -136,6 +136,13 @@ bool pll_design(pll_t* pll, real_t frequency, real_t sample_rate,
 // phase of what arrived and none of its noise.
 real_t pll_process_sample(pll_t* pll, real_t sample);
 
+// Run a whole block through and take back the loop's own tone at every sample.
+//
+// The loop is left standing where the block ended, thus the next block carries
+// on from it. Give false if the loop was never designed.
+bool pll_process_block(pll_t* pll, const real_t* input, real_t* output,
+                       uint32_t count);
+
 // Give the frequency the loop is following, at the sample rate it was designed
 // at. THIS IS THE MEASUREMENT for a tachometer or a mains watcher.
 real_t pll_get_frequency(const pll_t* pll, real_t sample_rate);

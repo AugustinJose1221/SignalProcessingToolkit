@@ -173,6 +173,17 @@ bool lattice_design(lattice_t* lattice, real_t rate, real_t forgetting);
 real_t lattice_process_sample(lattice_t* lattice, real_t reference,
                               real_t wanted);
 
+// Run a whole block through, letting every stage learn from every sample.
+//
+// The error takes what the ladder could not explain at each sample, worked out
+// BEFORE it learned from that sample, which is what lattice_process_sample
+// gives and is the honest measure.
+//
+// Give false if the ladder was never designed.
+bool lattice_process_block(lattice_t* lattice, const real_t* reference,
+                           const real_t* wanted, real_t* error,
+                           uint32_t count);
+
 // What was left over before this sample was learned from.
 //
 // THIS IS THE ONE TO WATCH AND TO RECORD. It says how the filter is doing

@@ -346,3 +346,26 @@ void lattice_free(lattice_t* lattice)
     lattice->stages = 0u;
     lattice->designed = false;
 }
+
+bool lattice_process_block(lattice_t* lattice, const real_t* reference,
+                           const real_t* wanted, real_t* error,
+                           uint32_t count)
+{
+    ASSERT(lattice != NULL);
+    ASSERT(reference != NULL);
+    ASSERT(wanted != NULL);
+    ASSERT(error != NULL);
+
+    if(!lattice->designed)
+    {
+        return false;
+    }
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        error[index] = lattice_process_sample(lattice, reference[index],
+                                              wanted[index]);
+    }
+
+    return true;
+}

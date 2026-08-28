@@ -121,6 +121,20 @@ should have produced. The answer is the error A PRIORI: what the ladder
 would have said before it learned anything from this sample. That is the
 honest measure, and it is what lattice_error gives as well.
 
+### `lattice_process_block`
+
+```c
+bool lattice_process_block(lattice_t* lattice, const real_t* reference, const real_t* wanted, real_t* error, uint32_t count);
+```
+
+Run a whole block through, letting every stage learn from every sample.
+
+The error takes what the ladder could not explain at each sample, worked out
+BEFORE it learned from that sample, which is what lattice_process_sample
+gives and is the honest measure.
+
+Give false if the ladder was never designed.
+
 ### `lattice_error_before`
 
 ```c

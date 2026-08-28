@@ -314,3 +314,59 @@ void test_pll_says_how_far_it_reaches_and_how_long_it_takes(void)
         TEST_ASSERT_TRUE(pll_get_phase(&loop) < REAL_C(1.0));
     }
 }
+
+// A BLOCK MUST BE THE SAMPLES ONE AT A TIME. The loop carries its phase and its
+// running totals from one sample to the next, thus a block form that differed
+// would leave the loop somewhere else.
+void test_pll_a_block_is_the_samples_one_at_a_time(void)
+{
+    const uint32_t count = 500u;
+    static real_t given[500];
+    static real_t answer[500];
+
+    seed = 21u;
+
+    real_t phase = REAL_C(0.0);
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        phase += TONE / RATE;
+        given[index] = REAL_SIN(REAL_C(2.0) * PI * phase) + rough();
+    }
+
+    pll_t together = pll_make();
+    pll_t apart = pll_make();
+
+    TEST_ASSERT_EQUAL(true, pll_design(&together, TONE, RATE, REAL_C(0.005),
+                                       REAL_C(0.707)));
+    TEST_ASSERT_EQUAL(true, pll_design(&apart, TONE, RATE, REAL_C(0.005),
+                                       REAL_C(0.707)));
+
+    TEST_ASSERT_EQUAL(true, pll_process_block(&together, given, answer,
+                                              count));
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001),
+                                pll_process_sample(&apart, given[index]),
+                                answer[index]);
+    }
+
+    // And both loops ended in the same place.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001),
+                            pll_get_frequency(&apart, RATE),
+                            pll_get_frequency(&together, RATE));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), pll_get_phase(&apart),
+                            pll_get_phase(&together));
+}
+
+// A loop that was never designed has nothing to follow.
+void test_pll_a_block_of_an_undesigned_loop_is_refused(void)
+{
+    real_t given[4] = {REAL_C(1.0), REAL_C(0.0), -REAL_C(1.0), REAL_C(0.0)};
+    real_t answer[4];
+
+    pll_t loop = pll_make();
+
+    TEST_ASSERT_EQUAL(false, pll_process_block(&loop, given, answer, 4u));
+}

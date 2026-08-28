@@ -349,3 +349,85 @@ void test_rls_matrix_size(void)
     TEST_ASSERT_EQUAL(4096, RLS_MATRIX_SIZE(64));
     TEST_ASSERT_EQUAL(65536, RLS_MATRIX_SIZE(256));
 }
+
+// A BLOCK MUST BE THE SAMPLES ONE AT A TIME. The filter learns from every one
+// of them and carries a matrix that is written at each, thus a block form that
+// differed would leave a different filter behind.
+void test_rls_a_block_is_the_samples_one_at_a_time(void)
+{
+    const uint32_t count = 300u;
+    static real_t reference[300];
+    static real_t wanted[300];
+    static real_t output[300];
+    static real_t error[300];
+
+    uint32_t seed = 9u;
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        seed = (seed * 1103515245u) + 12345u;
+        reference[index] = ((real_t)((seed >> 16u) % 2000u)
+                            / REAL_C(1000.0)) - REAL_C(1.0);
+        wanted[index] = (REAL_C(0.6) * reference[index])
+                        - ((index > 0u) ? (REAL_C(0.3) * reference[index - 1u])
+                                        : REAL_C(0.0));
+    }
+
+    rls_t together = rls_alloc(4u);
+    rls_t apart = rls_alloc(4u);
+
+    rls_design(&together, REAL_C(0.99), REAL_C(100.0));
+    rls_design(&apart, REAL_C(0.99), REAL_C(100.0));
+
+    TEST_ASSERT_EQUAL(true, rls_process_block(&together, reference, wanted,
+                                              output, error, count));
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        real_t made = rls_process_sample(&apart, reference[index],
+                                         wanted[index]);
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), made, output[index]);
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), wanted[index] - made,
+                                error[index]);
+    }
+
+    for(uint32_t index = 0; index < 4u; index++)
+    {
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001),
+                                rls_get_coefficient(&apart, index),
+                                rls_get_coefficient(&together, index));
+    }
+
+    // A block that ran to the end leaves a healthy filter, and says so.
+    TEST_ASSERT_EQUAL(true, rls_is_healthy(&together));
+
+    rls_free(&together);
+    rls_free(&apart);
+}
+
+// The block gives back what rls_is_healthy would say, so that a caller need not
+// ask twice for the ordinary case.
+void test_rls_a_block_reports_whether_the_matrix_is_still_real(void)
+{
+    const uint32_t count = 50u;
+    real_t reference[50];
+    real_t wanted[50];
+    real_t error[50];
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        reference[index] = REAL_SIN((real_t)index * REAL_C(0.3));
+        wanted[index] = REAL_C(0.5) * reference[index];
+    }
+
+    rls_t rls = rls_alloc(3u);
+
+    rls_design(&rls, REAL_C(0.99), REAL_C(100.0));
+
+    TEST_ASSERT_EQUAL(rls_is_healthy(&rls),
+                      rls_process_block(&rls, reference, wanted, NULL, error,
+                                        count));
+
+    rls_free(&rls);
+}
