@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(SignalProcessing VERSION 0.15.0 LANGUAGES C)
+project(SignalProcessing VERSION 0.16.0 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -26,6 +26,7 @@ set(SIGNALPROC_SOURCES
     sptk/interpolate/cspline.c
     sptk/interpolate/interp.c
     sptk/transform/bluestein.c
+    sptk/transform/dct.c
     sptk/transform/dwt.c
     sptk/transform/fft.c
     sptk/transform/goertzel.c
@@ -51,9 +52,11 @@ set(SIGNALPROC_SOURCES
     sptk/filter/lattice.c
     sptk/filter/rls.c
     sptk/filter/filtfilt.c
+    sptk/filter/farrow.c
     sptk/estimate/ekf.c
     sptk/estimate/kalman.c
     sptk/estimate/propagate.c
+    sptk/estimate/pll.c
     sptk/estimate/ukf.c
     sptk/decompose/emd.c
     sptk/decompose/imf.c

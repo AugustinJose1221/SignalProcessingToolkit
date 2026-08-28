@@ -180,3 +180,52 @@ what one step of that total size would have cost.
 measures midpoint and Runge giving the same answer, because at that step the
 midpoint error had already fallen below the noise on the measurements. Carry the
 model well enough that it is not the worst thing in the answer, then stop.
+
+## pll
+
+A transform reads a block and gives the frequencies in it. **That is a trade you
+cannot escape by writing better code**: make the block long enough to tell 50.0
+Hz from 50.1 and the frequency has moved before the block is over; make it short
+enough to follow the movement and it can no longer tell the two apart.
+
+A loop does not have that trade. It holds a guess of the frequency and a guess of
+the phase, compares its guess against what arrives, and moves. It gives a **new
+answer at every sample**, and how quickly it follows a change is a number you set
+rather than a length you have to choose.
+
+Reach for it where the frequency **is** the measurement and will not stay still:
+a tachometer, a mains watcher, a tag whose carrier the motion has shifted.
+
+**What is paid for it.** A loop can be wrong in three ways a transform cannot:
+
+| | |
+|---|---|
+| It must be started near the answer | `pll_pull_range` says how far it reaches |
+| It can settle onto something that is not there | `pll_lock_quality` is the only thing that says so |
+| It takes time to arrive | `pll_settle_samples` gives a rough figure |
+
+**The second one is the trap.** Given noise and no tone at all, the loop settles
+somewhere and reports a frequency with exactly the confidence it reports a real
+one. Read the lock quality.
+
+**The bandwidth is the whole of the trade.** Measured on a tone at a tenth of the
+sample rate, with noise as loud as the tone for the wander:
+
+| bandwidth | wander of the answer | samples to find the tone |
+|---|---|---|
+| 0.0005 | 0.001107 | 4603 |
+| 0.0010 | 0.001540 | 1154 |
+| 0.0050 | 0.006196 | 57 |
+| 0.0100 | 0.012724 | 42 |
+
+Twenty times the bandwidth finds the tone a hundred times as fast and wanders
+eleven times as far. Neither end is right.
+
+**It measures how loud the signal is and divides by it.** Without that the gain
+of the loop would be the gain you asked for multiplied by the loudness of
+whatever arrived — a quiet tone would never lock, a loud one would be unstable,
+and the bandwidth would mean nothing.
+
+**The bandwidth must stay well below the frequency being followed.** The detector
+gives the error it wants and a ripple at twice the tone on top of it, and the
+loop leans on being too slow to follow that ripple.

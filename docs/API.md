@@ -32,6 +32,7 @@ name and shape of every function.
 | [`hilbert`](api/hilbert.md) | The Hilbert transform |
 | [`hht`](api/hht.md) | The Hilbert-Huang transform |
 | [`dwt`](api/dwt.md) | The discrete wavelet transform |
+| [`dct`](api/dct.md) | Turning a signal into cosines |
 
 ## Filters
 
@@ -52,6 +53,7 @@ name and shape of every function.
 | [`lattice`](api/lattice.md) | A filter built as a ladder of stages |
 | [`resample`](api/resample.md) | Changing the rate of a signal |
 | [`filtfilt`](api/filtfilt.md) | Filtering with no delay |
+| [`farrow`](api/farrow.md) | Delaying by a part of a sample |
 
 ## Estimation
 
@@ -63,6 +65,7 @@ name and shape of every function.
 | [`ekf`](api/ekf.md) | The extended Kalman filter |
 | [`ukf`](api/ukf.md) | The unscented Kalman filter |
 | [`propagate`](api/propagate.md) | Carrying a state forward through a rate of change |
+| [`pll`](api/pll.md) | Following a tone that will not stay still |
 
 ## Decomposition
 

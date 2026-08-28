@@ -10,6 +10,46 @@ different price.
 | `iir` | Feeds its own output back into itself | The work for each sample must be small |
 | `savgol` | Lays a polynomial through a window | A peak must keep its height |
 
+## farrow
+
+`delay_by_phase` measures how far one reading stands behind another to below a
+sample. **This is the other half of that**: having measured 2.35 samples,
+something has to apply it.
+
+A delay of a whole number of samples costs nothing — it is reading further back
+in a buffer, and `ringbuf` already does it. A delay of a **part** of a sample is
+a filter, because the value between two samples is not in the reading.
+
+**It goes wrong in two ways and the one that matters is not the obvious one.**
+The obvious one is that the delay comes out a little different from the delay
+asked for. The one that matters is that it **quietens the signal**: working out a
+value between two samples averages them, and averaging takes the fast part away.
+
+How much of the signal is left, at the delay halfway between two samples, which
+is the worst place there is:
+
+| part of the rate | order 1 | order 3 | order 5 | order 7 |
+|---|---|---|---|---|
+| 0.05 | 0.9877 | 0.9998 | 1.0000 | 1.0000 |
+| 0.20 | 0.8090 | 0.9488 | 0.9850 | 0.9955 |
+| 0.30 | 0.5878 | 0.7801 | 0.8746 | 0.9261 |
+| 0.40 | 0.3090 | 0.4488 | 0.5436 | 0.6150 |
+
+At four tenths of the rate an order of 1 puts the delay out by a seventh of a
+sample, which sounds tolerable, and throws away **seven tenths of the signal**,
+which is not. A caller watching only the delay would call that filter good.
+
+**Choose the order by that table and not by the delay error.** Below a fifth of
+the rate an order of 3 keeps 95 in every hundred. Above three tenths no order
+here is worth much, and the answer is to sample faster rather than to interpolate
+harder.
+
+**The filter adds a whole delay of its own** and cannot not: it works the value
+out from the samples either side, so it must wait for them. The delay it applies
+runs from half its order to half its order plus one. For more, take the whole
+samples with a `ringbuf` and leave the part to this.
+
+
 ## fir
 
 A filter with a finite impulse response multiplies the last `n` samples by `n`

@@ -41,6 +41,7 @@ SOURCES = [
     "sptk/interpolate/cspline.c",
     "sptk/interpolate/interp.c",
     "sptk/transform/bluestein.c",
+    "sptk/transform/dct.c",
     "sptk/transform/dwt.c",
     "sptk/transform/fft.c",
     "sptk/transform/goertzel.c",
@@ -66,9 +67,11 @@ SOURCES = [
     "sptk/filter/lattice.c",
     "sptk/filter/rls.c",
     "sptk/filter/filtfilt.c",
+    "sptk/filter/farrow.c",
     "sptk/estimate/ekf.c",
     "sptk/estimate/kalman.c",
     "sptk/estimate/propagate.c",
+    "sptk/estimate/pll.c",
     "sptk/estimate/ukf.c",
     "sptk/decompose/emd.c",
     "sptk/decompose/imf.c",
@@ -312,6 +315,34 @@ class Changepoint(ctypes.Structure):
         ("since_low", ctypes.c_uint32),
         ("counted", ctypes.c_uint32),
         ("designed", ctypes.c_bool),
+    ]
+
+
+class Pll(ctypes.Structure):
+    _fields_ = [
+        ("phase", REAL_T),
+        ("step", REAL_T),
+        ("free_step", REAL_T),
+        ("fast", REAL_T),
+        ("slow", REAL_T),
+        ("gathered", REAL_T),
+        ("loudness", REAL_T),
+        ("quality", REAL_T),
+        ("quality_keep", REAL_T),
+        ("bandwidth", REAL_T),
+        ("damping", REAL_T),
+        ("designed", ctypes.c_bool),
+    ]
+
+
+class Farrow(ctypes.Structure):
+    _fields_ = [
+        ("history", Ringbuf),
+        ("weight", ctypes.POINTER(REAL_T)),
+        ("working", ctypes.POINTER(REAL_T)),
+        ("order", ctypes.c_uint32),
+        ("delay", REAL_T),
+        ("dynamic_alloc", ctypes.c_bool),
     ]
 
 
@@ -1076,6 +1107,66 @@ def load_library():
     library.quaternion_from_matrix.restype = Quaternion
     library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
     library.quaternion_slerp.restype = Quaternion
+
+    # dct
+    library.dct_is_valid_size.argtypes = [ctypes.c_uint32]
+    library.dct_is_valid_size.restype = ctypes.c_bool
+    for name in ("dct_forward", "dct_inverse"):
+        function = getattr(library, name)
+        function.argtypes = [FLOAT_POINTER, FLOAT_POINTER, ctypes.c_uint32]
+        function.restype = ctypes.c_bool
+    library.dct_count_for_share.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                            REAL_T]
+    library.dct_count_for_share.restype = ctypes.c_uint32
+
+    # pll
+    for name in ("pll_is_valid_bandwidth", "pll_is_valid_damping"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T]
+        function.restype = ctypes.c_bool
+    library.pll_make.argtypes = []
+    library.pll_make.restype = Pll
+    library.pll_design.argtypes = [ctypes.POINTER(Pll), REAL_T, REAL_T,
+                                   REAL_T, REAL_T]
+    library.pll_design.restype = ctypes.c_bool
+    library.pll_process_sample.argtypes = [ctypes.POINTER(Pll), REAL_T]
+    library.pll_process_sample.restype = REAL_T
+    library.pll_get_frequency.argtypes = [ctypes.POINTER(Pll), REAL_T]
+    library.pll_get_frequency.restype = REAL_T
+    for name in ("pll_get_phase", "pll_lock_quality", "pll_pull_range"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Pll)]
+        function.restype = REAL_T
+    library.pll_settle_samples.argtypes = [ctypes.POINTER(Pll)]
+    library.pll_settle_samples.restype = ctypes.c_uint32
+    library.pll_reset.argtypes = [ctypes.POINTER(Pll)]
+    library.pll_reset.restype = None
+
+    # farrow
+    library.farrow_is_valid_order.argtypes = [ctypes.c_uint32]
+    library.farrow_is_valid_order.restype = ctypes.c_bool
+    for name in ("farrow_smallest_delay", "farrow_largest_delay"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.c_uint32]
+        function.restype = REAL_T
+    library.farrow_is_valid_delay.argtypes = [ctypes.POINTER(Farrow), REAL_T]
+    library.farrow_is_valid_delay.restype = ctypes.c_bool
+    library.farrow_alloc.argtypes = [ctypes.c_uint32]
+    library.farrow_alloc.restype = Farrow
+    library.farrow_set_delay.argtypes = [ctypes.POINTER(Farrow), REAL_T]
+    library.farrow_set_delay.restype = ctypes.c_bool
+    library.farrow_get_delay.argtypes = [ctypes.POINTER(Farrow)]
+    library.farrow_get_delay.restype = REAL_T
+    library.farrow_process_sample.argtypes = [ctypes.POINTER(Farrow), REAL_T]
+    library.farrow_process_sample.restype = REAL_T
+    library.farrow_process_block.argtypes = [ctypes.POINTER(Farrow),
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32]
+    library.farrow_process_block.restype = ctypes.c_bool
+    library.farrow_reset.argtypes = [ctypes.POINTER(Farrow)]
+    library.farrow_reset.restype = None
+    library.farrow_free.argtypes = [ctypes.POINTER(Farrow)]
+    library.farrow_free.restype = None
 
     # correlate
     library.correlate_is_valid_scaling.argtypes = [ctypes.c_int]
