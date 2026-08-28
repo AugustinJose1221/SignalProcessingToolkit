@@ -326,7 +326,12 @@ class Generate(ctypes.Structure):
         ("last_step", REAL_T),
         ("seed", ctypes.c_uint32),
         ("pink", REAL_T * GENERATE_PINK_PARTS),
+        ("part", REAL_T),
+        ("running", REAL_T),
+        ("last_pink", REAL_T),
+        ("spare", REAL_T),
         ("counted", ctypes.c_uint32),
+        ("has_spare", ctypes.c_bool),
         ("designed", ctypes.c_bool),
     ]
 
@@ -410,11 +415,35 @@ GENERATE_SAWTOOTH = 2
 GENERATE_TRIANGLE = 3
 GENERATE_WHITE_NOISE = 4
 GENERATE_PINK_NOISE = 5
+GENERATE_BROWN_NOISE = 6
+GENERATE_BLUE_NOISE = 7
+GENERATE_GAUSSIAN_NOISE = 8
+GENERATE_PULSE = 9
+GENERATE_GAUSSIAN_PULSE = 10
+GENERATE_IMPULSE = 11
 
-# The shapes that hold one frequency and follow a phase, which is every kind
-# but the two noises.
+GENERATE_LAST_KIND = GENERATE_IMPULSE
+
+# The shapes that swing either way about nothing and follow a phase.
 GENERATE_WAVES = (GENERATE_SINE, GENERATE_SQUARE, GENERATE_SAWTOOTH,
-                  GENERATE_TRIANGLE)
+                  GENERATE_TRIANGLE, GENERATE_PULSE)
+
+# Every kind that follows a phase, which is every kind but the noises.
+GENERATE_PHASED = GENERATE_WAVES + (GENERATE_GAUSSIAN_PULSE,
+                                    GENERATE_IMPULSE)
+
+GENERATE_NOISES = (GENERATE_WHITE_NOISE, GENERATE_PINK_NOISE,
+                   GENERATE_BROWN_NOISE, GENERATE_BLUE_NOISE,
+                   GENERATE_GAUSSIAN_NOISE)
+
+# Every kind, which is what a rule about all of them is given.
+GENERATE_KINDS = GENERATE_PHASED + GENERATE_NOISES
+
+# The kinds held inside the range of one. The gaussian noise runs as far as its
+# tails go, the brown noise is a walk with no bound, and the blue noise is a
+# difference and reaches further than what it is taken of.
+GENERATE_BOUNDED = GENERATE_PHASED + (GENERATE_WHITE_NOISE,
+                                      GENERATE_PINK_NOISE)
 
 QUANTISE_PLAIN = 0
 QUANTISE_DITHER = 1
@@ -909,6 +938,12 @@ def load_library():
     library.generate_design_sweep.argtypes = [ctypes.POINTER(Generate), REAL_T,
                                               REAL_T, REAL_T, ctypes.c_uint32]
     library.generate_design_sweep.restype = ctypes.c_bool
+    library.generate_is_valid_part.argtypes = [REAL_T]
+    library.generate_is_valid_part.restype = ctypes.c_bool
+    library.generate_set_part.argtypes = [ctypes.POINTER(Generate), REAL_T]
+    library.generate_set_part.restype = ctypes.c_bool
+    library.generate_get_part.argtypes = [ctypes.POINTER(Generate)]
+    library.generate_get_part.restype = REAL_T
     library.generate_set_seed.argtypes = [ctypes.POINTER(Generate),
                                           ctypes.c_uint32]
     library.generate_set_seed.restype = None

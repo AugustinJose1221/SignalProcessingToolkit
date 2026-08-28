@@ -19,7 +19,14 @@ void test_generate_is_valid_kind(void)
 {
     TEST_ASSERT_EQUAL(true, generate_is_valid_kind(GENERATE_SINE));
     TEST_ASSERT_EQUAL(true, generate_is_valid_kind(GENERATE_PINK_NOISE));
-    TEST_ASSERT_EQUAL(false, generate_is_valid_kind((generate_kind_t)9));
+    TEST_ASSERT_EQUAL(true, generate_is_valid_kind(GENERATE_GAUSSIAN_NOISE));
+    TEST_ASSERT_EQUAL(true, generate_is_valid_kind(GENERATE_IMPULSE));
+
+    // One past the last of them, whatever the last of them is.
+    TEST_ASSERT_EQUAL(false,
+                      generate_is_valid_kind((generate_kind_t)
+                                             (GENERATE_IMPULSE + 1)));
+    TEST_ASSERT_EQUAL(false, generate_is_valid_kind((generate_kind_t)-1));
 }
 
 void test_generate_is_valid_frequency(void)
@@ -410,5 +417,379 @@ void test_generate_reset_puts_it_back_to_the_start(void)
         real_t again = generate_sample(&generate);
 
         TEST_ASSERT_EQUAL_REAL(first[index], again);
+    }
+}
+
+// A CORNER REACHED FROM JUST BEFORE IT MUST BE MOVED THE WAY THAT SIDE IS
+// MOVED.
+//
+// How far a sample stands past a corner was held from nothing to one, thus a
+// sample standing a hair BEFORE the corner had a distance a hair below nothing
+// and one was added to bring it round. At 64 bits a hair below nothing plus one
+// rounds to EXACTLY one, and exactly one was then read as a hair AFTER the
+// corner. The two sides are moved in opposite directions, thus the sample moved
+// by one the wrong way and the wave jumped by two: a pulse at 100 Hz in 8000
+// with a part of an eighth gave 2.0 at sample 10.
+//
+// The square wave and the sawtooth ran the same risk and were saved only by
+// which numbers their corners happened to land on, thus all three are examined
+// here.
+void test_generate_a_corner_reached_from_either_side_stays_in_range(void)
+{
+    generate_kind_t kinds[3] = {GENERATE_PULSE, GENERATE_SQUARE,
+                                GENERATE_SAWTOOTH};
+
+    // Frequencies whose step divides into the places the corners stand, which
+    // is what puts a sample exactly on a corner.
+    real_t frequencies[4] = {REAL_C(100.0), REAL_C(125.0), REAL_C(200.0),
+                             REAL_C(500.0)};
+
+    for(uint32_t which = 0; which < 3u; which++)
+    {
+        for(uint32_t index = 0; index < 4u; index++)
+        {
+            generate_t maker = generate_make(kinds[which]);
+
+            TEST_ASSERT_EQUAL(true, generate_design(&maker,
+                                                    frequencies[index], RATE));
+            TEST_ASSERT_EQUAL(true, generate_set_part(&maker,
+                                                      REAL_C(0.125)));
+
+            for(uint32_t step = 0; step < 4000u; step++)
+            {
+                real_t value = generate_sample(&maker);
+
+                TEST_ASSERT_TRUE(value <= REAL_C(1.0001));
+                TEST_ASSERT_TRUE(value >= -REAL_C(1.0001));
+            }
+        }
+    }
+}
+
+void test_generate_is_valid_part(void)
+{
+    TEST_ASSERT_EQUAL(true, generate_is_valid_part(REAL_C(0.5)));
+    TEST_ASSERT_EQUAL(true, generate_is_valid_part(REAL_C(0.01)));
+    // A pulse filling none of the turn or all of it has no corners.
+    TEST_ASSERT_EQUAL(false, generate_is_valid_part(REAL_C(0.0)));
+    TEST_ASSERT_EQUAL(false, generate_is_valid_part(REAL_C(1.0)));
+    TEST_ASSERT_EQUAL(false, generate_is_valid_part(-REAL_C(0.1)));
+
+    generate_t maker = generate_make(GENERATE_PULSE);
+
+    // The default is a half, which is what makes the pulse a square wave.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.5),
+                            generate_get_part(&maker));
+
+    TEST_ASSERT_EQUAL(false, generate_set_part(&maker, REAL_C(0.0)));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.5),
+                            generate_get_part(&maker));
+
+    TEST_ASSERT_EQUAL(true, generate_set_part(&maker, REAL_C(0.25)));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(0.25),
+                            generate_get_part(&maker));
+}
+
+// A pulse filling half of each turn IS the square wave, thus the two must agree
+// sample for sample. If they did not, one of them would be wrong.
+void test_generate_a_pulse_of_half_a_turn_is_the_square_wave(void)
+{
+    generate_t pulse = generate_make(GENERATE_PULSE);
+    generate_t square = generate_make(GENERATE_SQUARE);
+
+    TEST_ASSERT_EQUAL(true, generate_design(&pulse, REAL_C(300.0), RATE));
+    TEST_ASSERT_EQUAL(true, generate_design(&square, REAL_C(300.0), RATE));
+    TEST_ASSERT_EQUAL(true, generate_set_part(&pulse, REAL_C(0.5)));
+
+    for(uint32_t step = 0; step < 2000u; step++)
+    {
+        real_t one = generate_sample(&pulse);
+        real_t other = generate_sample(&square);
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), other, one);
+    }
+}
+
+// The part of the turn a pulse is high for is the part of the turn it is high
+// for, which shows in what it adds up to.
+void test_generate_a_pulse_is_high_for_the_part_it_was_given(void)
+{
+    real_t parts[3] = {REAL_C(0.125), REAL_C(0.25), REAL_C(0.75)};
+
+    for(uint32_t which = 0; which < 3u; which++)
+    {
+        generate_t maker = generate_make(GENERATE_PULSE);
+
+        TEST_ASSERT_EQUAL(true, generate_design(&maker, REAL_C(100.0), RATE));
+        TEST_ASSERT_EQUAL(true, generate_set_part(&maker, parts[which]));
+
+        real_t total = REAL_C(0.0);
+        const uint32_t count = 8000u;
+
+        for(uint32_t step = 0; step < count; step++)
+        {
+            total += generate_sample(&maker);
+        }
+
+        // High at one for that part of the turn and low at minus one for the
+        // rest, thus the mean is the part less what is left of the turn.
+        real_t expected = parts[which] - (REAL_C(1.0) - parts[which]);
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), expected,
+                                total / (real_t)count);
+    }
+}
+
+// THE ONE THE REST OF THE LIBRARY ASSUMES. Its spread must be one, and its
+// tails must really be there: a spread with no tails cannot examine a threshold
+// that asks what happens past four of them.
+void test_generate_gaussian_noise_has_the_spread_and_the_tails(void)
+{
+    generate_t maker = generate_make(GENERATE_GAUSSIAN_NOISE);
+
+    TEST_ASSERT_EQUAL(true, generate_design(&maker, REAL_C(100.0), RATE));
+    generate_set_seed(&maker, 12345u);
+
+    const uint32_t count = 200000u;
+    real_t total = REAL_C(0.0);
+    real_t squared = REAL_C(0.0);
+    real_t furthest = REAL_C(0.0);
+    uint32_t past_two = 0u;
+    uint32_t past_three = 0u;
+
+    for(uint32_t step = 0; step < count; step++)
+    {
+        real_t value = generate_sample(&maker);
+
+        total += value;
+        squared += value * value;
+
+        real_t size = REAL_ABS(value);
+
+        if(size > furthest) { furthest = size; }
+        if(size > REAL_C(2.0)) { past_two++; }
+        if(size > REAL_C(3.0)) { past_three++; }
+    }
+
+    real_t mean = total / (real_t)count;
+    real_t spread = REAL_SQRT((squared / (real_t)count) - (mean * mean));
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.02), REAL_C(0.0), mean);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.02), REAL_C(1.0), spread);
+
+    // A normal spread puts 4.55 in every hundred past two standard deviations
+    // and 0.27 in every hundred past three. THESE ARE THE NUMBERS THAT SAY IT
+    // IS NORMAL: an even spread put through the same test gives none at all
+    // past two, and the sum of a dozen even draws gives far too few past three.
+    real_t share_two = (real_t)past_two / (real_t)count;
+    real_t share_three = (real_t)past_three / (real_t)count;
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.005), REAL_C(0.0455), share_two);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(0.0027), share_three);
+
+    // And it must reach well past three, which is the whole reason it is here.
+    TEST_ASSERT_TRUE(furthest > REAL_C(3.5));
+}
+
+// A random walk. It wanders, and what is added is scaled so that the spread of
+// the walk matches the spread of the white noise that built it.
+void test_generate_brown_noise_wanders_and_keeps_its_spread(void)
+{
+    generate_t brown = generate_make(GENERATE_BROWN_NOISE);
+    generate_t white = generate_make(GENERATE_WHITE_NOISE);
+
+    TEST_ASSERT_EQUAL(true, generate_design(&brown, REAL_C(100.0), RATE));
+    TEST_ASSERT_EQUAL(true, generate_design(&white, REAL_C(100.0), RATE));
+    generate_set_seed(&brown, 99u);
+    generate_set_seed(&white, 99u);
+
+    const uint32_t count = 200000u;
+    real_t brown_squared = REAL_C(0.0);
+    real_t white_squared = REAL_C(0.0);
+
+    // How much the signal changes from one sample to the next. A walk changes
+    // far less than the noise that drives it, which is what a slope of four
+    // times the power in each halving of frequency MEANS.
+    real_t brown_moved = REAL_C(0.0);
+    real_t white_moved = REAL_C(0.0);
+    real_t brown_last = REAL_C(0.0);
+    real_t white_last = REAL_C(0.0);
+
+    for(uint32_t step = 0; step < count; step++)
+    {
+        real_t one = generate_sample(&brown);
+        real_t other = generate_sample(&white);
+
+        brown_squared += one * one;
+        white_squared += other * other;
+        brown_moved += (one - brown_last) * (one - brown_last);
+        white_moved += (other - white_last) * (other - white_last);
+        brown_last = one;
+        white_last = other;
+    }
+
+    // The spreads match within a tenth.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.1) * REAL_SQRT(white_squared),
+                            REAL_SQRT(white_squared),
+                            REAL_SQRT(brown_squared));
+
+    // And the walk moves far less from sample to sample than the noise does.
+    TEST_ASSERT_TRUE(brown_moved < (REAL_C(0.05) * white_moved));
+}
+
+// The mirror of pink: it moves MORE from sample to sample than the pink noise
+// it is made from, which is what a rising slope means.
+void test_generate_blue_noise_is_the_mirror_of_pink(void)
+{
+    generate_t blue = generate_make(GENERATE_BLUE_NOISE);
+    generate_t pink = generate_make(GENERATE_PINK_NOISE);
+
+    TEST_ASSERT_EQUAL(true, generate_design(&blue, REAL_C(100.0), RATE));
+    TEST_ASSERT_EQUAL(true, generate_design(&pink, REAL_C(100.0), RATE));
+    generate_set_seed(&blue, 4u);
+    generate_set_seed(&pink, 4u);
+
+    const uint32_t count = 100000u;
+    real_t blue_moved = REAL_C(0.0);
+    real_t pink_moved = REAL_C(0.0);
+    real_t blue_last = REAL_C(0.0);
+    real_t pink_last = REAL_C(0.0);
+
+    for(uint32_t step = 0; step < count; step++)
+    {
+        real_t one = generate_sample(&blue);
+        real_t other = generate_sample(&pink);
+
+        blue_moved += (one - blue_last) * (one - blue_last);
+        pink_moved += (other - pink_last) * (other - pink_last);
+        blue_last = one;
+        pink_last = other;
+    }
+
+    TEST_ASSERT_TRUE(blue_moved > (REAL_C(2.0) * pink_moved));
+}
+
+// A bump once each turn, standing between nothing and one and never below.
+void test_generate_a_gaussian_pulse_is_a_bump_once_each_turn(void)
+{
+    generate_t maker = generate_make(GENERATE_GAUSSIAN_PULSE);
+
+    TEST_ASSERT_EQUAL(true, generate_design(&maker, REAL_C(100.0), RATE));
+    TEST_ASSERT_EQUAL(true, generate_set_part(&maker, REAL_C(0.05)));
+
+    // One turn is 80 samples at 100 Hz in 8000, and the bump stands in the
+    // middle of it.
+    real_t largest = REAL_C(0.0);
+    uint32_t where = 0u;
+
+    for(uint32_t step = 0; step < 80u; step++)
+    {
+        real_t value = generate_sample(&maker);
+
+        TEST_ASSERT_TRUE(value >= REAL_C(0.0));
+        TEST_ASSERT_TRUE(value <= REAL_C(1.0));
+
+        if(value > largest) { largest = value; where = step; }
+    }
+
+    // It reaches one at the middle of the turn and has died away at the ends.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(1.0), largest);
+    TEST_ASSERT_TRUE((where >= 38u) && (where <= 42u));
+
+    // A wider bump reaches further out but still tops out at one.
+    generate_t wider = generate_make(GENERATE_GAUSSIAN_PULSE);
+
+    TEST_ASSERT_EQUAL(true, generate_design(&wider, REAL_C(100.0), RATE));
+    TEST_ASSERT_EQUAL(true, generate_set_part(&wider, REAL_C(0.15)));
+
+    real_t narrow_total = REAL_C(0.0);
+    real_t wide_total = REAL_C(0.0);
+
+    generate_reset(&maker);
+
+    for(uint32_t step = 0; step < 80u; step++)
+    {
+        narrow_total += generate_sample(&maker);
+        wide_total += generate_sample(&wider);
+    }
+
+    TEST_ASSERT_TRUE(wide_total > narrow_total);
+}
+
+// One sample of one at the start of each turn and nothing between them. Give it
+// a frequency low enough and a block holds exactly one, which is what an
+// impulse response is measured with.
+void test_generate_an_impulse_stands_once_each_turn(void)
+{
+    generate_t maker = generate_make(GENERATE_IMPULSE);
+
+    TEST_ASSERT_EQUAL(true, generate_design(&maker, REAL_C(100.0), RATE));
+
+    uint32_t found = 0u;
+    uint32_t first = 0u;
+
+    for(uint32_t step = 0; step < 800u; step++)
+    {
+        real_t value = generate_sample(&maker);
+
+        if(value != REAL_C(0.0))
+        {
+            TEST_ASSERT_REAL_WITHIN(REAL_C(0.000001), REAL_C(1.0), value);
+
+            if(found == 0u) { first = step; }
+
+            found++;
+        }
+    }
+
+    // Ten turns in 800 samples at 100 Hz in 8000, the first at the start.
+    TEST_ASSERT_EQUAL(10u, found);
+    TEST_ASSERT_EQUAL(0u, first);
+
+    // And a turn longer than the block gives exactly one.
+    generate_t alone = generate_make(GENERATE_IMPULSE);
+
+    TEST_ASSERT_EQUAL(true, generate_design(&alone, REAL_C(4.0), RATE));
+
+    found = 0u;
+
+    for(uint32_t step = 0; step < 1000u; step++)
+    {
+        if(generate_sample(&alone) != REAL_C(0.0)) { found++; }
+    }
+
+    TEST_ASSERT_EQUAL(1u, found);
+}
+
+// Every new kind must be repeatable and must come back to where it started.
+void test_generate_the_new_kinds_reset_and_repeat(void)
+{
+    generate_kind_t kinds[6] = {GENERATE_BROWN_NOISE, GENERATE_BLUE_NOISE,
+                                GENERATE_GAUSSIAN_NOISE, GENERATE_PULSE,
+                                GENERATE_GAUSSIAN_PULSE, GENERATE_IMPULSE};
+
+    for(uint32_t which = 0; which < 6u; which++)
+    {
+        generate_t maker = generate_make(kinds[which]);
+
+        TEST_ASSERT_EQUAL(true, generate_design(&maker, REAL_C(220.0), RATE));
+        TEST_ASSERT_EQUAL(true, generate_set_part(&maker, REAL_C(0.2)));
+        generate_set_seed(&maker, 77u);
+
+        real_t first[200];
+
+        for(uint32_t step = 0; step < 200u; step++)
+        {
+            first[step] = generate_sample(&maker);
+        }
+
+        generate_reset(&maker);
+        generate_set_seed(&maker, 77u);
+
+        for(uint32_t step = 0; step < 200u; step++)
+        {
+            TEST_ASSERT_REAL_WITHIN(REAL_C(0.0000001), first[step],
+                                    generate_sample(&maker));
+        }
     }
 }
