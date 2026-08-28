@@ -429,3 +429,43 @@ and it is a number about nothing.
 **Both signals must be measured at the same moments.** Two recordings started a
 second apart hold the same events at different sample numbers, and every answer
 here is then about a relation that is not there.
+
+## dct
+
+`fft` turns a signal into sines **and** cosines, which is what you need to say
+where in its turn each frequency stands. **Where the phase is not wanted, half of
+that is wasted**: a real signal of n samples becomes n complex numbers holding 2n
+numbers, of which n are the mirror of the others.
+
+This turns n samples into n cosines and nothing else. It is the transform behind
+every compression of a picture or a sound anybody uses, and the reason is one
+property: **it gathers a smooth signal into its first few numbers.**
+
+Measured on a slow curve of 64 samples that does not come back to where it
+started — how many numbers hold each share of it:
+
+| share kept | `dct` | `fft` |
+|---|---|---|
+| 0.99 | 4 | 20 |
+| 0.999 | 8 | — |
+| 0.99999 | 30 | — |
+
+The `fft` column counts **numbers, not bins**: ten of its bins carry 0.99 of that
+curve and each bin is a complex number. The same curve, five times the room.
+
+**Why it wins, and it is not the arithmetic.** A transform treats the block as
+one turn of something that repeats, so a signal that starts low and ends high has
+a **step** where the end meets the beginning — and a step needs every frequency
+there is. This treats the block as half a turn of something mirrored, so the end
+meets its own mirror and there is no step.
+
+A signal of noise needs all 64 either way. There is nothing to gather.
+
+**What it cannot do.** It says nothing about phase, so it cannot be used to
+filter by multiplying and transforming back, and it cannot say where in its turn
+a tone stands. Reach for `fft` for those.
+
+**What it costs.** Time proportional to the **square** of the size, where `fft`
+is the size multiplied by its logarithm — about four times the work at 64 and a
+hundred times at 1024. Against it, this takes any size at all rather than a power
+of two.

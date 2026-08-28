@@ -16,7 +16,7 @@ directory there:
 
 | Area | Directory | Modules | What you do with them |
 | --- | --- | --- | --- |
-| Transforms | `sptk/transform` | `fft`, `bluestein`, `window`, `psd`, `csd`, `stft`, `spectrogram`, `correlate`, `convolve`, `goertzel`, `hilbert`, `hht`, `dwt` | Find which frequencies a signal holds, and where |
+| Transforms | `sptk/transform` | `fft`, `bluestein`, `window`, `psd`, `csd`, `stft`, `spectrogram`, `correlate`, `convolve`, `goertzel`, `hilbert`, `hht`, `dwt`, `dct` | Find which frequencies a signal holds, and where |
 | Filters | `sptk/filter` | `fir`, `iir`, `savgol`, `movavg`, `medfilt`, `dcblock`, `detrend`, `hampel`, `adaptive`, `rls`, `lattice`, `resample`, `filtfilt`, `farrow` | Take a band of frequencies away, or smooth a signal |
 | Estimation | `sptk/estimate` | `kalman`, `ekf`, `ukf`, `propagate`, `pll` | Follow a state behind a noisy measurement |
 | Decomposition | `sptk/decompose` | `emd`, `imf` | Split a signal into simpler parts |
