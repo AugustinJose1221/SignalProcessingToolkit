@@ -33,6 +33,7 @@ PROBE = r"""
 #include <sptk/filter/fir.h>
 #include <sptk/filter/rls.h>
 #include <sptk/filter/lattice.h>
+#include <sptk/transform/csd.h>
 #include <sptk/detect/matched.h>
 #include <sptk/detect/changepoint.h>
 #include <sptk/util/generate.h>
@@ -78,6 +79,9 @@ int main(void)
            offsetof(generate_t, designed));
     printf("Quantise %zu %zu %zu\n", sizeof(quantise_t),
            offsetof(quantise_t, seed), offsetof(quantise_t, designed));
+    printf("Csd %zu %zu %zu %zu\n", sizeof(csd_t),
+           offsetof(csd_t, window), offsetof(csd_t, fft),
+           offsetof(csd_t, dynamic_alloc));
     printf("Matched %zu %zu %zu %zu\n", sizeof(matched_t),
            offsetof(matched_t, length), offsetof(matched_t, root_energy),
            offsetof(matched_t, designed));
@@ -228,6 +232,14 @@ def test_generate_layout(probe_output):
     assert sptk.Generate.seed.offset == offset_seed
     assert sptk.Generate.pink.offset == offset_pink
     assert sptk.Generate.designed.offset == offset_flag
+
+
+def test_csd_layout(probe_output):
+    size, offset_window, offset_fft, offset_flag = probe_output["Csd"]
+    assert ctypes.sizeof(sptk.Csd) == size
+    assert sptk.Csd.window.offset == offset_window
+    assert sptk.Csd.fft.offset == offset_fft
+    assert sptk.Csd.dynamic_alloc.offset == offset_flag
 
 
 def test_matched_layout(probe_output):

@@ -315,6 +315,35 @@ class Changepoint(ctypes.Structure):
     ]
 
 
+class Csd(ctypes.Structure):
+    _fields_ = [
+        ("block", ctypes.c_uint32),
+        ("overlap", ctypes.c_uint32),
+        ("kind", ctypes.c_int),
+        ("parameter", REAL_T),
+        ("window", ctypes.POINTER(REAL_T)),
+        ("windowed", ctypes.POINTER(REAL_T)),
+        ("first", ctypes.POINTER(Cnum)),
+        ("second", ctypes.POINTER(Cnum)),
+        ("cross", ctypes.POINTER(Cnum)),
+        ("first_power", ctypes.POINTER(REAL_T)),
+        ("second_power", ctypes.POINTER(REAL_T)),
+        ("fft", Fft),
+        ("window_power", REAL_T),
+        ("designed", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+CORRELATE_RAW = 0
+CORRELATE_BIASED = 1
+CORRELATE_UNBIASED = 2
+CORRELATE_COEFFICIENT = 3
+
+CORRELATE_SCALINGS = (CORRELATE_RAW, CORRELATE_BIASED, CORRELATE_UNBIASED,
+                      CORRELATE_COEFFICIENT)
+
+
 CURVE_GAUSSIAN = 0
 CURVE_LORENTZIAN = 1
 CURVE_SKEWED_GAUSSIAN = 2
@@ -1047,6 +1076,57 @@ def load_library():
     library.quaternion_from_matrix.restype = Quaternion
     library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
     library.quaternion_slerp.restype = Quaternion
+
+    # correlate
+    library.correlate_is_valid_scaling.argtypes = [ctypes.c_int]
+    library.correlate_is_valid_scaling.restype = ctypes.c_bool
+    library.correlate_auto.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                       FLOAT_POINTER, ctypes.c_uint32,
+                                       ctypes.c_int]
+    library.correlate_auto.restype = ctypes.c_bool
+    library.correlate_cross.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                        ctypes.c_uint32, FLOAT_POINTER,
+                                        ctypes.c_uint32, ctypes.c_int]
+    library.correlate_cross.restype = ctypes.c_bool
+    library.correlate_best_lag.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                           FLOAT_POINTER, ctypes.c_uint32,
+                                           ctypes.c_uint32, FLOAT_POINTER]
+    library.correlate_best_lag.restype = ctypes.c_uint32
+    library.correlate_transform_size.argtypes = [ctypes.c_uint32]
+    library.correlate_transform_size.restype = ctypes.c_uint32
+    library.correlate_auto_by_transform.argtypes = [
+        FLOAT_POINTER, ctypes.c_uint32, FLOAT_POINTER, ctypes.c_uint32,
+        ctypes.c_int, ctypes.POINTER(Fft), ctypes.POINTER(Cnum),
+        FLOAT_POINTER]
+    library.correlate_auto_by_transform.restype = ctypes.c_bool
+
+    # csd
+    library.csd_is_valid_block.argtypes = [ctypes.c_uint32]
+    library.csd_is_valid_block.restype = ctypes.c_bool
+    library.csd_alloc.argtypes = [ctypes.c_uint32]
+    library.csd_alloc.restype = Csd
+    library.csd_design.argtypes = [ctypes.POINTER(Csd), ctypes.c_uint32,
+                                   ctypes.c_int, REAL_T]
+    library.csd_design.restype = ctypes.c_bool
+    library.csd_block_count.argtypes = [ctypes.POINTER(Csd), ctypes.c_uint32]
+    library.csd_block_count.restype = ctypes.c_uint32
+    library.csd_bin_frequency.argtypes = [ctypes.POINTER(Csd),
+                                          ctypes.c_uint32, REAL_T]
+    library.csd_bin_frequency.restype = REAL_T
+    library.csd_estimate.argtypes = [ctypes.POINTER(Csd), FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32, REAL_T,
+                                     ctypes.POINTER(Cnum)]
+    library.csd_estimate.restype = ctypes.c_bool
+    library.csd_coherence.argtypes = [ctypes.POINTER(Csd), FLOAT_POINTER,
+                                      FLOAT_POINTER, ctypes.c_uint32,
+                                      FLOAT_POINTER]
+    library.csd_coherence.restype = ctypes.c_bool
+    library.csd_transfer.argtypes = [ctypes.POINTER(Csd), FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32,
+                                     ctypes.POINTER(Cnum)]
+    library.csd_transfer.restype = ctypes.c_bool
+    library.csd_free.argtypes = [ctypes.POINTER(Csd)]
+    library.csd_free.restype = None
 
     # curve
     library.curve_is_valid_width.argtypes = [REAL_T]
