@@ -55,6 +55,7 @@ set(SIGNALPROC_SOURCES
     sptk/estimate/ekf.c
     sptk/estimate/kalman.c
     sptk/estimate/propagate.c
+    sptk/estimate/pll.c
     sptk/estimate/ukf.c
     sptk/decompose/emd.c
     sptk/decompose/imf.c

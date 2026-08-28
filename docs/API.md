@@ -64,6 +64,7 @@ name and shape of every function.
 | [`ekf`](api/ekf.md) | The extended Kalman filter |
 | [`ukf`](api/ukf.md) | The unscented Kalman filter |
 | [`propagate`](api/propagate.md) | Carrying a state forward through a rate of change |
+| [`pll`](api/pll.md) | Following a tone that will not stay still |
 
 ## Decomposition
 
