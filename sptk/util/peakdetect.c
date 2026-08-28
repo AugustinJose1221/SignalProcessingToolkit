@@ -95,6 +95,80 @@ static uint32_t peakdetect_peak_at(const real_t* input, uint32_t size,
     return index + ((last - index) / 2u);
 }
 
+// The curve of the second order through a peak and its two neighbours.
+//
+// Written once here and used by both of the functions below, and by
+// delay_refine_peak, which is the same question asked of a correlation.
+//
+// Gives false where there are not three points to fit or where they do not bend
+// downwards, which means the middle one is not a peak.
+static bool peakdetect_fit_top(const real_t* input, uint32_t size,
+                               uint32_t peak, real_t* offset, real_t* height)
+{
+    if((size < 3u) || (peak == 0u) || (peak >= (size - 1u)))
+    {
+        return false;
+    }
+
+    real_t before = input[peak - 1u];
+    real_t here = input[peak];
+    real_t after = input[peak + 1u];
+
+    // How much the three points bend. A bend that does not go downwards has no
+    // top between the two neighbours.
+    real_t bend = (REAL_C(2.0) * here) - before - after;
+
+    if(bend <= REAL_SMALLEST)
+    {
+        return false;
+    }
+
+    // The top of the curve through the three points. Written this way the
+    // answer cannot leave the range from -0.5 to 0.5, because the middle point
+    // is the largest of the three.
+    real_t moved = (REAL_C(0.5) * (after - before)) / bend;
+
+    *offset = moved;
+
+    // And how high that curve reaches, which is the value at the middle point
+    // plus how far the curve rises across the offset.
+    *height = here + (REAL_C(0.25) * (after - before) * moved);
+
+    return true;
+}
+
+real_t peakdetect_refine(const real_t* input, uint32_t size, uint32_t peak)
+{
+    ASSERT(input != NULL);
+
+    real_t offset = REAL_C(0.0);
+    real_t height = REAL_C(0.0);
+
+    if(!peakdetect_fit_top(input, size, peak, &offset, &height))
+    {
+        return REAL_C(0.0);
+    }
+
+    return offset;
+}
+
+real_t peakdetect_refine_height(const real_t* input, uint32_t size,
+                                uint32_t peak)
+{
+    ASSERT(input != NULL);
+
+    real_t offset = REAL_C(0.0);
+    real_t height = REAL_C(0.0);
+
+    if(!peakdetect_fit_top(input, size, peak, &offset, &height))
+    {
+        // Nothing to fit, thus the sample itself is the best that can be said.
+        return (peak < size) ? input[peak] : REAL_C(0.0);
+    }
+
+    return height;
+}
+
 real_t peakdetect_prominence(const real_t* input, uint32_t size, uint32_t peak)
 {
     ASSERT(input != NULL);

@@ -1,10 +1,12 @@
 #ifndef TEST
 #include <sptk/detect/delay.h>
 #include <sptk/transform/correlate.h>
+#include <sptk/util/peakdetect.h>
 #include <sptk/core/defs.h>
 #else
 #include "delay.h"
 #include "correlate.h"
+#include "peakdetect.h"
 #include "defs.h"
 #endif
 
@@ -19,30 +21,12 @@ real_t delay_refine_peak(const real_t* values, uint32_t count, uint32_t peak)
 {
     ASSERT(values != NULL);
 
-    // Three points are needed and there are not three at either end.
-    if((count < 3u) || (peak == 0u) || (peak >= (count - 1u)))
-    {
-        return REAL_C(0.0);
-    }
-
-    real_t before = values[peak - 1u];
-    real_t here = values[peak];
-    real_t after = values[peak + 1u];
-
-    // How much the three points curve. A curve that does not bend downwards
-    // has no top between the two neighbours, thus the middle point is not a
-    // peak and there is nothing to refine.
-    real_t bend = (REAL_C(2.0) * here) - before - after;
-
-    if(bend <= REAL_SMALLEST)
-    {
-        return REAL_C(0.0);
-    }
-
-    // The top of the curve through the three points. Written this way the
-    // answer cannot leave the range from -0.5 to 0.5, because the middle point
-    // is the largest of the three.
-    return (REAL_C(0.5) * (after - before)) / bend;
+    // THE SAME QUESTION peakdetect_refine ANSWERS, thus the same answer and not
+    // a second one written out again here. A peak of a correlation and a peak
+    // of a spectrum are both a smooth thing read at fixed places, and where its
+    // top really stands is one question with one answer. Two copies of it would
+    // be two things to keep right.
+    return peakdetect_refine(values, count, peak);
 }
 
 bool delay_by_correlation(const real_t* first, const real_t* second,

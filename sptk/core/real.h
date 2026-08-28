@@ -87,6 +87,7 @@ typedef double real_t;
 
 #define REAL_SQRT(x)        sqrt(x)
 #define REAL_HYPOT(x, y)    hypot((x), (y))
+#define REAL_ERF(x)         erf(x)
 #define REAL_SIN(x)         sin(x)
 #define REAL_COS(x)         cos(x)
 #define REAL_TAN(x)         tan(x)
@@ -118,6 +119,7 @@ typedef float real_t;
 
 #define REAL_SQRT(x)        sqrtf(x)
 #define REAL_HYPOT(x, y)    hypotf((x), (y))
+#define REAL_ERF(x)         erff(x)
 #define REAL_SIN(x)         sinf(x)
 #define REAL_COS(x)         cosf(x)
 #define REAL_TAN(x)         tanf(x)

@@ -18,14 +18,21 @@ import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
 
-SHAPES = st.sampled_from([sptk.GENERATE_SINE, sptk.GENERATE_SQUARE,
-                          sptk.GENERATE_SAWTOOTH, sptk.GENERATE_TRIANGLE])
+# The shapes that swing either way about nothing, thus the ones a rule about
+# crossing nothing or adding up to nothing may be given.
+SHAPES = st.sampled_from(sptk.GENERATE_WAVES)
 
-NOISES = st.sampled_from([sptk.GENERATE_WHITE_NOISE, sptk.GENERATE_PINK_NOISE])
+NOISES = st.sampled_from(sptk.GENERATE_NOISES)
 
-KINDS = st.sampled_from([sptk.GENERATE_SINE, sptk.GENERATE_SQUARE,
-                         sptk.GENERATE_SAWTOOTH, sptk.GENERATE_TRIANGLE,
-                         sptk.GENERATE_WHITE_NOISE, sptk.GENERATE_PINK_NOISE])
+KINDS = st.sampled_from(sptk.GENERATE_KINDS)
+
+# The kinds held inside the range of one. Three are not: the gaussian noise
+# runs as far as its tails go, the brown noise is a walk with no bound, and the
+# blue noise is a difference and reaches further than what it is taken of.
+BOUNDED = st.sampled_from(sptk.GENERATE_BOUNDED)
+
+# Parts a float of 32 bits holds exactly.
+PARTS = st.sampled_from([0.0625, 0.125, 0.25, 0.5, 0.75, 0.875])
 
 SAMPLE_RATE = 8192.0
 
@@ -39,25 +46,41 @@ def block(lib, generator, count):
     return [out[index] for index in range(count)]
 
 
-def made(lib, kind, frequency, count, seed=7):
+def made(lib, kind, frequency, count, seed=7, part=None):
     generator = lib.generate_make(kind)
     assert lib.generate_design(generator, sp.to_float32(frequency),
                                sp.to_float32(SAMPLE_RATE))
     lib.generate_set_seed(generator, seed)
+
+    if part is not None:
+        assert lib.generate_set_part(generator, sp.to_float32(part))
+
     return generator, block(lib, generator, count)
 
 
-@given(KINDS, FREQUENCIES)
+@given(BOUNDED, FREQUENCIES, PARTS)
 @RUNS
-def test_nothing_ever_leaves_the_range_of_one(lib, kind, frequency):
-    """Every shape is made to stand between minus one and one, and a caller
-    scales from there. A shape that reached further would clip whatever it was
-    scaled into, and the square wave did once reach two."""
-    _, values = made(lib, kind, frequency, 4000)
+def test_nothing_ever_leaves_the_range_of_one(lib, kind, frequency, part):
+    """Every shape here is made to stand between minus one and one, and a
+    caller scales from there. A shape that reached further would clip whatever
+    it was scaled into, and the square wave did once reach two, and the pulse
+    did once reach two at 64 bits when a sample landed exactly on a corner."""
+    _, values = made(lib, kind, frequency, 4000, part=part)
 
     for value in values:
         assert math.isfinite(value)
         assert -1.0 - 1e-5 <= value <= 1.0 + 1e-5
+
+
+@given(KINDS, FREQUENCIES, PARTS)
+@RUNS
+def test_every_kind_gives_numbers(lib, kind, frequency, part):
+    """Held of the three that are not bounded as well. How far they reach is
+    their own business; that every sample is a number is not."""
+    _, values = made(lib, kind, frequency, 4000, part=part)
+
+    for value in values:
+        assert math.isfinite(value)
 
 
 @given(SHAPES, FREQUENCIES)
@@ -252,9 +275,10 @@ def test_a_sweep_begins_and_ends_where_it_was_told_to(lib, start, finish):
     assert abs(at_the_end - finish) <= 0.01 * finish + one_sample + 0.01
 
 
-@given(st.integers(min_value=-4, max_value=10))
-def test_only_the_six_shapes_are_taken(lib, kind):
-    assert lib.generate_is_valid_kind(kind) == (0 <= kind <= 5)
+@given(st.integers(min_value=-4, max_value=20))
+def test_only_the_kinds_that_exist_are_taken(lib, kind):
+    assert (lib.generate_is_valid_kind(kind)
+            == (0 <= kind <= sptk.GENERATE_LAST_KIND))
 
 
 @given(st.floats(min_value=-8192.0, max_value=8192.0, width=32),
@@ -276,3 +300,180 @@ def test_a_generator_that_was_never_designed_gives_nothing(lib, kind):
 
     for _ in range(20):
         assert lib.generate_sample(generator) == 0.0
+
+
+@given(FREQUENCIES, PARTS)
+@RUNS
+def test_a_pulse_of_half_a_turn_is_the_square_wave(lib, frequency, part):
+    """THE RULE THAT SAYS THE PULSE IS THE SHAPE IT CLAIMS TO BE. A pulse high
+    for half of each turn IS the square wave, thus the two must agree sample
+    for sample. If they did not, one of the two would be wrong about where its
+    corners stand."""
+    _, pulse = made(lib, sptk.GENERATE_PULSE, frequency, 2000, part=0.5)
+    _, square = made(lib, sptk.GENERATE_SQUARE, frequency, 2000)
+
+    for one, other in zip(pulse, square):
+        assert abs(one - other) <= 1e-5
+
+
+@given(FREQUENCIES, PARTS)
+@RUNS
+def test_a_pulse_is_high_for_the_part_it_was_given(lib, frequency, part):
+    """The part of the turn it is high for is the whole of what the part
+    means, and what a run adds up to is how to see it: high at one for that
+    part and low at minus one for the rest."""
+    turns = 40
+    per_turn = SAMPLE_RATE / frequency
+    count = int(round(per_turn * turns))
+
+    _, values = made(lib, sptk.GENERATE_PULSE, frequency, count, part=part)
+
+    mean = sum(values) / len(values)
+    expected = part - (1.0 - part)
+
+    # One corner of the turn is smoothed across a sample either side, thus a
+    # turn holding few samples spends a larger share of itself in the corners.
+    room = 0.02 + (4.0 / per_turn)
+
+    assert abs(mean - expected) <= room
+
+
+@given(FREQUENCIES, PARTS)
+@RUNS
+def test_a_gaussian_pulse_is_a_bump_that_never_goes_below_nothing(
+        lib, frequency, part):
+    """It is a pulse and not an oscillation: a thing that happens rather than a
+    thing that swings. A caller adding it to a reading is adding a bump, and a
+    bump that dipped below nothing on its way would be two events and not
+    one."""
+    _, values = made(lib, sptk.GENERATE_GAUSSIAN_PULSE, frequency, 4000,
+                     part=part)
+
+    for value in values:
+        assert 0.0 <= value <= 1.0
+
+    # And it really reaches the top somewhere, or it is not a bump at all.
+    assert max(values) > 0.9
+
+
+@given(FREQUENCIES, st.sampled_from([0.0625, 0.125, 0.25]))
+@RUNS
+def test_a_wider_gaussian_pulse_holds_more(lib, frequency, part):
+    """The part is the width of the bump. A wider bump must carry more, or the
+    parameter is not a width."""
+    per_turn = SAMPLE_RATE / frequency
+    count = int(round(per_turn * 20))
+
+    _, narrow = made(lib, sptk.GENERATE_GAUSSIAN_PULSE, frequency, count,
+                     part=part)
+    _, wide = made(lib, sptk.GENERATE_GAUSSIAN_PULSE, frequency, count,
+                   part=part * 2.0)
+
+    assert sum(wide) > sum(narrow)
+
+
+@given(FREQUENCIES)
+@RUNS
+def test_an_impulse_stands_once_each_turn_and_nowhere_else(lib, frequency):
+    """One sample of one at the start of each turn and nothing between them.
+    Any other value at all would mean it is not an impulse."""
+    per_turn = SAMPLE_RATE / frequency
+    turns = 20
+    count = int(round(per_turn * turns))
+
+    _, values = made(lib, sptk.GENERATE_IMPULSE, frequency, count)
+
+    standing = [index for index, value in enumerate(values) if value != 0.0]
+
+    for index in standing:
+        assert values[index] == 1.0
+
+    # One for each whole turn the run holds, give or take the turn it ends
+    # part way through.
+    assert abs(len(standing) - turns) <= 1
+    assert standing[0] == 0
+
+
+@given(FREQUENCIES)
+@RUNS
+def test_the_gaussian_noise_really_has_the_tails_of_a_normal_spread(
+        lib, frequency):
+    """THE CLAIM THAT MAKES THIS KIND WORTH HAVING. A normal spread puts 4.55
+    in every hundred past two standard deviations and 0.27 in every hundred
+    past three. The even spread the module already had puts NONE past two, and
+    the usual shortcut of adding a dozen even draws together has far too few
+    past three. Everything in this library that turns a rate of false alarms
+    into a threshold rests on those shares."""
+    _, values = made(lib, sptk.GENERATE_GAUSSIAN_NOISE, frequency, 200000)
+
+    count = len(values)
+    mean = sum(values) / count
+    spread = math.sqrt(sum((value - mean) ** 2 for value in values) / count)
+
+    assert abs(mean) < 0.02
+    assert abs(spread - 1.0) < 0.02
+
+    past_two = sum(1 for value in values if abs(value) > 2.0) / count
+    past_three = sum(1 for value in values if abs(value) > 3.0) / count
+
+    assert abs(past_two - 0.0455) < 0.005
+    assert abs(past_three - 0.0027) < 0.001
+
+    # And it must reach well past three, which no bounded spread does.
+    assert max(abs(value) for value in values) > 4.0
+
+
+@given(FREQUENCIES)
+@RUNS
+def test_the_brown_noise_wanders_and_the_blue_noise_jitters(lib, frequency):
+    """The two new noises are opposites and must behave as opposites. How much
+    a signal moves from one sample to the next is what its slope MEANS: a walk
+    moves far less than the noise driving it, and a rising slope moves more
+    than the falling one it is the mirror of."""
+    count = 100000
+
+    _, white = made(lib, sptk.GENERATE_WHITE_NOISE, frequency, count, seed=11)
+    _, brown = made(lib, sptk.GENERATE_BROWN_NOISE, frequency, count, seed=11)
+    _, pink = made(lib, sptk.GENERATE_PINK_NOISE, frequency, count, seed=11)
+    _, blue = made(lib, sptk.GENERATE_BLUE_NOISE, frequency, count, seed=11)
+
+    def moved(values):
+        return sum((values[index] - values[index - 1]) ** 2
+                   for index in range(1, len(values)))
+
+    def loudness(values):
+        return sum(value * value for value in values)
+
+    # The walk moves far less from sample to sample than what drives it.
+    assert moved(brown) < (0.05 * moved(white))
+
+    # And it is no quieter overall, because what is added is scaled to keep
+    # the spread the same.
+    assert loudness(brown) > (0.5 * loudness(white))
+
+    # The blue noise jitters more than the pink it is the mirror of, while
+    # standing about as loud.
+    assert moved(blue) > (2.0 * moved(pink))
+    assert 0.5 < (loudness(blue) / loudness(pink)) < 2.0
+
+
+@given(st.floats(min_value=-2.0, max_value=3.0, width=32))
+def test_only_a_part_of_a_turn_that_leaves_two_corners_is_taken(lib, part):
+    """A pulse filling none of the turn or the whole of it has no corners, and
+    a shape with no corners is not a pulse."""
+    assert lib.generate_is_valid_part(sp.to_float32(part)) == (0.0 < part < 1.0)
+
+
+@given(KINDS, PARTS)
+@RUNS
+def test_a_part_that_is_refused_leaves_the_maker_as_it_was(lib, kind, part):
+    """Refused rather than held at the nearest one it would take, because a
+    caller that asked for a pulse filling the whole turn wanted something this
+    module cannot make and should hear so."""
+    generator = lib.generate_make(kind)
+
+    assert lib.generate_set_part(generator, sp.to_float32(part))
+    assert not lib.generate_set_part(generator, sp.to_float32(0.0))
+    assert not lib.generate_set_part(generator, sp.to_float32(1.0))
+
+    assert abs(lib.generate_get_part(generator) - part) <= 1e-6

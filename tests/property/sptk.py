@@ -73,6 +73,7 @@ SOURCES = [
     "sptk/decompose/emd.c",
     "sptk/decompose/imf.c",
     "sptk/util/binarysearch.c",
+    "sptk/util/curve.c",
     "sptk/util/generate.c",
     "sptk/util/quantise.c",
     "sptk/util/stats.c",
@@ -314,6 +315,48 @@ class Changepoint(ctypes.Structure):
     ]
 
 
+class Csd(ctypes.Structure):
+    _fields_ = [
+        ("block", ctypes.c_uint32),
+        ("overlap", ctypes.c_uint32),
+        ("kind", ctypes.c_int),
+        ("parameter", REAL_T),
+        ("window", ctypes.POINTER(REAL_T)),
+        ("windowed", ctypes.POINTER(REAL_T)),
+        ("first", ctypes.POINTER(Cnum)),
+        ("second", ctypes.POINTER(Cnum)),
+        ("cross", ctypes.POINTER(Cnum)),
+        ("first_power", ctypes.POINTER(REAL_T)),
+        ("second_power", ctypes.POINTER(REAL_T)),
+        ("fft", Fft),
+        ("window_power", REAL_T),
+        ("designed", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+CORRELATE_RAW = 0
+CORRELATE_BIASED = 1
+CORRELATE_UNBIASED = 2
+CORRELATE_COEFFICIENT = 3
+
+CORRELATE_SCALINGS = (CORRELATE_RAW, CORRELATE_BIASED, CORRELATE_UNBIASED,
+                      CORRELATE_COEFFICIENT)
+
+
+CURVE_GAUSSIAN = 0
+CURVE_LORENTZIAN = 1
+CURVE_SKEWED_GAUSSIAN = 2
+
+CURVE_SHAPES = (CURVE_GAUSSIAN, CURVE_LORENTZIAN, CURVE_SKEWED_GAUSSIAN)
+
+# The shapes that are the same either side of their middle.
+CURVE_EVEN_SHAPES = (CURVE_GAUSSIAN, CURVE_LORENTZIAN)
+
+# What every shape has fallen to at one width from its middle.
+CURVE_AT_ONE_WIDTH = 0.6065306597126334
+
+
 GENERATE_PINK_PARTS = 7
 
 
@@ -326,7 +369,12 @@ class Generate(ctypes.Structure):
         ("last_step", REAL_T),
         ("seed", ctypes.c_uint32),
         ("pink", REAL_T * GENERATE_PINK_PARTS),
+        ("part", REAL_T),
+        ("running", REAL_T),
+        ("last_pink", REAL_T),
+        ("spare", REAL_T),
         ("counted", ctypes.c_uint32),
+        ("has_spare", ctypes.c_bool),
         ("designed", ctypes.c_bool),
     ]
 
@@ -410,11 +458,35 @@ GENERATE_SAWTOOTH = 2
 GENERATE_TRIANGLE = 3
 GENERATE_WHITE_NOISE = 4
 GENERATE_PINK_NOISE = 5
+GENERATE_BROWN_NOISE = 6
+GENERATE_BLUE_NOISE = 7
+GENERATE_GAUSSIAN_NOISE = 8
+GENERATE_PULSE = 9
+GENERATE_GAUSSIAN_PULSE = 10
+GENERATE_IMPULSE = 11
 
-# The shapes that hold one frequency and follow a phase, which is every kind
-# but the two noises.
+GENERATE_LAST_KIND = GENERATE_IMPULSE
+
+# The shapes that swing either way about nothing and follow a phase.
 GENERATE_WAVES = (GENERATE_SINE, GENERATE_SQUARE, GENERATE_SAWTOOTH,
-                  GENERATE_TRIANGLE)
+                  GENERATE_TRIANGLE, GENERATE_PULSE)
+
+# Every kind that follows a phase, which is every kind but the noises.
+GENERATE_PHASED = GENERATE_WAVES + (GENERATE_GAUSSIAN_PULSE,
+                                    GENERATE_IMPULSE)
+
+GENERATE_NOISES = (GENERATE_WHITE_NOISE, GENERATE_PINK_NOISE,
+                   GENERATE_BROWN_NOISE, GENERATE_BLUE_NOISE,
+                   GENERATE_GAUSSIAN_NOISE)
+
+# Every kind, which is what a rule about all of them is given.
+GENERATE_KINDS = GENERATE_PHASED + GENERATE_NOISES
+
+# The kinds held inside the range of one. The gaussian noise runs as far as its
+# tails go, the brown noise is a walk with no bound, and the blue noise is a
+# difference and reaches further than what it is taken of.
+GENERATE_BOUNDED = GENERATE_PHASED + (GENERATE_WHITE_NOISE,
+                                      GENERATE_PINK_NOISE)
 
 QUANTISE_PLAIN = 0
 QUANTISE_DITHER = 1
@@ -909,6 +981,12 @@ def load_library():
     library.generate_design_sweep.argtypes = [ctypes.POINTER(Generate), REAL_T,
                                               REAL_T, REAL_T, ctypes.c_uint32]
     library.generate_design_sweep.restype = ctypes.c_bool
+    library.generate_is_valid_part.argtypes = [REAL_T]
+    library.generate_is_valid_part.restype = ctypes.c_bool
+    library.generate_set_part.argtypes = [ctypes.POINTER(Generate), REAL_T]
+    library.generate_set_part.restype = ctypes.c_bool
+    library.generate_get_part.argtypes = [ctypes.POINTER(Generate)]
+    library.generate_get_part.restype = REAL_T
     library.generate_set_seed.argtypes = [ctypes.POINTER(Generate),
                                           ctypes.c_uint32]
     library.generate_set_seed.restype = None
@@ -999,6 +1077,78 @@ def load_library():
     library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
     library.quaternion_slerp.restype = Quaternion
 
+    # correlate
+    library.correlate_is_valid_scaling.argtypes = [ctypes.c_int]
+    library.correlate_is_valid_scaling.restype = ctypes.c_bool
+    library.correlate_auto.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                       FLOAT_POINTER, ctypes.c_uint32,
+                                       ctypes.c_int]
+    library.correlate_auto.restype = ctypes.c_bool
+    library.correlate_cross.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                        ctypes.c_uint32, FLOAT_POINTER,
+                                        ctypes.c_uint32, ctypes.c_int]
+    library.correlate_cross.restype = ctypes.c_bool
+    library.correlate_best_lag.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
+                                           FLOAT_POINTER, ctypes.c_uint32,
+                                           ctypes.c_uint32, FLOAT_POINTER]
+    library.correlate_best_lag.restype = ctypes.c_uint32
+    library.correlate_transform_size.argtypes = [ctypes.c_uint32]
+    library.correlate_transform_size.restype = ctypes.c_uint32
+    library.correlate_auto_by_transform.argtypes = [
+        FLOAT_POINTER, ctypes.c_uint32, FLOAT_POINTER, ctypes.c_uint32,
+        ctypes.c_int, ctypes.POINTER(Fft), ctypes.POINTER(Cnum),
+        FLOAT_POINTER]
+    library.correlate_auto_by_transform.restype = ctypes.c_bool
+
+    # csd
+    library.csd_is_valid_block.argtypes = [ctypes.c_uint32]
+    library.csd_is_valid_block.restype = ctypes.c_bool
+    library.csd_alloc.argtypes = [ctypes.c_uint32]
+    library.csd_alloc.restype = Csd
+    library.csd_design.argtypes = [ctypes.POINTER(Csd), ctypes.c_uint32,
+                                   ctypes.c_int, REAL_T]
+    library.csd_design.restype = ctypes.c_bool
+    library.csd_block_count.argtypes = [ctypes.POINTER(Csd), ctypes.c_uint32]
+    library.csd_block_count.restype = ctypes.c_uint32
+    library.csd_bin_frequency.argtypes = [ctypes.POINTER(Csd),
+                                          ctypes.c_uint32, REAL_T]
+    library.csd_bin_frequency.restype = REAL_T
+    library.csd_estimate.argtypes = [ctypes.POINTER(Csd), FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32, REAL_T,
+                                     ctypes.POINTER(Cnum)]
+    library.csd_estimate.restype = ctypes.c_bool
+    library.csd_coherence.argtypes = [ctypes.POINTER(Csd), FLOAT_POINTER,
+                                      FLOAT_POINTER, ctypes.c_uint32,
+                                      FLOAT_POINTER]
+    library.csd_coherence.restype = ctypes.c_bool
+    library.csd_transfer.argtypes = [ctypes.POINTER(Csd), FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32,
+                                     ctypes.POINTER(Cnum)]
+    library.csd_transfer.restype = ctypes.c_bool
+    library.csd_free.argtypes = [ctypes.POINTER(Csd)]
+    library.csd_free.restype = None
+
+    # curve
+    library.curve_is_valid_width.argtypes = [REAL_T]
+    library.curve_is_valid_width.restype = ctypes.c_bool
+    library.curve_is_valid_shape.argtypes = [ctypes.c_int]
+    library.curve_is_valid_shape.restype = ctypes.c_bool
+    for name in ("curve_gaussian", "curve_lorentzian"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T, REAL_T, REAL_T]
+        function.restype = REAL_T
+    library.curve_skewed_gaussian.argtypes = [REAL_T, REAL_T, REAL_T, REAL_T]
+    library.curve_skewed_gaussian.restype = REAL_T
+    library.curve_skewed_gaussian_top.argtypes = [REAL_T, REAL_T, REAL_T]
+    library.curve_skewed_gaussian_top.restype = REAL_T
+    library.curve_value.argtypes = [ctypes.c_int, REAL_T, REAL_T, REAL_T,
+                                    REAL_T]
+    library.curve_value.restype = REAL_T
+    library.curve_block.argtypes = [ctypes.c_int, REAL_T, REAL_T, REAL_T,
+                                    REAL_T, REAL_T, FLOAT_POINTER,
+                                    ctypes.c_uint32]
+    library.curve_block.restype = ctypes.c_bool
+
     # matched
     library.matched_is_valid_length.argtypes = [ctypes.c_uint32]
     library.matched_is_valid_length.restype = ctypes.c_bool
@@ -1075,6 +1225,10 @@ def load_library():
     library.peakdetect_width.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
                                          ctypes.c_uint32, REAL_T]
     library.peakdetect_width.restype = REAL_T
+    for name in ("peakdetect_refine", "peakdetect_refine_height"):
+        function = getattr(library, name)
+        function.argtypes = [FLOAT_POINTER, ctypes.c_uint32, ctypes.c_uint32]
+        function.restype = REAL_T
     library.peakdetect_find.argtypes = [FLOAT_POINTER, ctypes.c_uint32,
                                         ctypes.POINTER(PeakdetectOptions),
                                         ctypes.POINTER(ctypes.c_uint32),

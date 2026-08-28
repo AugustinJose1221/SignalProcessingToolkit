@@ -1,3 +1,111 @@
+## 0.15.0 (2026-08-28)
+
+Signals to test with, the shapes a peak can have, and a fault in a corner that
+had been there since the square wave was written.
+
+**The noise this library assumes it has, and did not.** `matched_threshold_for`
+turns a rate of false alarms into a threshold by inverting the tail of a normal
+spread. The table of thresholds in `changepoint.h` was measured on normal noise.
+`kalman`, `ekf` and `ukf` all take the noise of the process and of the
+measurement to be normal. `GENERATE_WHITE_NOISE` is drawn EVENLY, thus none of
+those claims could be examined with what the module had: measured, the same
+`changepoint` threshold gave one wrong alarm in every 372 samples on an even
+spread and one in every 465 on a normal one.
+
+`GENERATE_GAUSSIAN_NOISE` is drawn by the method of Box and Muller and not by
+adding a dozen even draws together. The shortcut is bounded and has no tails
+past about four standard deviations, and the tails are the whole point: a rate
+of one in a million is a question about what happens past five. Measured over
+200 000 samples it puts 4.55 in every hundred past two standard deviations and
+0.27 past three, which are the shares a normal spread has.
+
+**Five more kinds beside it.** `GENERATE_BROWN_NOISE` is a random walk, which is
+what drift looks like; what is added is scaled by the root of what is not kept,
+thus the spread of the walk matches the white noise that built it rather than
+growing twentyfold. `GENERATE_BLUE_NOISE` is the mirror of pink, made by taking
+the difference of pink rather than of white, which would rise twice as fast and
+be violet. `GENERATE_PULSE` is high for a chosen part of each turn and band
+limited at both corners, and the square wave is that with the part set to a
+half. `GENERATE_GAUSSIAN_PULSE` is a bump once each turn, which is the shape
+`matched` and `delay` are built to find. `GENERATE_IMPULSE` is one sample of one
+at the start of each turn.
+
+The header of `generate` now holds a measured table of what every kind comes out
+at, and says plainly which three leave the range of one and which two do not add
+up to nothing.
+
+**A fault in the corner smoothing, there since the square wave was written.**
+How far a sample stands past a corner was held from nothing to one, thus a
+sample standing a hair BEFORE the corner had a distance a hair below nothing and
+one was added to bring it round. At 64 bits a hair below nothing plus one rounds
+to EXACTLY one, and exactly one was then read as a hair AFTER the corner. The
+two sides are moved in opposite directions, thus the sample was moved by one the
+wrong way and the wave jumped by two: a pulse at 100 Hz in 8000 with a part of an
+eighth gave 2.0 at sample 10, where the whole shape stands between -1 and 1. The
+distance is now held in the half turn either side of the corner, where a sample
+before it keeps a distance below nothing and there is nothing to round.
+
+The square wave and the sawtooth ran the same risk all along and were saved only
+by which numbers their corners happened to land on. **The fault could not be
+shown without the pulse**: no frequency reaches it through the two shapes that
+existed.
+
+**A new module, `curve`, for the shapes a peak can have.** Nothing in this
+library could make a peak whose top was known, and that matters because every
+module that finds or refines a peak gives an answer that depends on the shape it
+was given.
+
+`curve_gaussian` is the kind shape. `curve_lorentzian` is the shape of a
+resonance and its tails are enormous beside a gaussian's: at three widths from
+the middle the gaussian holds a hundredth of its top and the lorentzian a
+seventh, and at twenty widths the gaussian has been nothing for a long time and
+the lorentzian still holds a two hundred and sixtieth. `curve_skewed_gaussian`
+is the shape of anything that arrives quickly and leaves slowly, and its top
+does not stand at its middle.
+
+Every width means the same thing: each shape falls at one width from the middle
+to the share a normal spread has at one standard deviation. Written any other
+way two widths could not be set beside each other.
+
+**Where a peak really stands, and how tall it is.** `peakdetect_refine` and
+`peakdetect_refine_height` fit a curve through a peak and its two neighbours.
+`delay_refine_peak` asked the same question of a correlation and answered it
+with its own copy of the same arithmetic; it now calls `peakdetect_refine`, thus
+there is one implementation and not two.
+
+Both are now measured, which could not be done before `curve` existed. Sampled
+five to a width with the top moved through a hundred places between two samples,
+worst case, in samples:
+
+| shape | refined | rounded |
+| --- | --- | --- |
+| gaussian | 0.0019 | 0.5000 |
+| lorentzian | 0.0049 | 0.5000 |
+| skewed gaussian, skew 2 | 0.0346 | 0.5070 |
+| skewed gaussian, skew 4 | 0.1263 | 0.5256 |
+| skewed gaussian, skew 8 | 0.3403 | 0.5948 |
+
+Refining beats rounding on every shape, and how much by falls away as the peak
+leans: by two hundred and sixty times on a gaussian and by only one and three
+quarter times at a skew of 8.
+
+**And the height stops helping before the place does.** The largest sample stands
+below the real top and the fitted curve stands above it, and on a peak that leans
+hard the curve overshoots by more than the sample undershoots: at a skew of 8 the
+fitted height is out by 0.0303 where the largest sample is out by 0.0270. The
+header says to take the largest sample as the height past about a skew of 4.
+
+**Generated tests for `correlate` and `csd`**, which `delay` leans on and which
+had unit tests only. The property suite now runs 362 tests at each width, against
+313 before.
+
+**The release steps in the README did not work.** They said to merge the release
+branch with `--ff-only`, which has not been possible since 0.9.0: the branch is
+merged into two branches, thus each gets a merge commit of its own and from that
+moment neither holds the other. The tag now names `main` as well, because leaving
+the branch off tags whichever branch is checked out, which the steps' own order
+makes `development`.
+
 ## 0.14.0 (2026-08-28)
 
 A new area for detection, generated tests for the ten modules that had none,
