@@ -73,6 +73,7 @@ SOURCES = [
     "sptk/decompose/emd.c",
     "sptk/decompose/imf.c",
     "sptk/util/binarysearch.c",
+    "sptk/util/curve.c",
     "sptk/util/generate.c",
     "sptk/util/quantise.c",
     "sptk/util/stats.c",
@@ -312,6 +313,19 @@ class Changepoint(ctypes.Structure):
         ("counted", ctypes.c_uint32),
         ("designed", ctypes.c_bool),
     ]
+
+
+CURVE_GAUSSIAN = 0
+CURVE_LORENTZIAN = 1
+CURVE_SKEWED_GAUSSIAN = 2
+
+CURVE_SHAPES = (CURVE_GAUSSIAN, CURVE_LORENTZIAN, CURVE_SKEWED_GAUSSIAN)
+
+# The shapes that are the same either side of their middle.
+CURVE_EVEN_SHAPES = (CURVE_GAUSSIAN, CURVE_LORENTZIAN)
+
+# What every shape has fallen to at one width from its middle.
+CURVE_AT_ONE_WIDTH = 0.6065306597126334
 
 
 GENERATE_PINK_PARTS = 7
@@ -1033,6 +1047,27 @@ def load_library():
     library.quaternion_from_matrix.restype = Quaternion
     library.quaternion_slerp.argtypes = [Quaternion, Quaternion, REAL_T]
     library.quaternion_slerp.restype = Quaternion
+
+    # curve
+    library.curve_is_valid_width.argtypes = [REAL_T]
+    library.curve_is_valid_width.restype = ctypes.c_bool
+    library.curve_is_valid_shape.argtypes = [ctypes.c_int]
+    library.curve_is_valid_shape.restype = ctypes.c_bool
+    for name in ("curve_gaussian", "curve_lorentzian"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T, REAL_T, REAL_T]
+        function.restype = REAL_T
+    library.curve_skewed_gaussian.argtypes = [REAL_T, REAL_T, REAL_T, REAL_T]
+    library.curve_skewed_gaussian.restype = REAL_T
+    library.curve_skewed_gaussian_top.argtypes = [REAL_T, REAL_T, REAL_T]
+    library.curve_skewed_gaussian_top.restype = REAL_T
+    library.curve_value.argtypes = [ctypes.c_int, REAL_T, REAL_T, REAL_T,
+                                    REAL_T]
+    library.curve_value.restype = REAL_T
+    library.curve_block.argtypes = [ctypes.c_int, REAL_T, REAL_T, REAL_T,
+                                    REAL_T, REAL_T, FLOAT_POINTER,
+                                    ctypes.c_uint32]
+    library.curve_block.restype = ctypes.c_bool
 
     # matched
     library.matched_is_valid_length.argtypes = [ctypes.c_uint32]

@@ -58,6 +58,7 @@ set(SIGNALPROC_SOURCES
     sptk/decompose/emd.c
     sptk/decompose/imf.c
     sptk/util/binarysearch.c
+    sptk/util/curve.c
     sptk/util/generate.c
     sptk/util/quantise.c
     sptk/util/stats.c
