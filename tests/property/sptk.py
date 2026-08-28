@@ -347,6 +347,43 @@ class Farrow(ctypes.Structure):
     ]
 
 
+class Imf(ctypes.Structure):
+    _fields_ = [
+        ("x", ctypes.POINTER(REAL_T)),
+        ("y", ctypes.POINTER(REAL_T)),
+        ("size", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+SPECTROGRAM_AMPLITUDE = 0
+SPECTROGRAM_POWER = 1
+SPECTROGRAM_DENSITY = 2
+SPECTROGRAM_DECIBEL = 3
+
+SPECTROGRAM_KINDS = (SPECTROGRAM_AMPLITUDE, SPECTROGRAM_POWER,
+                     SPECTROGRAM_DENSITY, SPECTROGRAM_DECIBEL)
+
+SPECTROGRAM_FLOOR_DECIBEL = -200.0
+
+
+DWT_HAAR = 0
+DWT_DAUBECHIES4 = 1
+
+DWT_WAVELETS = (DWT_HAAR, DWT_DAUBECHIES4)
+
+DWT_MAX_COEFFICIENT_COUNT = 4
+
+
+class Dwt(ctypes.Structure):
+    _fields_ = [
+        ("wavelet", ctypes.c_int),
+        ("length", ctypes.c_uint32),
+        ("low", REAL_T * DWT_MAX_COEFFICIENT_COUNT),
+        ("high", REAL_T * DWT_MAX_COEFFICIENT_COUNT),
+    ]
+
+
 class Goertzel(ctypes.Structure):
     _fields_ = [
         ("coefficient", REAL_T),
@@ -1206,6 +1243,66 @@ def load_library():
     library.farrow_reset.restype = None
     library.farrow_free.argtypes = [ctypes.POINTER(Farrow)]
     library.farrow_free.restype = None
+
+    # imf and hht
+    library.imf_alloc.argtypes = [ctypes.c_uint32]
+    library.imf_alloc.restype = Imf
+    library.imf_free.argtypes = [Imf]
+    library.imf_free.restype = None
+    library.hht_transform_imf.argtypes = [ctypes.POINTER(Fft),
+                                          ctypes.POINTER(Imf),
+                                          ctypes.POINTER(Cnum),
+                                          FLOAT_POINTER, FLOAT_POINTER,
+                                          REAL_T]
+    library.hht_transform_imf.restype = None
+    library.hht_transform.argtypes = [ctypes.POINTER(Fft),
+                                      ctypes.POINTER(Imf), ctypes.c_uint32,
+                                      ctypes.POINTER(Cnum), FLOAT_POINTER,
+                                      FLOAT_POINTER, REAL_T]
+    library.hht_transform.restype = None
+    library.hht_mean_frequency.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                           ctypes.c_uint32]
+    library.hht_mean_frequency.restype = REAL_T
+
+    # spectrogram
+    library.spectrogram_is_valid_kind.argtypes = [ctypes.c_int]
+    library.spectrogram_is_valid_kind.restype = ctypes.c_bool
+    library.spectrogram_value_count.argtypes = [ctypes.POINTER(Stft),
+                                                ctypes.c_uint32]
+    library.spectrogram_value_count.restype = ctypes.c_uint32
+    library.spectrogram_build.argtypes = [ctypes.POINTER(Stft),
+                                          ctypes.POINTER(Cnum),
+                                          ctypes.c_uint32, ctypes.c_int,
+                                          REAL_T, FLOAT_POINTER,
+                                          ctypes.c_uint32]
+    library.spectrogram_build.restype = ctypes.c_bool
+    library.spectrogram_largest.argtypes = [FLOAT_POINTER, ctypes.c_uint32]
+    library.spectrogram_largest.restype = REAL_T
+    library.spectrogram_against_the_largest.argtypes = [FLOAT_POINTER,
+                                                        ctypes.c_uint32,
+                                                        FLOAT_POINTER]
+    library.spectrogram_against_the_largest.restype = ctypes.c_bool
+
+    # dwt
+    library.dwt_init.argtypes = [ctypes.c_int]
+    library.dwt_init.restype = Dwt
+    library.dwt_is_valid_size.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.dwt_is_valid_size.restype = ctypes.c_bool
+    library.dwt_forward.argtypes = [ctypes.POINTER(Dwt), FLOAT_POINTER,
+                                    ctypes.c_uint32, FLOAT_POINTER,
+                                    FLOAT_POINTER]
+    library.dwt_forward.restype = None
+    library.dwt_inverse.argtypes = [ctypes.POINTER(Dwt), FLOAT_POINTER,
+                                    FLOAT_POINTER, ctypes.c_uint32,
+                                    FLOAT_POINTER]
+    library.dwt_inverse.restype = None
+    for name in ("dwt_forward_multi", "dwt_inverse_multi"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Dwt), FLOAT_POINTER,
+                             ctypes.c_uint32, ctypes.c_uint32, FLOAT_POINTER]
+        function.restype = None
+    library.dwt_threshold.argtypes = [FLOAT_POINTER, ctypes.c_uint32, REAL_T]
+    library.dwt_threshold.restype = None
 
     # goertzel
     library.goertzel_init.argtypes = [REAL_T, REAL_T, ctypes.c_uint32]
