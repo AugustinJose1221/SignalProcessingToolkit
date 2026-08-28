@@ -41,6 +41,7 @@ SOURCES = [
     "sptk/interpolate/cspline.c",
     "sptk/interpolate/interp.c",
     "sptk/transform/bluestein.c",
+    "sptk/transform/cepstrum.c",
     "sptk/transform/dct.c",
     "sptk/transform/dwt.c",
     "sptk/transform/fft.c",
@@ -342,6 +343,17 @@ class Farrow(ctypes.Structure):
         ("working", ctypes.POINTER(REAL_T)),
         ("order", ctypes.c_uint32),
         ("delay", REAL_T),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Cepstrum(ctypes.Structure):
+    _fields_ = [
+        ("fft", Fft),
+        ("work", ctypes.POINTER(Cnum)),
+        ("window", ctypes.POINTER(REAL_T)),
+        ("windowed", ctypes.POINTER(REAL_T)),
+        ("size", ctypes.c_uint32),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -1167,6 +1179,23 @@ def load_library():
     library.farrow_reset.restype = None
     library.farrow_free.argtypes = [ctypes.POINTER(Farrow)]
     library.farrow_free.restype = None
+
+    # cepstrum
+    library.cepstrum_is_valid_size.argtypes = [ctypes.c_uint32]
+    library.cepstrum_is_valid_size.restype = ctypes.c_bool
+    library.cepstrum_alloc.argtypes = [ctypes.c_uint32]
+    library.cepstrum_alloc.restype = Cepstrum
+    library.cepstrum_real.argtypes = [ctypes.POINTER(Cepstrum), FLOAT_POINTER,
+                                      FLOAT_POINTER]
+    library.cepstrum_real.restype = ctypes.c_bool
+    library.cepstrum_best_quefrency.argtypes = [FLOAT_POINTER,
+                                                ctypes.c_uint32,
+                                                ctypes.c_uint32,
+                                                ctypes.c_uint32,
+                                                FLOAT_POINTER]
+    library.cepstrum_best_quefrency.restype = ctypes.c_uint32
+    library.cepstrum_free.argtypes = [ctypes.POINTER(Cepstrum)]
+    library.cepstrum_free.restype = None
 
     # correlate
     library.correlate_is_valid_scaling.argtypes = [ctypes.c_int]

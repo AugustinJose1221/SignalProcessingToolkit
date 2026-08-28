@@ -469,3 +469,50 @@ a tone stands. Reach for `fft` for those.
 is the size multiplied by its logarithm — about four times the work at 64 and a
 hundred times at 1024. Against it, this takes any size at all rather than a power
 of two.
+
+## cepstrum
+
+A voice, a violin string and an engine all make a tone with harmonics. In the
+spectrum those are a row of peaks **evenly spaced**, and how far apart they stand
+is the frequency of the note. A row of evenly spaced peaks is itself a thing that
+repeats, and the way to find a thing that repeats is a transform — so this takes
+a transform **of a spectrum**, and the row comes out as one peak.
+
+The place of that peak is called a quefrency, and it is a time: a peak at 80
+means the note repeats every 80 samples.
+
+**Why not just correlate.** `correlate_best_lag` is cheaper and for a plain
+repeating signal it is the right answer. Measured on a note whose true period is
+64 samples:
+
+| harmonics present | `cepstrum` | `correlate_best_lag` |
+|---|---|---|
+| 1 to 12 | 64 ✓ | 192 ✗ |
+| 2 to 12, no fundamental | 64 ✓ | 128 ✗ |
+| 3 to 12 | 64 ✓ | 64 ✓ |
+
+A small loudspeaker cannot make 100 Hz, so a note at 100 Hz arrives as 200, 300,
+400 and nothing at 100. The ear still hears 100. Correlation sees a signal that
+repeats at a shorter period and says so **with a strength of 1.000 while it
+does**; this sees harmonics 100 apart and answers 100.
+
+**It also finds an echo.** A sound and the same sound again a little later
+multiply the spectrum by a ripple, and a ripple in the spectrum is a peak here.
+The logarithm is what makes that work: an echo *multiplies* the spectrum, and a
+logarithm turns multiplying into adding, so what the room did and what the source
+did stand side by side instead of one wrapped around the other.
+
+**The block is windowed, and that is not a detail.** It was written once without
+a window, on the reasoning that a note whose period divides the block needs none.
+The *noise* on that note does not divide the block: it leaks across every bin and
+its leakage has strong structure in the logarithm. Without a window, a note with
+no fundamental under a twentieth of noise came back at **255** where 64 was
+right, and moved about with the floor and with the width of the build. With a
+window every one of those cases gives 64, at both widths.
+
+**What it cannot do.** The answer is a whole number of samples and a real period
+rarely is — a period of 100 comes back as 99. Give the cepstrum to
+`peakdetect_refine` to get between the samples. It needs several harmonics;
+below about eight, treat the answer as a hint. And the strength tells structure
+from noise (0.06 against 0.2–0.7) but **not a single tone from a note**: one peak
+in a spectrum is structure too.
