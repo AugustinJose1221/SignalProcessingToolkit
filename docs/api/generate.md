@@ -13,6 +13,20 @@ Making the signals to test with. Declared in `sptk/util/generate.h`.
 
 ## Macros
 
+### `GENERATE_BROWN_KEEP`
+
+```c
+#define GENERATE_BROWN_KEEP     REAL_C(0.999)
+```
+
+### `GENERATE_DEFAULT_PART`
+
+```c
+#define GENERATE_DEFAULT_PART   REAL_C(0.5)
+```
+
+The part of a turn a pulse fills, where none is given.
+
 ### `GENERATE_PINK_PARTS`
 
 ```c
@@ -39,7 +53,12 @@ typedef struct{
     real_t last_step;           // What the step was, for the sweep to end on
     uint32_t seed;              // Where the random values stand
     real_t pink[GENERATE_PINK_PARTS];   // The running parts of the pink noise
+    real_t part;                // The part of a turn a pulse fills
+    real_t running;             // The running sum of the brown noise
+    real_t last_pink;           // The pink value before this one, for the blue
+    real_t spare;               // The second of a pair of normal draws
     uint32_t counted;           // How many samples have been made
+    bool has_spare;             // True while spare holds a draw not yet given
     bool designed;              // True once generate_design has been called
 }generate_t;
 ```
@@ -120,6 +139,45 @@ Set where the random values start, so that a run can be repeated exactly.
 A TEST THAT CANNOT BE REPEATED IS NOT A TEST. The same seed gives the same
 values on every machine and at either width, thus a fault found once can be
 found again.
+
+### `generate_is_valid_part`
+
+```c
+bool generate_is_valid_part(real_t part);
+```
+
+True if this is a part of a turn a pulse can fill, which means above nothing
+and below one. A pulse that filled none of the turn or all of it would have
+no corners and would not be a pulse.
+
+### `generate_set_part`
+
+```c
+bool generate_set_part(generate_t* generate, real_t part);
+```
+
+Choose how much of each turn a pulse fills.
+
+GENERATE_PULSE is high for this part of the turn and low for the rest, thus
+a part of a half gives the square wave and a part of a tenth gives a narrow
+pulse standing once each turn.
+
+GENERATE_GAUSSIAN_PULSE reads it as the WIDTH of its bump, as a part of the
+turn: the bump falls away by the same amount at this distance either side of
+the middle of the turn as a normal spread falls away at one standard
+deviation. A part of about an eighth gives a bump that has died away by the
+ends of its turn; anything much wider runs into the turn beside it.
+
+Every other kind ignores it. Give false and leave the maker as it was if the
+part is not one generate_is_valid_part accepts.
+
+### `generate_get_part`
+
+```c
+real_t generate_get_part(const generate_t* generate);
+```
+
+Give the part of a turn a pulse fills.
 
 ### `generate_sample`
 

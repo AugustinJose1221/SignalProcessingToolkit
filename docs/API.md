@@ -116,6 +116,7 @@ name and shape of every function.
 | Module | What it holds |
 | --- | --- |
 | [`generate`](api/generate.md) | Making the signals to test with |
+| [`curve`](api/curve.md) | The shapes a peak can have |
 | [`quantise`](api/quantise.md) | Putting a signal into steps |
 | [`stats`](api/stats.md) | Measures of a list of samples |
 | [`binarysearch`](api/binarysearch.md) | Binary search |

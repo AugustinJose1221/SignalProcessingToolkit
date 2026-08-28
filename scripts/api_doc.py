@@ -82,6 +82,7 @@ MODULES = [
     ("delay", "sptk/detect/delay.h", "How far one reading stands behind another"),
     ("changepoint", "sptk/detect/changepoint.h", "Saying when a reading has changed"),
     ("generate", "sptk/util/generate.h", "Making the signals to test with"),
+    ("curve", "sptk/util/curve.h", "The shapes a peak can have"),
     ("quantise", "sptk/util/quantise.h", "Putting a signal into steps"),
     ("stats", "sptk/util/stats.h", "Measures of a list of samples"),
     ("binarysearch", "sptk/util/binarysearch.h", "Binary search"),
@@ -193,8 +194,8 @@ AREAS = [
                                   "vector",
                                   "vector2d"]),
     ("detect", "Detection", ["matched", "delay", "changepoint"]),
-    ("util", "Utilities", ["generate", "quantise", "stats", "binarysearch", "peakdetect",
-                           "valleydetect"]),
+    ("util", "Utilities", ["generate", "curve", "quantise", "stats", "binarysearch",
+                           "peakdetect", "valleydetect"]),
     ("core", "Core", ["real", "ringbuf", "point2d", "callback"]),
 ]
 

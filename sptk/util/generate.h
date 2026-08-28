@@ -90,8 +90,103 @@ typedef enum{
 
     // Random values holding twice the power in each halving of frequency,
     // which is what most natural noise does.
-    GENERATE_PINK_NOISE
+    GENERATE_PINK_NOISE,
+
+    // A random walk: four times the power in each halving of frequency. This
+    // is what DRIFT looks like -- a reading that wanders away and does not
+    // come back on its own. Reach for it to test dcblock, detrend, and the one
+    // way changepoint is documented to fail.
+    GENERATE_BROWN_NOISE,
+
+    // The mirror of pink: twice the power in each DOUBLING of frequency.
+    GENERATE_BLUE_NOISE,
+
+    // Random values drawn from a normal spread rather than an even one.
+    //
+    // THIS IS THE ONE THE REST OF THE LIBRARY ASSUMES. matched_threshold_for
+    // turns a rate of false alarms into a threshold by inverting the tail of a
+    // normal spread; the table of thresholds in changepoint.h was measured on
+    // normal noise; kalman, ekf and ukf all take the noise of the process and
+    // of the measurement to be normal. GENERATE_WHITE_NOISE is drawn EVENLY,
+    // thus none of those claims can be examined with it: measured, the same
+    // changepoint threshold gave one wrong alarm in every 372 samples on an
+    // even spread and one in every 465 on a normal one.
+    //
+    // IT IS NOT HELD INSIDE THE RANGE OF ONE. Its standard deviation is one
+    // and its tails run as far as a normal spread's tails run. Holding it
+    // inside a range would cut off exactly the tails it exists to provide, and
+    // a threshold measured against a spread with no tails is a threshold
+    // measured against nothing. The table below says how far it reached.
+    GENERATE_GAUSSIAN_NOISE,
+
+    // A rectangular pulse that is high for a chosen part of each turn, band
+    // limited at both of its corners. GENERATE_SQUARE is this with the part
+    // set to a half. Set the part with generate_set_part.
+    GENERATE_PULSE,
+
+    // A gaussian bump once each turn, as wide as generate_set_part says.
+    //
+    // This is the shape a sounder or a radar sends and the shape matched and
+    // delay are built to find. UNLIKE THE OSCILLATING SHAPES IT DOES NOT ADD
+    // UP TO NOTHING: it stands between 0 and 1 and never below, because a
+    // pulse is a thing that happens rather than a thing that swings.
+    GENERATE_GAUSSIAN_PULSE,
+
+    // One sample of one at the start of each turn and nothing between them.
+    //
+    // Give it a frequency low enough that one turn is longer than the block
+    // being made, and the block holds exactly one impulse. That is what the
+    // response of a filter is measured with.
+    GENERATE_IMPULSE
 }generate_kind_t;
+
+// How much of the running sum of the brown noise is kept at each sample.
+//
+// A plain sum of random values wanders away without bound and cannot be held
+// in a float for long. Keeping slightly less than all of it holds the wander
+// bounded and leaves the slope of four times the power in each halving of
+// frequency above the frequency where the keeping bites, which is about
+// 0.00016 of the sample rate: about 1.3 Hz at 8000 samples in a second.
+#ifndef GENERATE_BROWN_KEEP
+#define GENERATE_BROWN_KEEP     REAL_C(0.999)
+#endif
+
+// The part of a turn a pulse fills, where none is given.
+#define GENERATE_DEFAULT_PART   REAL_C(0.5)
+
+// WHAT EACH KIND ACTUALLY COMES OUT AT, measured over a million samples at 100
+// Hz in 8000 with the part set to an eighth. The same numbers at both widths.
+//
+//   kind                mean   spread     lowest  highest
+//   sine              0.0000   0.7071    -1.0000   1.0000
+//   square            0.0000   0.9884    -1.0000   1.0000
+//   sawtooth          0.0000   0.5671    -0.9752   0.9750
+//   triangle          0.0000   0.5771    -1.0000   1.0000
+//   white noise       0.0008   0.5770    -1.0000   1.0000
+//   pink noise        0.0008   0.2186    -0.9060   0.8639
+//   brown noise       0.0334   0.5671    -2.0291   2.1579
+//   blue noise        0.0000   0.2185    -1.6329   1.5026
+//   gaussian noise    0.0004   0.9982    -4.5145   5.0724
+//   pulse            -0.7500   0.6437    -1.0000   1.0000
+//   gaussian pulse    0.3131   0.3510     0.0003   1.0000
+//   impulse           0.0125   0.1107     0.0000   1.0000
+//
+// THREE OF THEM LEAVE THE RANGE OF ONE, and a caller that scales every kind by
+// the same number will clip those three and no others.
+//
+//   The gaussian noise, on purpose and as far as its tails go.
+//
+//   The brown noise, because a random walk has no bound: what is added is
+//   scaled so that the SPREAD matches the white noise it is made from, and a
+//   walk of a million steps wanders about four times that far now and then.
+//
+//   The blue noise, because it is scaled to the spread of the pink noise it is
+//   the mirror of, and a difference reaches further than what it is taken of.
+//
+// TWO OF THEM DO NOT ADD UP TO NOTHING. The pulse carries whatever level its
+// part gives it, and the gaussian pulse never goes below nothing at all. Both
+// are pulses rather than oscillations, and a pulse that swung either way would
+// not be a pulse. Take the level off with dcblock where it is not wanted.
 
 // How many running parts the pink noise is made from.
 //
@@ -109,7 +204,12 @@ typedef struct{
     real_t last_step;           // What the step was, for the sweep to end on
     uint32_t seed;              // Where the random values stand
     real_t pink[GENERATE_PINK_PARTS];   // The running parts of the pink noise
+    real_t part;                // The part of a turn a pulse fills
+    real_t running;             // The running sum of the brown noise
+    real_t last_pink;           // The pink value before this one, for the blue
+    real_t spare;               // The second of a pair of normal draws
     uint32_t counted;           // How many samples have been made
+    bool has_spare;             // True while spare holds a draw not yet given
     bool designed;              // True once generate_design has been called
 }generate_t;
 
@@ -159,6 +259,30 @@ bool generate_design_sweep(generate_t* generate, real_t from, real_t to,
 // values on every machine and at either width, thus a fault found once can be
 // found again.
 void generate_set_seed(generate_t* generate, uint32_t seed);
+
+// True if this is a part of a turn a pulse can fill, which means above nothing
+// and below one. A pulse that filled none of the turn or all of it would have
+// no corners and would not be a pulse.
+bool generate_is_valid_part(real_t part);
+
+// Choose how much of each turn a pulse fills.
+//
+// GENERATE_PULSE is high for this part of the turn and low for the rest, thus
+// a part of a half gives the square wave and a part of a tenth gives a narrow
+// pulse standing once each turn.
+//
+// GENERATE_GAUSSIAN_PULSE reads it as the WIDTH of its bump, as a part of the
+// turn: the bump falls away by the same amount at this distance either side of
+// the middle of the turn as a normal spread falls away at one standard
+// deviation. A part of about an eighth gives a bump that has died away by the
+// ends of its turn; anything much wider runs into the turn beside it.
+//
+// Every other kind ignores it. Give false and leave the maker as it was if the
+// part is not one generate_is_valid_part accepts.
+bool generate_set_part(generate_t* generate, real_t part);
+
+// Give the part of a turn a pulse fills.
+real_t generate_get_part(const generate_t* generate);
 
 // Make the next sample.
 real_t generate_sample(generate_t* generate);

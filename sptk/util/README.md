@@ -162,6 +162,96 @@ one chirp through a filter shows the whole of what the filter does.
 **The same seed gives the same noise**, on every machine and at either width. A
 test that cannot be repeated is not a test.
 
+### Which noise, and why it matters which
+
+| kind | slope | reach for it when |
+|---|---|---|
+| `GENERATE_WHITE_NOISE` | flat | anything ordinary; drawn **evenly**, not normally |
+| `GENERATE_PINK_NOISE` | −3 dB an octave | most natural noise looks like this |
+| `GENERATE_BROWN_NOISE` | −6 dB an octave | drift: a reading that wanders and does not come back |
+| `GENERATE_BLUE_NOISE` | +3 dB an octave | the mirror of pink |
+| `GENERATE_GAUSSIAN_NOISE` | flat | **any claim about a rate of false alarms** |
+
+**The last row is the one to read.** `matched_threshold_for` turns a rate of
+false alarms into a threshold by inverting the tail of a normal spread. The
+table of thresholds in `changepoint.h` was measured on normal noise. `kalman`,
+`ekf` and `ukf` all take the noise of the process and of the measurement to be
+normal. **None of those claims can be examined with an even spread**: measured,
+the same `changepoint` threshold gave one wrong alarm in every 372 samples on an
+even spread and one in every 465 on a normal one.
+
+It is drawn by the method of Box and Muller rather than by adding a dozen even
+draws together. The shortcut is bounded and has no tails past about four
+standard deviations, and the tails are the whole point: a rate of one in a
+million is a question about what happens past five.
+
+**It is not held inside the range of one, and two others are not either.** The
+gaussian noise runs as far as its tails go, the brown noise is a walk with no
+bound, and the blue noise is a difference and reaches further than what it is
+taken of. `generate.h` holds the measured table. A caller that scales every kind
+by the same number will clip those three and no others.
+
+### The pulses
+
+`GENERATE_PULSE` is high for a chosen part of each turn — `generate_set_part`
+says how much — and band limited at both corners. The square wave is this with
+the part set to a half, and the two agree sample for sample.
+
+`GENERATE_GAUSSIAN_PULSE` is a bump once each turn, which is the shape `matched`
+and `delay` are built to find. `GENERATE_IMPULSE` is one sample of one at the
+start of each turn; give it a turn longer than the block and the block holds
+exactly one, which is what an impulse response is measured with.
+
+**Neither pulse adds up to nothing.** They are things that happen rather than
+things that swing. Take the level off with `dcblock` where it is not wanted.
+
+## curve
+
+`generate` makes waves. **These happen once**: a bump on a baseline, read at
+whatever place is asked for, with no phase, no frequency and no state.
+
+They are here because **a peak in a real measurement has a shape**, and which
+shape it has decides what may be read off it. Every module that finds a peak or
+refines one — `peakdetect`, `delay_refine_peak`, the fitting in `lstsq` — gives
+an answer that depends on the shape it was given, and the only honest way to
+measure that dependence is against a shape that is **known**.
+
+| shape | reach for it when |
+|---|---|
+| `curve_gaussian` | nothing says otherwise; the kindest shape there is |
+| `curve_lorentzian` | a resonance: anything that rings and dies away |
+| `curve_skewed_gaussian` | anything that arrives quickly and leaves slowly |
+
+**Every width means the same thing.** Each shape is written so that at one width
+from the middle it has fallen to the share a normal spread has at one standard
+deviation. Written any other way — one as a standard deviation, another as a
+half width at half the top — two widths could not be set beside each other.
+
+**The tails are what part the two even shapes**, as a share of the top:
+
+| widths from the middle | gaussian | lorentzian |
+|---|---|---|
+| 1 | 0.606531 | 0.606531 |
+| 2 | 0.135335 | 0.278173 |
+| 3 | 0.011109 | 0.146231 |
+| 10 | 0.000000 | 0.015181 |
+| 20 | 0.000000 | 0.003839 |
+
+They agree at one width, which is what the width is defined to mean, and part
+company everywhere else. A fitter that measures a baseline near a peak reads the
+tail of a lorentzian **as baseline** and takes the peak to be smaller than it is.
+
+**The top of a skewed peak does not stand at its middle**, and how far it stands
+from it is exactly what a fitter assuming an even peak gets wrong.
+`curve_skewed_gaussian_top` gives where it really stands, found by looking
+because there is no closed form. It moves out, turns round and comes back:
+
+| skew | 0.0 | 0.5 | 1.0 | 2.0 | 4.0 | 8.0 |
+|---|---|---|---|---|---|---|
+| top, in widths | 0.00 | 0.35 | 0.51 | 0.53 | 0.42 | 0.28 |
+
+A skew of about 2 is therefore the hardest case to give a fitter.
+
 **A note on Unity's assertions.** The macros use what they are given more than
 once for the *expected* argument. A call that moves a generator on must be stored
 in a local first, or the two sides fall out of step with each other rather than
