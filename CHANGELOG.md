@@ -1,3 +1,97 @@
+## 0.16.0 (2026-08-28)
+
+The other half of measuring a delay, a way to follow a tone that will not stay
+still, and the transform behind every compression there is.
+
+**farrow delays a signal by a part of a sample.** `delay_by_phase` has measured
+delays below a sample since 0.14.0 and nothing could apply one. Lining two
+readings up, steering an array of microphones, resampling by a ratio that is not
+whole, and following a clock that drifts all come down to it.
+
+The weights are the ones Lagrange wrote down, held as **polynomials in the delay**
+and worked out once when the filter is built. Read as arithmetic they are a
+division for every sample at every step; read as polynomials they are fixed
+numbers, and moving the delay is then reading them at another number. That is
+what lets the delay move at every sample for almost nothing.
+
+**The header says what it costs, and the cost is not the obvious one.** The
+obvious one is that the delay comes out a little different from the delay asked
+for: at a fifth of the sample rate an order of 3 is out by 0.0076 of a sample.
+The one that matters is that it **quietens the signal**, because working out a
+value between two samples averages them. At four tenths of the rate an order of 1
+puts the delay out by a seventh of a sample and throws away seven tenths of the
+signal. A caller watching only the delay would call that filter good. Both tables
+are measured.
+
+**And a high order costs something at 32 bits that it does not cost at 64.** The
+weights come from products and divisions that grow quickly with the order, and
+they should add up to exactly one at every delay. They miss by a part in six
+hundred at an order of 8 at 32 bits and by 4.1e-12 at 64.
+
+The generated tests close the loop the two halves make: a delay applied by
+`farrow` is measured back off the pair by `delay_by_phase`, and what comes out is
+what went in. Neither half could be checked against anything but itself before
+the other existed.
+
+**pll follows a tone whose frequency will not stay still.** A transform reads a
+block and gives the frequencies in it, and that is a trade no code can escape: a
+block long enough to tell 50.0 Hz from 50.1 is longer than the frequency stays
+still, and one short enough to follow the movement cannot tell the two apart. A
+loop does not have that trade. It gives a new answer at every sample, and how
+quickly it follows a change is a number the caller sets.
+
+It can be wrong in three ways a transform cannot, and the header names all three.
+It must be started near the answer. It takes time to arrive. **And it can settle
+onto something that is not there**: given noise and no tone it reports a
+frequency with exactly the confidence it reports a real one, and
+`pll_lock_quality` is the only thing that tells the two apart.
+
+**The loop measures how loud the signal is and divides by it.** Without that the
+gain would be the gain the caller asked for multiplied by the loudness of
+whatever arrived: a tone at a tenth of the expected loudness would answer at a
+tenth of the bandwidth and might never arrive, and one ten times as loud would be
+unstable. The bandwidth would then be a number about the signal and not about the
+loop.
+
+Measured, at a bandwidth of 0.0005 the answer wanders by 0.0011 and the tone is
+found in 4603 samples; at 0.01 it wanders by 0.0127 and is found in 42. Twenty
+times the bandwidth finds the tone a hundred times as fast and wanders eleven
+times as far.
+
+**dct turns a signal into cosines, and back.** `fft` gives sines and cosines,
+which is what is needed to say where in its turn each frequency stands. Where the
+phase is not wanted, half of that is wasted.
+
+Measured on a curve of 64 samples that does not come back to where it started,
+four numbers hold 0.99 of it where the transform needs ten bins, and a bin is two
+numbers: **the same curve in a fifth of the room**. A signal of noise needs all 64
+either way, which is the point.
+
+Why it wins is not the arithmetic. A transform treats the block as one turn of
+something that repeats, thus a signal that starts low and ends high has a step
+where the end meets the beginning again, and a step needs every frequency there
+is. This treats the block as half a turn of something mirrored, thus the end meets
+its own mirror and there is no step.
+
+It takes any size and not only a power of two, and it costs time proportional to
+the square of the size.
+
+**cepstrum was written and not shipped.** It was to have been in this release. It
+finds a note whose fundamental is missing, which correlation cannot, and on a
+clean note of twelve harmonics it did: it answered 64 where correlation answered
+128, and correlation said so with a strength of 1.000. It also found an echo at
+100 samples in a burst of noise.
+
+**It did not survive a noisy note.** With a hundredth of noise on the same signal
+the answer moved to 192, and with a twentieth to 255. Sweeping the floor that
+holds the logarithm moved which cases passed and which failed without making any
+of them steady, and the answer differed between the two widths on a clean signal.
+A module whose header claims what its measurements do not support is worse than
+no module, thus it waits for the design work it needs.
+
+**feature is dropped.** It was a name without a use case, and no use case has
+turned up. It goes the way of the tensors.
+
 ## 0.15.0 (2026-08-28)
 
 Signals to test with, the shapes a peak can have, and a fault in a corner that
