@@ -1,3 +1,100 @@
+## 0.14.0 (2026-08-28)
+
+A new area for detection, generated tests for the ten modules that had none,
+and four faults those tests found.
+
+**Three new modules in a new area, `sptk/detect`.** They answer questions of the
+form *did something happen, and when*, and they share one shape: each turns a
+reading into a number AND gives the threshold to judge that number by. A
+detector without a threshold is a number nobody can act on, and every one of
+these will answer whatever it is given.
+
+`matched` looks for a known shape buried under noise. The score is divided by
+the root of the energy of the shape, thus a reading of pure noise gives a score
+whose spread is the spread of the noise and one threshold serves every shape.
+`matched_threshold_for` turns a wanted rate of false alarms into that threshold
+and takes the number of offsets that will be looked at: a rate that is right for
+one offset cries wolf ten times across ten thousand of them. The inverse of the
+normal tail is worked out inside the module, because the library must need no
+other library, and it is held to within seven millionths at 32 bits and a
+millionth at 64 across rates from a half down to a thousand millionth.
+
+`delay` says how far one reading stands behind another, to below a sample. Two
+ways, and they fail differently: the correlation works on anything and leans by
+the shape of its peak, and the phase is finer and settles as the reading grows
+but asks for a reading that fills a band bin by bin. Measured on nine tones
+spread across the band, a delay of 7 samples came back from the phase as 1.6,
+which is the trap the header names. Running both and comparing is the only
+warning either of them gives.
+
+`changepoint` says when a reading has changed, where the change is smaller than
+the noise and no threshold on a single sample can find it. The header holds a
+measured table of what each threshold costs, taken on twenty million samples: a
+threshold of 5.0 finds a change the size of the noise in ten samples and is
+wrong once in every 465.
+
+**The fir side gained a band stop**, plain and with a chosen window. The iir
+side had one and a notch; the fir side had a band pass and no way to turn it
+round.
+
+**Generated tests for the ten modules that had only unit tests**: `eigen`,
+`poly`, `rls`, `lattice`, `propagate`, `generate`, `quantise`, and the three new
+ones. The property suite runs 313 tests at each width, against 190 before.
+
+They found four faults.
+
+**The lattice filter ran away when told to forget nothing.** The weights divide
+by the mean loudness of each stage, and that mean came from multiplying the
+running sum by one less the forgetting factor. At a factor of exactly one, which
+`lattice_is_valid_forgetting` takes, the multiplier is nothing: the whole
+normalisation went away, each weight was left dividing by its own sample alone,
+and a quiet sample moved a weight by thousands. The answer reached infinity by
+sample 244 at a rate of 1.0. The filter now counts how many samples the sum
+stands for, fading that count as the sum fades, and divides by it. Settled
+behaviour does not change; the start of a run is now right as well.
+
+**The size of a complex number was nothing where its square did not fit.** It
+was the root of the sum of the squares, and at 32 bits the square of 6.1e-30
+falls below the smallest ordinary number there is. It cost a root: `poly_roots`
+walked onto a root at 6.1e-30, asked how large the polynomial was there, was
+told nothing, and took a plain real root for a complex pair. A pole outside the
+circle was missed and `poly_is_inside_circle` called an unstable filter stable.
+`hypot` is part of the standard library of C and holds both ends of the range.
+
+**The root finder measured against a fixed number rather than against the
+polynomial.** The walk stopped when the value reached 100 times the smallest
+step the width can tell, which says nothing about a polynomial whose whole size
+is near it. On `0.000061 - x^4` at 32 bits it stopped with a fifth of the
+polynomial still there, a root standing straight up the imaginary line was then
+called real, a line was divided out where a quadratic belonged, and the first
+root came back as -1.61 where all four stand at 0.088.
+
+**And polishing could make a root worse.** Where several roots stand on top of
+each other both the value and the slope are nearly nothing, thus one step can go
+anywhere. At 32 bits on a root of four at -0.8125 the divisions had left every
+root within 0.07 of the truth and the polishing threw two of them out to 114,
+where the polynomial reaches 170 million. A step that does not make the value
+smaller is no longer taken, which also made the answers better where they were
+already right. The walk is also given more steps where more roots stand
+together, because it creeps in rather than rushing: the flat budget of 200
+covered six roots together and not seven, and `poly_roots` refused x to the
+seventh, whose seven roots all stand at nothing.
+
+**Two limits of the width are now written down rather than left to be found.**
+`eigen_solve` decides how far to turn from the SQUARES of the elements, thus it
+needs a matrix whose elements the width can square: about 1e-19 at 32 bits.
+Scaling the matrix up costs nothing and the header says so. `matched.h` says
+what the width costs its threshold and not only what the fit costs it.
+
+**The detect example** walks a depth sounder through all three questions, and
+each step is built around the number that says whether to believe the answer. It
+scores a block with no echo in it and the filter still reports a loudest offset;
+it runs both ways of measuring a delay across five loudnesses, where at the top
+one says 7 samples and the other says 250 and at the bottom they agree on 2.30
+against the 2.35 put in; and it shows a watcher pointing at ping 366 for a
+change put in at ping 300, which is right, because a slope has nothing to walk
+away from until it has grown.
+
 ## 0.13.1 (2026-08-27)
 
 A fault that had come into the repository twice, the check that now catches it,
