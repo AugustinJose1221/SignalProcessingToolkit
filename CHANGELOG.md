@@ -1,3 +1,83 @@
+## 0.17.0 (2026-08-28)
+
+The last release before the feature freeze. It closes what an audit of the whole
+library found open, and ships the one module that was written and held back.
+
+**An audit was taken of every public function.** An instrumented copy of the
+suite was built and run, and line and branch coverage read off it: 96.5 percent
+of lines, and NOT ONE function between nothing and sixty percent. Three
+questions came out of it, and this release answers all three.
+
+**Three functions had never been run by anything.** ekf_set_input_matrix,
+ukf_set_input_matrix and ukf_get_gain_matrix stood at nothing across the whole
+suite and all 27 examples.
+
+They were not dead surface. kalman carries the same three and tests all of them,
+thus the gap was in the tests. IT WENT UNNOTICED BECAUSE EVERY MODEL IN BOTH
+TEST FILES WROTE (void)input AND IGNORED IT, and every call of ukf_step passed
+NULL for the input: between them there was nothing that could tell whether the
+input had been read at all. Both files gain a model that is driven from outside,
+and tests that hold what the input is for, that it is copied rather than held by
+reference, and that the gain falls as the filter makes up its mind. All three now
+stand at 100 percent.
+
+**Five streaming modules could only be driven one sample at a time.** adaptive,
+rls, lattice, pll and changepoint now take a block, as every other streaming
+module in the library already did.
+
+The three adaptive filters give back BOTH what the filter made of the reference
+AND what is left when that has been taken away, and either may be NULL. The
+header says plainly which is the answer: the output is the interference as the
+filter learned it, and a caller taking it has taken the noise.
+
+changepoint reports the FIRST change in a block and where it stood, and reads the
+whole block whether it found one or not. Stopping at the first would leave the
+watcher part way through, and the next block would be read as though the samples
+between had never happened.
+
+Every block form is held to giving exactly what the samples one at a time give,
+and to leaving the filter in exactly the same state afterwards.
+
+**kalman, ekf and ukf were counted as missing a reset. They are not.** Those
+filters that have one have it because their state is private. Here the state and
+the covariance ARE the memory and the caller sets both, thus putting them back IS
+the reset. Nothing else survives a step.
+
+Measured rather than argued: a filter driven two hundred steps and then given its
+first state and covariance back answers EXACTLY as a filter that has never run,
+to the last digit, at both widths and for all three. Adding three functions that
+do what two setters already do would be surface for its own sake, which is what
+the audit was for finding. Each header says so where a caller looking for a reset
+will meet it, and a test holds the claim.
+
+**cepstrum ships.** It was held back from 0.16.0 because it would not survive a
+noisy note: the answer moved to 192 with a hundredth of noise and 255 with a
+twentieth, and it differed between the two widths on a clean signal.
+
+THE MISSING STEP WAS A WINDOW. It was written without one on the reasoning that a
+note whose period divides the block needs none. The NOISE on that note does not
+divide the block: it leaks across every bin, its leakage has strong structure in
+the logarithm, and that structure drowned the row of harmonics being looked for.
+With a Hann window every one of those cases gives the right answer, at every
+floor and every noise level tried, and the two widths agree to the sample.
+
+It answers two questions correlation cannot. A note whose fundamental is missing:
+on harmonics 2 to 12 of a period of 64 this answers 64 where correlation answers
+128, with a strength of 1.000 while it does. And the delay of an echo, which the
+logarithm makes separable because an echo multiplies the spectrum and a logarithm
+turns multiplying into adding.
+
+Its limits are measured and written down: the answer is a whole number of samples
+and a real period rarely is, so a period of 100 comes back as 99 and
+peakdetect_refine gets between the samples; it needs several harmonics, and with
+five it answered 62 where 64 was right; and the strength tells structure from
+noise but does NOT tell a single pure tone from a note.
+
+**What comes next is a feature freeze.** From here the library takes fixes,
+tests and documentation only. The work that remains is property coverage: 21
+modules have never been exercised by a generated test, and every catch-up round
+so far has found real faults.
+
 ## 0.16.0 (2026-08-28)
 
 The other half of measuring a delay, a way to follow a tone that will not stay
