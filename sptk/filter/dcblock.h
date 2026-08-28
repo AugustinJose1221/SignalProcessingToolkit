@@ -130,6 +130,33 @@ dcblock_t dcblock_init(real_t cutoff);
 // Take the level away from one sample and give what is left.
 real_t dcblock_process_sample(dcblock_t* dcblock, real_t sample);
 
+// WHAT COMES THROUGH ABOVE THE CUTOFF IS NOT QUITE ALL OF IT, and a caller
+// reading a height through this filter must know by how much.
+//
+// The tracker writes its level from the sample that has just arrived and then
+// takes it off, thus what comes out is one less the pole, multiplied by the
+// difference between the sample and the level as it stood BEFORE. That leaves a
+// gain well above the cutoff of
+//
+//     2 (1 - p) / (2 - p)        where p is 2 pi times the cutoff
+//
+// Measured against that formula, to four decimal places at every cutoff tried:
+//
+//   cutoff        gain
+//   ------      ------
+//   0.00195     0.9938
+//   0.00391     0.9876
+//   0.00781     0.9748
+//   0.01563     0.9484
+//   0.03125     0.8911
+//
+// It climbs to one as the cutoff falls, thus a narrow blocker costs nothing and
+// a wide one costs a tenth. READ THE LAST ROW BEFORE CHOOSING A WIDE CUTOFF: a
+// level blocker at 0.03 of the sample rate takes eleven per cent off every
+// measurement that passes through it, and nothing else in the answer says so.
+//
+// Divide the answer by that gain where the height matters.
+
 // Take the level away from a whole block. The input and the output may be the
 // same list.
 void dcblock_process_block(dcblock_t* dcblock, const real_t* input, real_t* output,

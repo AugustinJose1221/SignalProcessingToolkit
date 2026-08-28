@@ -347,6 +347,53 @@ class Farrow(ctypes.Structure):
     ]
 
 
+class Movavg(ctypes.Structure):
+    _fields_ = [
+        ("window", Ringbuf),
+        ("total", REAL_T),
+        ("square_total", REAL_T),
+        ("since_refresh", ctypes.c_uint32),
+    ]
+
+
+class Dcblock(ctypes.Structure):
+    _fields_ = [
+        ("level", REAL_T),
+        ("pole", REAL_T),
+        ("started", ctypes.c_bool),
+    ]
+
+
+class Savgol(ctypes.Structure):
+    _fields_ = [
+        ("window", ctypes.c_uint32),
+        ("order", ctypes.c_uint32),
+        ("derivative", ctypes.c_uint32),
+        ("coefficient", ctypes.POINTER(REAL_T)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+ADAPTIVE_LMS = 0
+ADAPTIVE_NORMALISED = 1
+ADAPTIVE_SIGN = 2
+
+ADAPTIVE_RULES = (ADAPTIVE_LMS, ADAPTIVE_NORMALISED, ADAPTIVE_SIGN)
+
+
+class Adaptive(ctypes.Structure):
+    _fields_ = [
+        ("history", Ringbuf),
+        ("coefficient", ctypes.POINTER(REAL_T)),
+        ("length", ctypes.c_uint32),
+        ("rule", ctypes.c_int),
+        ("rate", REAL_T),
+        ("leak", REAL_T),
+        ("energy", REAL_T),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
 class Imf(ctypes.Structure):
     _fields_ = [
         ("x", ctypes.POINTER(REAL_T)),
@@ -1243,6 +1290,91 @@ def load_library():
     library.farrow_reset.restype = None
     library.farrow_free.argtypes = [ctypes.POINTER(Farrow)]
     library.farrow_free.restype = None
+
+    # movavg
+    library.movavg_alloc.argtypes = [ctypes.c_uint32]
+    library.movavg_alloc.restype = Movavg
+    library.movavg_reset.argtypes = [ctypes.POINTER(Movavg)]
+    library.movavg_reset.restype = None
+    library.movavg_process_sample.argtypes = [ctypes.POINTER(Movavg), REAL_T]
+    library.movavg_process_sample.restype = REAL_T
+    library.movavg_process_block.argtypes = [ctypes.POINTER(Movavg),
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32]
+    library.movavg_process_block.restype = None
+    for name in ("movavg_get_mean", "movavg_get_rms"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Movavg)]
+        function.restype = REAL_T
+    library.movavg_free.argtypes = [ctypes.POINTER(Movavg)]
+    library.movavg_free.restype = None
+
+    # dcblock
+    library.dcblock_is_valid_cutoff.argtypes = [REAL_T]
+    library.dcblock_is_valid_cutoff.restype = ctypes.c_bool
+    library.dcblock_init.argtypes = [REAL_T]
+    library.dcblock_init.restype = Dcblock
+    library.dcblock_process_sample.argtypes = [ctypes.POINTER(Dcblock),
+                                               REAL_T]
+    library.dcblock_process_sample.restype = REAL_T
+    library.dcblock_process_block.argtypes = [ctypes.POINTER(Dcblock),
+                                              FLOAT_POINTER, FLOAT_POINTER,
+                                              ctypes.c_uint32]
+    library.dcblock_process_block.restype = None
+    library.dcblock_get_level.argtypes = [ctypes.POINTER(Dcblock)]
+    library.dcblock_get_level.restype = REAL_T
+    library.dcblock_set_level.argtypes = [ctypes.POINTER(Dcblock), REAL_T]
+    library.dcblock_set_level.restype = None
+    library.dcblock_reset.argtypes = [ctypes.POINTER(Dcblock)]
+    library.dcblock_reset.restype = None
+
+    # savgol
+    library.savgol_alloc.argtypes = [ctypes.c_uint32]
+    library.savgol_alloc.restype = Savgol
+    library.savgol_is_valid.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                        ctypes.c_uint32]
+    library.savgol_is_valid.restype = ctypes.c_bool
+    library.savgol_design.argtypes = [ctypes.POINTER(Savgol), ctypes.c_uint32,
+                                      ctypes.c_uint32]
+    library.savgol_design.restype = ctypes.c_bool
+    library.savgol_get_coefficient.argtypes = [ctypes.POINTER(Savgol),
+                                               ctypes.c_uint32]
+    library.savgol_get_coefficient.restype = REAL_T
+    library.savgol_apply.argtypes = [ctypes.POINTER(Savgol), FLOAT_POINTER]
+    library.savgol_apply.restype = REAL_T
+    library.savgol_process_block.argtypes = [ctypes.POINTER(Savgol),
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32]
+    library.savgol_process_block.restype = None
+    library.savgol_free.argtypes = [ctypes.POINTER(Savgol)]
+    library.savgol_free.restype = None
+
+    # adaptive
+    library.adaptive_is_valid_rule.argtypes = [ctypes.c_int]
+    library.adaptive_is_valid_rule.restype = ctypes.c_bool
+    library.adaptive_alloc.argtypes = [ctypes.c_uint32]
+    library.adaptive_alloc.restype = Adaptive
+    library.adaptive_design.argtypes = [ctypes.POINTER(Adaptive),
+                                        ctypes.c_int, REAL_T]
+    library.adaptive_design.restype = ctypes.c_bool
+    library.adaptive_set_leak.argtypes = [ctypes.POINTER(Adaptive), REAL_T]
+    library.adaptive_set_leak.restype = ctypes.c_bool
+    library.adaptive_reset.argtypes = [ctypes.POINTER(Adaptive)]
+    library.adaptive_reset.restype = None
+    for name in ("adaptive_process_sample", "adaptive_error"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Adaptive), REAL_T, REAL_T]
+        function.restype = REAL_T
+    library.adaptive_process_block.argtypes = [ctypes.POINTER(Adaptive),
+                                               FLOAT_POINTER, FLOAT_POINTER,
+                                               FLOAT_POINTER, FLOAT_POINTER,
+                                               ctypes.c_uint32]
+    library.adaptive_process_block.restype = ctypes.c_bool
+    library.adaptive_get_coefficient.argtypes = [ctypes.POINTER(Adaptive),
+                                                 ctypes.c_uint32]
+    library.adaptive_get_coefficient.restype = REAL_T
+    library.adaptive_free.argtypes = [ctypes.POINTER(Adaptive)]
+    library.adaptive_free.restype = None
 
     # imf and hht
     library.imf_alloc.argtypes = [ctypes.c_uint32]
