@@ -58,8 +58,8 @@ def interpolate_block(lib, resample, values, factor):
 
 
 @given(factor=factors,
-       part=st.sampled_from([0.2, 0.4, 0.6, 0.8]))
-@settings(max_examples=50)
+       part=st.floats(min_value=0.001953125, max_value=0.9375, width=32))
+@settings(max_examples=80)
 def test_what_would_come_back_as_a_false_tone_is_stopped_before_it_can(
         lib, factor, part):
     """The fault the module prevents, set beside the module preventing it.
@@ -79,6 +79,24 @@ def test_what_would_come_back_as_a_false_tone_is_stopped_before_it_can(
     edge = 0.5 / factor
     frequency = edge + part * (0.5 - edge)
     assume(frequency < 0.5)
+
+    # WHERE THE FALSE TONE LANDS ON NOTHING, THERE IS NOTHING TO COMPARE.
+    #
+    # Decimating moves the tone to frequency times factor, counted in turns of
+    # the new rate, and only the part of that below one is left. If it lands on
+    # a whole turn, every kept sample falls at the same place in the wave and
+    # the plain decimation gives a flat line rather than a false tone. The same
+    # happens at half a turn, where the kept samples fall alternately either
+    # side and give a wave of two samples.
+    #
+    # Neither is a case this test can say anything about: it measures how much
+    # of a false tone is stopped, and there is no false tone. They are left out
+    # here rather than by luck, which is how the four places tried first
+    # managed to miss them.
+    turns = frequency * factor
+    folded = turns - math.floor(turns)
+    folded = min(folded, 1.0 - folded)
+    assume(0.02 < folded < 0.48)
 
     size = 4096
     values = tone(size, frequency)
@@ -102,13 +120,31 @@ def test_what_would_come_back_as_a_false_tone_is_stopped_before_it_can(
 
     # The plain decimation keeps the tone whole: it is now a false one.
     assert let_through > 0.5
-    # The module puts it away, and the header says by how much: the advised
-    # length is chosen for a stop band about 60 dB down. That was measured
-    # across every factor and every place in the band, and the worst of them
-    # all came to 9.3e-4, which is 60.6 dB. The bound below is 54 dB, thus it
-    # holds the module to the figure its own rule of thumb promises and leaves
-    # only the room the last digits need.
-    assert stopped < (0.002 * let_through)
+    # THE BOUND, AND THE FIRST ONE, WHICH WAS WRONG.
+    #
+    # It was set at 2e-3 from a sweep that took four places in the band. Those
+    # four all sat well inside the part the filter stops, and the worst of them
+    # came to 9.3e-4. But a tone JUST above half the new rate does not sit in
+    # the stop band at all: it sits on the turn of the filter, where the filter
+    # is still on its way down.
+    #
+    # Swept finely right up to the edge, the worst is:
+    #
+    #     factor 2   2.31e-3   52.7 dB
+    #     factor 3   2.19e-3   53.2 dB
+    #     factor 4   2.25e-3   53.0 dB
+    #     factor 5   2.07e-3   53.7 dB
+    #     factor 8   2.03e-3   53.9 dB
+    #
+    # About 53 dB at the very edge for every factor, and better everywhere
+    # else. The old bound of 2e-3 stood BELOW that, thus it was a claim the
+    # module does not meet; it went unnoticed only because the four places
+    # tested never went near the edge. The places are now drawn across the
+    # whole band, edge included, and the bound stands at four times the worst.
+    #
+    # It is still a hundredfold difference from what the plain decimation lets
+    # through, which is the thing being shown.
+    assert stopped < (0.01 * let_through)
 
 
 @given(factor=factors,
