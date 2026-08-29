@@ -337,3 +337,65 @@ void test_a_size_the_module_accepts_has_a_gain_worth_dividing_by(void)
         }
     }
 }
+
+// THE SIZES AND THE PARAMETERS THAT ARE BARELY WINDOWS.
+//
+// A window of one sample has no shape at all: the first sample is also the
+// last, and every taper divides by the distance between them. The answer must
+// be 1, which passes the sample through, and not a division by nothing.
+
+void test_a_window_of_one_sample_passes_that_sample_through(void)
+{
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0),
+                           window_value(0u, 1u, WINDOW_TUKEY, REAL_C(0.5)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0),
+                           window_value(0u, 1u, WINDOW_KAISER, REAL_C(5.0)));
+}
+
+void test_a_kaiser_window_with_a_parameter_below_zero_is_read_as_zero(void)
+{
+    // A beta below zero has no meaning. Reading it as zero gives the plain
+    // window with no taper, which is the window a beta of zero asks for.
+    real_t none = window_value(3u, 16u, WINDOW_KAISER, REAL_C(0.0));
+    real_t below = window_value(3u, 16u, WINDOW_KAISER, REAL_C(-4.0));
+
+    TEST_ASSERT_EQUAL_REAL(none, below);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(1.0), below);
+}
+
+void test_the_parameter_for_a_stop_band_between_21_and_50_decibel(void)
+{
+    // The fit runs in three pieces and the middle one is the usual choice: a
+    // stop band of 40 or 50 dB is what most designs ask for.
+    real_t middle = window_kaiser_beta(REAL_C(40.0));
+    real_t deep = window_kaiser_beta(REAL_C(60.0));
+    real_t shallow = window_kaiser_beta(REAL_C(15.0));
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(3.395), middle);
+    TEST_ASSERT_TRUE(deep > middle);
+    // Below 21 dB the plain window already reaches, thus no taper is needed.
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), shallow);
+}
+
+void test_the_gains_of_a_window_of_no_samples_are_nothing(void)
+{
+    real_t nothing[1] = {REAL_C(0.0)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), window_coherent_gain(nothing, 0u));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), window_noise_gain(nothing, 0u));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), window_noise_bandwidth(nothing, 0u));
+}
+
+void test_the_bandwidth_of_a_window_that_holds_nothing_is_nothing(void)
+{
+    // A window of zeros lets no signal through, thus the noise bandwidth is a
+    // ratio with nothing in its divisor. It must give zero and not a number
+    // that is not a number.
+    real_t empty[8];
+    for(uint32_t index = 0; index < 8u; index++)
+    {
+        empty[index] = REAL_C(0.0);
+    }
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), window_noise_bandwidth(empty, 8u));
+}

@@ -463,3 +463,130 @@ void test_lstsq_still_answers_where_the_readings_lie_on_the_curve(void)
     TEST_ASSERT_EQUAL(true, lstsq_polyfit(x, y, 12u, 2u, coefficients));
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(2.0), coefficients[0]);
 }
+
+// THE ASKS A FIT MUST TURN DOWN, AND THE READINGS THAT SAY NOTHING.
+//
+// A fit is worked out once, when a device is calibrated, and then believed for
+// the life of the device. Every one of these paths ends in a fit that must NOT
+// be believed, and the module has to say so rather than hand back numbers.
+
+void test_a_set_of_equations_whose_shapes_do_not_fit_is_refused(void)
+{
+    matrix_t model = matrix_alloc(4u, 2u);
+    matrix_t readings = matrix_alloc(4u, 1u);
+    matrix_t answer = matrix_alloc(2u, 1u);
+    matrix_t square = matrix_alloc(2u, 2u);
+    matrix_t factor = matrix_alloc(2u, 2u);
+    matrix_t column = matrix_alloc(2u, 1u);
+
+    matrix_t wrong_readings = matrix_alloc(3u, 1u);
+    matrix_t wrong_answer = matrix_alloc(3u, 1u);
+    matrix_t wrong_square = matrix_alloc(3u, 3u);
+
+    TEST_ASSERT_FALSE(lstsq_solve(&model, &wrong_readings, &answer, &square,
+                                  &factor, &column));
+    TEST_ASSERT_FALSE(lstsq_solve(&model, &readings, &wrong_answer, &square,
+                                  &factor, &column));
+    TEST_ASSERT_FALSE(lstsq_solve(&model, &readings, &answer, &wrong_square,
+                                  &factor, &column));
+
+    matrix_free(&model);
+    matrix_free(&readings);
+    matrix_free(&answer);
+    matrix_free(&square);
+    matrix_free(&factor);
+    matrix_free(&column);
+    matrix_free(&wrong_readings);
+    matrix_free(&wrong_answer);
+    matrix_free(&wrong_square);
+}
+
+void test_fewer_readings_than_numbers_to_find_is_refused(void)
+{
+    // Two readings cannot fix three numbers. Any curve through them is one of
+    // an endless family, and choosing one of that family is not a measurement.
+    matrix_t model = matrix_alloc(2u, 3u);
+    matrix_t readings = matrix_alloc(2u, 1u);
+    matrix_t answer = matrix_alloc(3u, 1u);
+    matrix_t square = matrix_alloc(3u, 3u);
+    matrix_t factor = matrix_alloc(3u, 3u);
+    matrix_t column = matrix_alloc(3u, 1u);
+
+    TEST_ASSERT_FALSE(lstsq_solve(&model, &readings, &answer, &square, &factor,
+                                  &column));
+
+    matrix_free(&model);
+    matrix_free(&readings);
+    matrix_free(&answer);
+    matrix_free(&square);
+    matrix_free(&factor);
+    matrix_free(&column);
+}
+
+void test_a_fit_of_an_order_the_points_cannot_fix_is_refused(void)
+{
+    real_t x[3] = {REAL_C(0.0), REAL_C(1.0), REAL_C(2.0)};
+    real_t y[3] = {REAL_C(0.0), REAL_C(1.0), REAL_C(4.0)};
+    real_t coefficients[LSTSQ_COEFFICIENT_COUNT(8u)];
+    real_t centre;
+    real_t width;
+
+    TEST_ASSERT_FALSE(lstsq_is_valid_fit(3u, 5u));
+    TEST_ASSERT_FALSE(lstsq_polyfit(x, y, 3u, 5u, coefficients));
+    TEST_ASSERT_FALSE(lstsq_polyfit_scaled(x, y, 3u, 5u, coefficients,
+                                           &centre, &width));
+}
+
+void test_the_scaling_of_no_points_leaves_the_places_as_they_are(void)
+{
+    // No points say nothing about where the readings sit or how far they
+    // spread. A centre of zero and a width of one change nothing, which is the
+    // only safe answer.
+    real_t nothing[1] = {REAL_C(0.0)};
+    real_t centre = REAL_C(99.0);
+    real_t width = REAL_C(99.0);
+
+    lstsq_scaling(nothing, 0u, &centre, &width);
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), centre);
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0), width);
+}
+
+void test_the_quality_of_a_fit_through_no_points_is_nothing(void)
+{
+    real_t nothing[1] = {REAL_C(0.0)};
+    real_t coefficients[2] = {REAL_C(0.0), REAL_C(1.0)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           lstsq_fit_quality(nothing, nothing, 0u,
+                                             coefficients, 1u));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           lstsq_fit_quality_scaled(nothing, nothing, 0u,
+                                                    coefficients, 1u,
+                                                    REAL_C(0.0), REAL_C(1.0)));
+}
+
+void test_readings_that_never_move_are_accounted_for_whole(void)
+{
+    // The quality says how much of the MOVEMENT of the readings the curve
+    // accounts for. Readings that never move have no movement, thus there is
+    // nothing left unaccounted for and the answer is 1.
+    //
+    // The alternative would be a division by nothing, and a quality that is
+    // not a number would pass every test a caller could write for it.
+    real_t x[4] = {REAL_C(0.0), REAL_C(1.0), REAL_C(2.0), REAL_C(3.0)};
+    real_t y[4] = {REAL_C(5.0), REAL_C(5.0), REAL_C(5.0), REAL_C(5.0)};
+    real_t coefficients[2] = {REAL_C(5.0), REAL_C(0.0)};
+    real_t centre;
+    real_t width;
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0),
+                           lstsq_fit_quality(x, y, 4u, coefficients, 1u));
+
+    // The scaled reading must say the same. It is a separate piece of
+    // arithmetic with the same division in it, thus it needs the same guard.
+    lstsq_scaling(x, 4u, &centre, &width);
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0),
+                           lstsq_fit_quality_scaled(x, y, 4u, coefficients, 1u,
+                                                    centre, width));
+}

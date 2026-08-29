@@ -306,3 +306,24 @@ void test_dcblock_process_block_can_write_over_its_input(void)
     TEST_ASSERT_TRUE(signal[3] > REAL_C(25.0));
     TEST_ASSERT_TRUE(signal[3] < REAL_C(31.0));
 }
+
+void test_a_cutoff_so_high_that_the_pole_would_pass_one_is_held_at_one(void)
+{
+    // The pole is two pi times the cutoff. Above a cutoff of about 0.159 that
+    // number passes 1, and a pole at or above 1 is a filter that grows instead
+    // of settling. The module holds it at 1, where the filter takes the whole
+    // of the level away at every sample and nothing is left to grow.
+    TEST_ASSERT_TRUE(dcblock_is_valid_cutoff(REAL_C(0.4)));
+
+    dcblock_t dcblock = dcblock_init(REAL_C(0.4));
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0), dcblock.pole);
+
+    // And it stays bounded on a signal that does not move.
+    for(uint32_t index = 0; index < 200u; index++)
+    {
+        real_t out = dcblock_process_sample(&dcblock, REAL_C(5.0));
+        TEST_ASSERT_TRUE(out < REAL_C(100.0));
+        TEST_ASSERT_TRUE(out > REAL_C(-100.0));
+    }
+}

@@ -300,3 +300,84 @@ void test_interp_refuses_a_table_it_cannot_read(void)
     TEST_ASSERT_EQUAL(false, interp_block(falling, y, slopes, 3u,
                                           INTERP_LINEAR, places, answers, 1u));
 }
+
+// THE EDGES OF A TABLE, AND THE TABLES THAT ARE BARELY TABLES.
+//
+// A table of calibration is read by code that does not always know what is in
+// it. It may hold no points at all because the device was never calibrated, or
+// one point because it was calibrated once, or two points at the same place
+// because somebody wrote the same row twice.
+//
+// None of those is an error the caller can be told about, because the reading
+// is a value and not a status. The module must therefore answer something
+// sensible for every one of them, and these tests fix what that something is.
+
+void test_a_table_with_no_points_reads_as_nothing(void)
+{
+    real_t input[1] = {REAL_C(0.0)};
+    real_t output[1] = {REAL_C(0.0)};
+    real_t slopes[1] = {REAL_C(0.0)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           interp_linear(input, output, 0, REAL_C(1.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           interp_pchip(input, output, slopes, 0,
+                                        REAL_C(1.0)));
+}
+
+void test_a_table_with_one_point_reads_as_that_point_everywhere(void)
+{
+    // One point says what the device reads at one place and nothing about the
+    // slope. Holding the answer flat is the only honest reading.
+    real_t input[1] = {REAL_C(5.0)};
+    real_t output[1] = {REAL_C(7.0)};
+    real_t slopes[1] = {REAL_C(0.0)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.0),
+                           interp_linear(input, output, 1, REAL_C(-100.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.0),
+                           interp_linear(input, output, 1, REAL_C(5.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.0),
+                           interp_linear(input, output, 1, REAL_C(100.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.0),
+                           interp_pchip(input, output, slopes, 1,
+                                        REAL_C(100.0)));
+}
+
+void test_two_rows_at_the_same_place_give_the_first_of_them(void)
+{
+    // A table that holds the same place twice has no slope between those two
+    // rows, and working one out would divide by nothing. The module gives the
+    // value of the row below rather than an answer that is not a number.
+    real_t input[4] = {REAL_C(0.0), REAL_C(1.0), REAL_C(1.0), REAL_C(2.0)};
+    real_t output[4] = {REAL_C(0.0), REAL_C(10.0), REAL_C(20.0),
+                        REAL_C(30.0)};
+    real_t slopes[4] = {REAL_C(1.0), REAL_C(1.0), REAL_C(1.0), REAL_C(1.0)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(10.0),
+                           interp_linear(input, output, 4, REAL_C(1.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(10.0),
+                           interp_pchip(input, output, slopes, 4,
+                                        REAL_C(1.0)));
+}
+
+void test_a_place_outside_the_table_is_held_flat_and_not_carried_on(void)
+{
+    // Carrying a straight line on past the end of a calibration says what the
+    // device would read where it was never calibrated. Saying nothing is
+    // better than saying that.
+    real_t input[3] = {REAL_C(0.0), REAL_C(1.0), REAL_C(2.0)};
+    real_t output[3] = {REAL_C(0.0), REAL_C(10.0), REAL_C(20.0)};
+    real_t slopes[3] = {REAL_C(10.0), REAL_C(10.0), REAL_C(10.0)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           interp_linear(input, output, 3, REAL_C(-50.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(20.0),
+                           interp_linear(input, output, 3, REAL_C(50.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           interp_pchip(input, output, slopes, 3,
+                                        REAL_C(-50.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(20.0),
+                           interp_pchip(input, output, slopes, 3,
+                                        REAL_C(50.0)));
+}
