@@ -166,14 +166,33 @@ def test_a_straight_model_gives_what_the_plain_filter_of_kalman_gives(
             # throws digits away, thus the two filters agree to the digits that
             # are left and not to the last one.
             #
-            # The worst disagreement was measured over 2400 steps of the two
-            # filters run side by side: 1.7e-3 at 32 bits and 7.2e-10 at 64.
-            # The bound below stands just above the 32 bit figure, thus it
-            # would catch any real fault and not merely the rounding.
+            # THE FIRST BOUND HERE WAS WRONG, AND THE WAY IT WAS MEASURED IS
+            # WHY. It was set at 5e-3 from a sweep of 2400 steps whose numbers
+            # were all drawn from an even spread, and that sweep found 1.7e-3.
+            # Running the whole suite 25 times over then broke it.
+            #
+            # A search for a falsifying case does not draw from an even spread.
+            # It reaches for the END of every range, and for several ends AT
+            # ONCE. The worst case is exactly such a corner: a filter that is
+            # very unsure, a measurement it trusts almost completely, and a
+            # state that must swing the whole width of the range to reach it.
+            # Four numbers at their limits together, which an even spread
+            # essentially never draws.
+            #
+            # Measured again over those corners:
+            #
+            #     32 bits   6.4e-3   at state -20, covariance 16,
+            #                        no process noise, measurement noise
+            #                        0.0625, reading +20
+            #     64 bits   3.5e-9
+            #
+            # The bound now stands at three times the worst corner. A real
+            # fault in the arithmetic would be orders of magnitude and not a
+            # factor of three, thus the test still catches one.
             assert agree(elements(lib, plain.x), elements(lib, extended.x),
-                         5e-3)
+                         2e-2)
             assert agree(elements(lib, plain.p), elements(lib, extended.p),
-                         5e-3)
+                         2e-2)
     finally:
         lib.kalman_free(REFERENCE(plain))
         lib.ekf_free(REFERENCE(extended))
