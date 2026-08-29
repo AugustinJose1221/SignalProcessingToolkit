@@ -287,14 +287,33 @@ def test_the_determinant_of_a_product_is_the_product_of_the_determinants(
     together = to_complex(lib.cmatrix_determinant(REFERENCE(product)))
     apart = (to_complex(lib.cmatrix_determinant(REFERENCE(first)))
              * to_complex(lib.cmatrix_determinant(REFERENCE(second))))
+    product_rows = held(lib, product)
 
     for item in (first, second, product):
         lib.cmatrix_free(REFERENCE(item))
 
-    # The two roads to the same number pass through different products, thus
-    # they throw away different digits. How many they can throw away is set by
-    # the size of the products and not by the size of what is left at the end.
-    room = 1e-3 * (hadamard(first_rows) * hadamard(second_rows) + 1.0)
+    # THE TWO ROADS PASS THROUGH DIFFERENT PRODUCTS, AND EACH MUST BE ALLOWED
+    # WHAT ITS OWN PRODUCTS COST.
+    #
+    # One road works out a determinant of each matrix and multiplies the two.
+    # The other multiplies the matrices first and works out one determinant of
+    # what comes back. The digits thrown away are those of the products each
+    # road forms, and the bound of Hadamard gives the size of them.
+    #
+    # BOTH BOUNDS ARE NEEDED, AND THE SECOND IS THE ONE THAT WAS MISSING. A
+    # matrix with a row near nothing has a Hadamard bound near nothing, because
+    # that bound is a product of the row lengths. But multiplying it by another
+    # matrix does NOT give small entries: the other rows are untouched.
+    #
+    # The case that found this had a second matrix whose lower row was 6.1e-05
+    # and nothing. Its bound came to 7.3e-04 and the two bounds multiplied gave
+    # room of 1.1e-03, while the product matrix held entries near 100 and its
+    # determinant was worked out from numbers near 10 000. The error was
+    # 1.5e-03, which is what numbers that size cost, and the room was smaller
+    # than the cost.
+    room = 1e-3 * (hadamard(product_rows)
+                   + hadamard(first_rows) * hadamard(second_rows)
+                   + 1.0)
 
     assert abs(together - apart) <= room
 
