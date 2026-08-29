@@ -421,7 +421,17 @@ def test_the_unit_matrix_changes_nothing(lib, rows):
     assert rows_near(held(lib, product), rows)
     assert lib.cmatrix_is_unit(REFERENCE(unit))
 
-    for item in (matrix, unit, product):
+    # And a matrix that is NOT the unit must be told apart from one that is.
+    # A reading that answered yes to everything would pass the line above and
+    # be worth nothing.
+    changed = lib.cmatrix_alloc(len(rows), len(rows))
+    lib.cmatrix_copy(REFERENCE(unit), REFERENCE(changed))
+    lib.cmatrix_add_element(REFERENCE(changed), 0, 0,
+                            lib.cnum_make(sp.to_float32(2.0),
+                                          sp.to_float32(1.0)))
+    assert lib.cmatrix_is_unit(REFERENCE(changed)) is False
+
+    for item in (matrix, unit, product, changed):
         lib.cmatrix_free(REFERENCE(item))
 
 
