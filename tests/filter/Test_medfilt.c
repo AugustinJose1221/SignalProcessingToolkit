@@ -292,3 +292,56 @@ void test_medfilt_is_full_and_count(void)
 
     medfilt_free(&medfilt);
 }
+
+void test_a_percentile_of_a_filter_that_has_seen_nothing_is_nothing(void)
+{
+    medfilt_t medfilt = medfilt_alloc(5u);
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           medfilt_get_percentile(&medfilt, REAL_C(0.5)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), medfilt_get_median(&medfilt));
+
+    medfilt_free(&medfilt);
+}
+
+void test_a_percentile_of_one_sample_is_that_sample_whatever_is_asked(void)
+{
+    medfilt_t medfilt = medfilt_alloc(5u);
+
+    medfilt_process_sample(&medfilt, REAL_C(7.0));
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.0),
+                           medfilt_get_percentile(&medfilt, REAL_C(0.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.0),
+                           medfilt_get_percentile(&medfilt, REAL_C(0.5)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.0),
+                           medfilt_get_percentile(&medfilt, REAL_C(1.0)));
+
+    medfilt_free(&medfilt);
+}
+
+void test_the_ends_of_the_range_give_the_smallest_and_the_largest(void)
+{
+    // A part of 0 asks for the bottom of the window and a part of 1 for the
+    // top. A part outside that range has no meaning and is held to the nearest
+    // end rather than reaching past the list.
+    medfilt_t medfilt = medfilt_alloc(5u);
+    real_t samples[5] = {REAL_C(3.0), REAL_C(1.0), REAL_C(4.0), REAL_C(5.0),
+                         REAL_C(2.0)};
+
+    for(uint32_t index = 0; index < 5u; index++)
+    {
+        medfilt_process_sample(&medfilt, samples[index]);
+    }
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0),
+                           medfilt_get_percentile(&medfilt, REAL_C(0.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(5.0),
+                           medfilt_get_percentile(&medfilt, REAL_C(1.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0),
+                           medfilt_get_percentile(&medfilt, REAL_C(-1.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(5.0),
+                           medfilt_get_percentile(&medfilt, REAL_C(2.0)));
+
+    medfilt_free(&medfilt);
+}

@@ -5,6 +5,7 @@
 #include "fft.h"
 #include "window.h"
 #include <math.h>
+#include <stdlib.h>
 
 #define BLOCK       64u
 #define SIZE        1024u
@@ -351,5 +352,110 @@ void test_csd_static_alloc(void)
                                           SIZE, coherence));
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(1.0), coherence[4]);
 
+    csd_free(&csd);
+}
+
+// WHAT THE ESTIMATOR DOES WHEN THERE IS NOTHING TO ESTIMATE.
+//
+// A coherence and a transfer are both a division, and both have a signal in
+// the divisor. A frequency where one of the signals holds nothing has no
+// relation to report at all, and the module must say nothing rather than
+// divide by nothing.
+
+void test_a_block_that_is_not_a_power_of_two_gives_an_estimator_that_cannot_be_used(void)
+{
+    csd_t csd = csd_alloc(63u);
+
+    TEST_ASSERT_EQUAL(0, csd.block);
+    TEST_ASSERT_FALSE(csd_design(&csd, 32u, WINDOW_HANN, REAL_C(0.0)));
+
+    csd_free(&csd);
+}
+
+void test_a_signal_with_too_few_blocks_is_refused_by_all_three(void)
+{
+    csd_t csd = csd_alloc(BLOCK);
+    TEST_ASSERT_TRUE(csd_design(&csd, BLOCK / 2u, WINDOW_HANN, REAL_C(0.0)));
+
+    real_t first[BLOCK];
+    real_t second[BLOCK];
+    cnum_t cross[BINS];
+    real_t shared[BINS];
+
+    for(uint32_t index = 0; index < BLOCK; index++)
+    {
+        first[index] = REAL_C(1.0);
+        second[index] = REAL_C(1.0);
+    }
+
+    // One block is far below what an average needs, thus every one of the
+    // three refuses rather than reporting a relation from a single reading.
+    TEST_ASSERT_FALSE(csd_estimate(&csd, first, second, BLOCK, RATE, cross));
+    TEST_ASSERT_FALSE(csd_coherence(&csd, first, second, BLOCK, shared));
+    TEST_ASSERT_FALSE(csd_transfer(&csd, first, second, BLOCK, cross));
+
+    csd_free(&csd);
+}
+
+void test_a_silent_signal_shares_nothing_and_explains_nothing(void)
+{
+    // Both signals hold nothing at all. There is no relation between silence
+    // and silence, and the answer must be zero rather than a division that
+    // gives whatever the rounding leaves.
+    csd_t csd = csd_alloc(BLOCK);
+    TEST_ASSERT_TRUE(csd_design(&csd, BLOCK / 2u, WINDOW_HANN, REAL_C(0.0)));
+
+    real_t* first = (real_t*)malloc(sizeof(real_t) * SIZE);
+    real_t* second = (real_t*)malloc(sizeof(real_t) * SIZE);
+    real_t shared[BINS];
+    cnum_t transfer[BINS];
+
+    for(uint32_t index = 0; index < SIZE; index++)
+    {
+        first[index] = REAL_C(0.0);
+        second[index] = REAL_C(0.0);
+    }
+
+    TEST_ASSERT_TRUE(csd_coherence(&csd, first, second, SIZE, shared));
+    TEST_ASSERT_TRUE(csd_transfer(&csd, first, second, SIZE, transfer));
+
+    for(uint32_t bin = 0; bin < BINS; bin++)
+    {
+        TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), shared[bin]);
+        TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), cnum_real(transfer[bin]));
+        TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), cnum_imaginary(transfer[bin]));
+    }
+
+    free(first);
+    free(second);
+    csd_free(&csd);
+}
+
+void test_a_signal_against_itself_is_explained_whole_and_no_more_than_whole(void)
+{
+    // A signal explains itself perfectly, thus the coherence is 1 at every
+    // frequency it holds. It can never be MORE than 1, and the rounding of a
+    // division can lift it a hair above. The module holds it down.
+    csd_t csd = csd_alloc(BLOCK);
+    TEST_ASSERT_TRUE(csd_design(&csd, BLOCK / 2u, WINDOW_HANN, REAL_C(0.0)));
+
+    real_t* signal = (real_t*)malloc(sizeof(real_t) * SIZE);
+    real_t shared[BINS];
+
+    for(uint32_t index = 0; index < SIZE; index++)
+    {
+        signal[index] = (real_t)sin(0.31 * (double)index)
+                        + (real_t)sin(0.07 * (double)index);
+    }
+
+    TEST_ASSERT_TRUE(csd_coherence(&csd, signal, signal, SIZE, shared));
+
+    for(uint32_t bin = 0; bin < BINS; bin++)
+    {
+        TEST_ASSERT_TRUE(shared[bin] <= REAL_C(1.0));
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(1.0), shared[bin]);
+    }
+
+    free(signal);
     csd_free(&csd);
 }

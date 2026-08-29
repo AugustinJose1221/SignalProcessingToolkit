@@ -312,3 +312,38 @@ void test_matched_a_threshold_holds_the_false_alarms_it_promised(void)
     // that was far too low would fire on nearly all of them.
     TEST_ASSERT_TRUE(alarms <= 8u);
 }
+
+void test_a_rate_of_false_alarms_that_is_almost_certain_gives_a_threshold_below_zero(void)
+{
+    // A caller asking to be wrong 99 times in 100 is asking for a threshold
+    // that fires on almost anything, and such a threshold stands BELOW the
+    // level of the noise. The fit has its own branch for that end, and the
+    // branch is here for completeness rather than for use.
+    //
+    // The answer must still be a real number and must still be ordered: asking
+    // to be wrong more often can only lower the threshold.
+    real_t nearly_always = matched_threshold_for(REAL_C(0.99), 1u);
+    real_t often = matched_threshold_for(REAL_C(0.98), 1u);
+    real_t seldom = matched_threshold_for(REAL_C(0.001), 1u);
+
+    TEST_ASSERT_TRUE(nearly_always < REAL_C(0.0));
+    TEST_ASSERT_TRUE(often < REAL_C(0.0));
+    TEST_ASSERT_TRUE(nearly_always < often);
+    TEST_ASSERT_TRUE(often < seldom);
+
+    // The value is the point that 99 in 100 of a normal spread stand above,
+    // which is 2.326 below the middle.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(-2.326), nearly_always);
+}
+
+void test_a_rate_of_false_alarms_that_means_nothing_is_refused(void)
+{
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           matched_threshold_for(REAL_C(0.0), 1u));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           matched_threshold_for(REAL_C(1.0), 1u));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           matched_threshold_for(REAL_C(-0.5), 1u));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           matched_threshold_for(REAL_C(0.01), 0u));
+}

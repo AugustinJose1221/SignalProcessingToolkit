@@ -5,6 +5,7 @@
 #include "fft.h"
 #include "window.h"
 #include <math.h>
+#include <stdlib.h>
 
 #define BLOCK       64u
 #define SIZE        512u
@@ -349,5 +350,108 @@ void test_stft_fewest_frames_is_where_the_rebuild_becomes_possible(void)
                                               &solid));
     TEST_ASSERT_EQUAL(true, stft_solid_range(&stft, fewest, &first, &solid));
 
+    stft_free(&stft);
+}
+
+// WHAT THE MODULE DOES WHEN IT IS ASKED FOR SOMETHING IT CANNOT GIVE.
+//
+// Every one of these is a refusal, and a refusal is worth a test of its own.
+// A function that answered anyway would hand back a transform of a block it
+// never built, and the caller has no way to tell that from a real one.
+
+void test_a_block_that_is_not_a_power_of_two_gives_a_handle_that_cannot_be_used(void)
+{
+    stft_t stft = stft_alloc(63u);
+
+    TEST_ASSERT_EQUAL(0, stft.block);
+    TEST_ASSERT_FALSE(stft_can_rebuild(&stft));
+
+    stft_free(&stft);
+}
+
+void test_designing_a_transform_that_was_never_built_is_refused(void)
+{
+    stft_t stft = stft_alloc(63u);
+
+    TEST_ASSERT_FALSE(stft_design(&stft, 16u, WINDOW_HANN, REAL_C(0.0)));
+
+    stft_free(&stft);
+}
+
+void test_a_hop_that_does_not_divide_the_block_is_refused(void)
+{
+    stft_t stft = stft_alloc(BLOCK);
+
+    TEST_ASSERT_FALSE(stft_design(&stft, 0u, WINDOW_HANN, REAL_C(0.0)));
+    TEST_ASSERT_FALSE(stft_design(&stft, BLOCK + 1u, WINDOW_HANN,
+                                  REAL_C(0.0)));
+
+    stft_free(&stft);
+}
+
+void test_a_window_that_does_not_exist_is_refused(void)
+{
+    stft_t stft = stft_alloc(BLOCK);
+
+    TEST_ASSERT_FALSE(stft_design(&stft, BLOCK / 4u,
+                                  (window_kind_t)(WINDOW_KAISER + 1),
+                                  REAL_C(0.0)));
+
+    stft_free(&stft);
+}
+
+void test_rebuilding_into_room_that_is_too_small_is_refused(void)
+{
+    // The signal that comes back is longer than the frames suggest, because
+    // the last frame reaches a whole block past where it begins. A caller who
+    // allowed only for the hops would write past the end of the list.
+    stft_t stft = stft_alloc(BLOCK);
+    TEST_ASSERT_TRUE(stft_design(&stft, BLOCK / 4u, WINDOW_HANN, REAL_C(0.0)));
+
+    uint32_t frames = stft_frame_count(SIZE, BLOCK, BLOCK / 4u);
+    uint32_t needed = stft_signal_size(frames, BLOCK, BLOCK / 4u);
+    cnum_t* spectrum = (cnum_t*)malloc(sizeof(cnum_t) * frames
+                                       * STFT_BIN_COUNT(BLOCK));
+    real_t* room = (real_t*)malloc(sizeof(real_t) * needed);
+    real_t* weight = (real_t*)malloc(sizeof(real_t) * needed);
+
+    TEST_ASSERT_FALSE(stft_inverse(&stft, spectrum, frames, room, needed - 1u,
+                                   weight));
+
+    free(spectrum);
+    free(room);
+    free(weight);
+    stft_free(&stft);
+}
+
+void test_rebuilding_from_too_few_frames_is_refused(void)
+{
+    // The windows must overlap enough to lay an even weight across the signal.
+    // Too few frames and there is no part of the signal that every window
+    // reached, thus no part that can be given back exactly.
+    stft_t stft = stft_alloc(BLOCK);
+    TEST_ASSERT_TRUE(stft_design(&stft, BLOCK / 4u, WINDOW_HANN, REAL_C(0.0)));
+
+    uint32_t fewest = stft_fewest_frames(BLOCK, BLOCK / 4u);
+    TEST_ASSERT_TRUE(fewest > 1u);
+
+    uint32_t frames = fewest - 1u;
+    uint32_t needed = stft_signal_size(frames, BLOCK, BLOCK / 4u);
+    cnum_t* spectrum = (cnum_t*)malloc(sizeof(cnum_t) * frames
+                                       * STFT_BIN_COUNT(BLOCK));
+    real_t* room = (real_t*)malloc(sizeof(real_t) * needed);
+    real_t* weight = (real_t*)malloc(sizeof(real_t) * needed);
+
+    for(uint32_t index = 0; index < (frames * STFT_BIN_COUNT(BLOCK)); index++)
+    {
+        spectrum[index] = cnum_zero();
+    }
+
+    TEST_ASSERT_FALSE(stft_inverse(&stft, spectrum, frames, room, needed,
+                                   weight));
+
+    free(spectrum);
+    free(room);
+    free(weight);
     stft_free(&stft);
 }

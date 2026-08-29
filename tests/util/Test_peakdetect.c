@@ -443,3 +443,101 @@ void test_peakdetect_refine_beats_rounding_on_every_shape(void)
         TEST_ASSERT_TRUE(worst_height < (REAL_C(0.5) * worst_largest));
     }
 }
+
+// THE PLACES WHERE A PEAK IS NOT A PEAK, AND THE LIST THAT IS TOO SMALL.
+//
+// A detector is given whatever the signal happens to be, and the awkward cases
+// arrive on their own: a top that sits at the very first or last sample, a
+// flat run that reaches the end, a signal that never comes back down. Each has
+// one right answer and it is fixed here.
+
+void test_the_first_and_the_last_sample_are_never_peaks(void)
+{
+    // A peak must stand above a neighbour on BOTH sides. The samples at the
+    // two ends have only one neighbour, thus nothing can be said about them.
+    real_t rising[5] = {REAL_C(9.0), REAL_C(1.0), REAL_C(2.0), REAL_C(3.0),
+                        REAL_C(9.0)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           peakdetect_prominence(rising, 5u, 0u));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           peakdetect_prominence(rising, 5u, 4u));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           peakdetect_prominence(rising, 5u, 9u));
+}
+
+void test_a_flat_top_that_runs_to_the_end_is_not_a_peak(void)
+{
+    // The signal rises to a level and stays there. Nothing says it ever comes
+    // down again, thus it is a step and not a peak.
+    real_t step[6] = {REAL_C(0.0), REAL_C(1.0), REAL_C(5.0), REAL_C(5.0),
+                      REAL_C(5.0), REAL_C(5.0)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), peakdetect_prominence(step, 6u, 2u));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), peakdetect_width(step, 6u, 2u,
+                                                          REAL_C(0.5)));
+}
+
+void test_the_width_of_something_that_is_not_a_peak_is_nothing(void)
+{
+    real_t flat[5] = {REAL_C(2.0), REAL_C(2.0), REAL_C(2.0), REAL_C(2.0),
+                      REAL_C(2.0)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), peakdetect_width(flat, 5u, 2u,
+                                                          REAL_C(0.5)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), peakdetect_width(flat, 5u, 2u,
+                                                          REAL_C(-0.1)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), peakdetect_width(flat, 5u, 2u,
+                                                          REAL_C(1.5)));
+}
+
+void test_a_peak_that_never_falls_far_enough_is_measured_to_the_end(void)
+{
+    // The peak stands in the middle and the signal on either side never falls
+    // to half of its prominence before the signal runs out. The width is then
+    // measured to the ends rather than left as nothing, because the peak is
+    // real and its width is at least that much.
+    real_t hill[5] = {REAL_C(4.0), REAL_C(4.5), REAL_C(5.0), REAL_C(4.5),
+                      REAL_C(4.0)};
+
+    real_t width = peakdetect_width(hill, 5u, 2u, REAL_C(0.5));
+
+    TEST_ASSERT_TRUE(width > REAL_C(0.0));
+    TEST_ASSERT_TRUE(width <= REAL_C(4.0));
+}
+
+void test_where_there_is_room_for_fewer_peaks_the_ones_that_stand_out_are_kept(void)
+{
+    // Six peaks and room for three. The three kept must be the three that
+    // stand out most, and they must still be listed in the order they stand in
+    // the signal and not in the order they were judged.
+    real_t signal[25];
+    for(uint32_t index = 0; index < 25u; index++)
+    {
+        signal[index] = REAL_C(0.0);
+    }
+
+    // Rising importance, placed out of that order along the signal.
+    signal[2] = REAL_C(1.0);
+    signal[6] = REAL_C(6.0);
+    signal[10] = REAL_C(2.0);
+    signal[14] = REAL_C(5.0);
+    signal[18] = REAL_C(3.0);
+    signal[22] = REAL_C(4.0);
+
+    peakdetect_options_t options = peakdetect_no_rules();
+    uint32_t found_at[3];
+
+    uint32_t found = peakdetect_find(signal, 25u, &options, found_at, 3u);
+
+    TEST_ASSERT_EQUAL(3, found);
+
+    // The three tallest stand at 6, 14 and 22.
+    TEST_ASSERT_EQUAL(6, found_at[0]);
+    TEST_ASSERT_EQUAL(14, found_at[1]);
+    TEST_ASSERT_EQUAL(22, found_at[2]);
+
+    // And they are in the order they stand in the signal.
+    TEST_ASSERT_TRUE(found_at[0] < found_at[1]);
+    TEST_ASSERT_TRUE(found_at[1] < found_at[2]);
+}
