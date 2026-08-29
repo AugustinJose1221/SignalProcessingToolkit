@@ -919,3 +919,50 @@ void test_a_filter_of_one_coefficient_has_a_window_of_one(void)
 
     fir_free(&fir);
 }
+
+void test_the_delay_of_a_filter_built_by_hand_is_right_where_the_phase_folds(void)
+{
+    // A filter with a middle delays every frequency by the same time, thus its
+    // delay is read from the length and no measurement is made. One built by
+    // hand need not be symmetric, and then the delay IS measured, across a
+    // phase that comes back folded into one turn.
+    //
+    // A design of Hamming is taken and its first coefficient moved, which
+    // breaks the symmetry and leaves everything else. The fold is then found
+    // and the delay read at exactly that place.
+    fir_t fir = fir_alloc(25u);
+    TEST_ASSERT_TRUE(fir_design_low_pass_with(&fir, REAL_C(0.2),
+                                              WINDOW_HAMMING, REAL_C(0.0)));
+
+    fir_set_coefficient(&fir, 0u,
+                        fir_get_coefficient(&fir, 0u) + REAL_C(0.05));
+    TEST_ASSERT_FALSE(fir_is_symmetric(&fir));
+
+    real_t step = REAL_C(0.000002);
+    real_t at_the_fold = REAL_C(0.0);
+    bool found = false;
+
+    for(uint32_t k = 250u; k < 249750u; k++)
+    {
+        real_t here = step * (real_t)k;
+
+        if((fir_phase(&fir, here + step) - fir_phase(&fir, here))
+           > REAL_C(3.1416))
+        {
+            at_the_fold = here;
+            found = true;
+            break;
+        }
+    }
+
+    TEST_ASSERT_TRUE(found);
+
+    // The filter is 25 long, thus a delay near 12 is what it really has. A
+    // fold left folded would give thousands.
+    real_t delay = fir_group_delay(&fir, at_the_fold);
+
+    TEST_ASSERT_TRUE(delay > REAL_C(0.0));
+    TEST_ASSERT_TRUE(delay < REAL_C(25.0));
+
+    fir_free(&fir);
+}
