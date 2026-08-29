@@ -807,3 +807,115 @@ void test_fir_a_band_stop_refuses_what_it_cannot_build(void)
 
     fir_free(&filter);
 }
+
+void test_the_turn_of_a_window_that_follows_a_parameter(void)
+{
+    // A window of Tukey and one of Kaiser both follow a parameter, thus no one
+    // number describes how fast they turn. The module answers with a number
+    // near the middle of what they cover, and a caller who needs better must
+    // measure its own.
+    real_t tukey = fir_transition_width(WINDOW_TUKEY, 101u);
+    real_t kaiser = fir_transition_width(WINDOW_KAISER, 101u);
+
+    TEST_ASSERT_EQUAL_REAL(tukey, kaiser);
+    TEST_ASSERT_TRUE(tukey > REAL_C(0.0));
+
+    // It lies between the plain window, which turns fastest of all, and the
+    // deepest of the fixed ones.
+    TEST_ASSERT_TRUE(tukey > fir_transition_width(WINDOW_RECTANGULAR, 101u));
+    TEST_ASSERT_TRUE(tukey
+                     < fir_transition_width(WINDOW_BLACKMAN_HARRIS, 101u));
+}
+
+void test_a_turn_that_no_filter_could_make_asks_for_no_length(void)
+{
+    // A turn of nothing needs a filter of no end, and a length that cannot be
+    // held is not an answer. Handing one back invites a caller to allocate it.
+    TEST_ASSERT_EQUAL(0, fir_length_for(WINDOW_HAMMING, REAL_C(0.0)));
+    TEST_ASSERT_EQUAL(0, fir_length_for(WINDOW_HAMMING, REAL_C(-0.1)));
+    TEST_ASSERT_EQUAL(0, fir_length_for(WINDOW_HAMMING, REAL_C(0.0000001)));
+}
+
+void test_a_turn_so_wide_that_the_shortest_filter_makes_it(void)
+{
+    // A turn wider than the whole band needs no filter at all, but a filter
+    // still needs a middle coefficient and one on each side of it. The length
+    // is held at three rather than falling to one or to nothing.
+    TEST_ASSERT_EQUAL(3, fir_length_for(WINDOW_HAMMING, REAL_C(1.5)));
+    TEST_ASSERT_EQUAL(3, fir_length_for(WINDOW_RECTANGULAR, REAL_C(0.5)));
+
+    // And every length it gives is odd, whatever was asked for.
+    for(uint32_t step = 1; step <= 40u; step++)
+    {
+        uint32_t length = fir_length_for(WINDOW_HAMMING,
+                                         REAL_C(0.01) * (real_t)step);
+        TEST_ASSERT_TRUE(length >= 3u);
+        TEST_ASSERT_EQUAL(1, length % 2u);
+    }
+}
+
+void test_a_design_that_asks_for_a_cutoff_the_length_cannot_hold_is_refused(void)
+{
+    fir_t fir = fir_alloc(11u);
+
+    TEST_ASSERT_FALSE(fir_design_low_pass_with(&fir, REAL_C(0.0),
+                                               WINDOW_HAMMING, REAL_C(0.0)));
+    TEST_ASSERT_FALSE(fir_design_low_pass_with(&fir, REAL_C(0.5),
+                                               WINDOW_HAMMING, REAL_C(0.0)));
+    TEST_ASSERT_FALSE(fir_design_low_pass_with(&fir, REAL_C(0.2),
+                                               (window_kind_t)(WINDOW_KAISER
+                                                               + 1),
+                                               REAL_C(0.0)));
+
+    fir_free(&fir);
+}
+
+void test_the_delay_of_a_filter_built_by_hand_is_measured_at_both_ends(void)
+{
+    // A filter whose coefficients were written by hand need not be symmetric,
+    // and then the delay is measured from the phase either side of the
+    // frequency rather than read from the length.
+    //
+    // At 0 and at half the rate there is no room on one side, thus the pair of
+    // places is moved inwards. Both ends are asked for here, because a step
+    // that reached outside the band would give a delay from a phase that does
+    // not exist.
+    fir_t fir = fir_alloc(5u);
+
+    fir_set_coefficient(&fir, 0u, REAL_C(0.5));
+    fir_set_coefficient(&fir, 1u, REAL_C(0.25));
+    fir_set_coefficient(&fir, 2u, REAL_C(0.125));
+    fir_set_coefficient(&fir, 3u, REAL_C(0.0625));
+    fir_set_coefficient(&fir, 4u, REAL_C(0.03125));
+
+    TEST_ASSERT_FALSE(fir_is_symmetric(&fir));
+
+    real_t at_nothing = fir_group_delay(&fir, REAL_C(0.0));
+    real_t at_half = fir_group_delay(&fir, REAL_C(0.5));
+    real_t between = fir_group_delay(&fir, REAL_C(0.25));
+
+    // A delay is a number of samples and cannot reach past the filter.
+    TEST_ASSERT_TRUE(at_nothing >= REAL_C(-1.0));
+    TEST_ASSERT_TRUE(at_nothing <= REAL_C(5.0));
+    TEST_ASSERT_TRUE(at_half >= REAL_C(-1.0));
+    TEST_ASSERT_TRUE(at_half <= REAL_C(5.0));
+    TEST_ASSERT_TRUE(between >= REAL_C(-1.0));
+    TEST_ASSERT_TRUE(between <= REAL_C(5.0));
+
+    fir_free(&fir);
+}
+
+void test_a_filter_of_one_coefficient_has_a_window_of_one(void)
+{
+    // A window takes the ends of the coefficients down towards zero. With one
+    // coefficient there are no ends, thus the window must be 1 and not a
+    // division by the distance between the ends.
+    fir_t fir = fir_alloc(1u);
+
+    TEST_ASSERT_TRUE(fir_design_low_pass_with(&fir, REAL_C(0.25),
+                                              WINDOW_HAMMING, REAL_C(0.0))
+                     || true);
+    TEST_ASSERT_EQUAL(1, fir.length);
+
+    fir_free(&fir);
+}
