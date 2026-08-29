@@ -218,8 +218,13 @@ void test_emd_sift_does_not_give_more_functions_than_the_given_number(void)
 
 void test_emd_sift_with_a_straight_line_keeps_the_signal(void)
 {
-    // A straight line has no peak and no valley. The sifting must still stop,
-    // and the sum of the results must still give the signal again.
+    // A straight line has no peak and no valley, thus it holds no mode at all.
+    // A mode is an oscillation and a straight line does not oscillate.
+    //
+    // The method must therefore find NOTHING and leave the whole signal in the
+    // residue. Giving back a mode here would say that a line rises and falls,
+    // and every step that read the count would then be working with a mode
+    // that is not there.
     emd_t emd = emd_alloc(SAMPLE_SIZE);
     real_t original[SAMPLE_SIZE];
 
@@ -234,18 +239,13 @@ void test_emd_sift_with_a_straight_line_keeps_the_signal(void)
 
     uint32_t imf_count = emd_sift(&emd, 3);
 
-    TEST_ASSERT_GREATER_THAN(0, imf_count);
-    TEST_ASSERT_TRUE(imf_count <= NUMBER_OF_IMF);
+    TEST_ASSERT_EQUAL(0, imf_count);
 
+    // The whole signal is left in the residue, sample for sample.
     for(uint32_t index = 0; index < SAMPLE_SIZE; index++)
     {
-        real_t sum = residue[index];
-        for(uint32_t i = 0; i < imf_count; i++)
-        {
-            sum += imf[i].y[index];
-        }
         TEST_ASSERT_REAL_WITHIN(RECONSTRUCTION_TOLERANCE(original[index]),
-                                 original[index], sum);
+                                 original[index], residue[index]);
     }
 
     emd_free(emd);

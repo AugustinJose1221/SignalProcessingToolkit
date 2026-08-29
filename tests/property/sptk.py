@@ -203,6 +203,66 @@ class Kalman(ctypes.Structure):
     ]
 
 
+STATE_FUNCTION = ctypes.CFUNCTYPE(None, ctypes.POINTER(Matrix),
+                                  ctypes.POINTER(Matrix),
+                                  ctypes.POINTER(Matrix))
+MEASUREMENT_FUNCTION = ctypes.CFUNCTYPE(None, ctypes.POINTER(Matrix),
+                                        ctypes.POINTER(Matrix))
+
+
+class EkfScratch(ctypes.Structure):
+    _fields_ = [(name, Matrix) for name in (
+        "nxnx_a", "nxnx_b", "nxnx_c", "nxny_a", "nxny_b", "nynx_a",
+        "nyny_a", "nyny_b", "nyny_c", "augmented",
+        "nx1_a", "nx1_b", "nx1_c", "nx1_d", "ny1_a", "ny1_b", "ny1_c")]
+
+
+class Ekf(ctypes.Structure):
+    _fields_ = [
+        ("ni", ctypes.c_uint32),
+        ("nx", ctypes.c_uint32),
+        ("ny", ctypes.c_uint32),
+        ("x", Matrix), ("y", Matrix), ("u", Matrix), ("p", Matrix),
+        ("q", Matrix), ("r", Matrix), ("a", Matrix), ("c", Matrix),
+        ("k", Matrix),
+        ("state_function", STATE_FUNCTION),
+        ("measurement_function", MEASUREMENT_FUNCTION),
+        ("derivative_step", REAL_T),
+        ("scratch", EkfScratch),
+        ("mempool", ctypes.POINTER(REAL_T)),
+        ("singular", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class UkfScratch(ctypes.Structure):
+    _fields_ = [(name, Matrix) for name in (
+        "points", "seen", "weight_mean", "weight_spread", "factor",
+        "nxnx_a", "nxnx_b", "moved", "nxny_a", "nxny_b", "nynx_a",
+        "nyny_a", "nyny_b", "measured", "augmented",
+        "nx1_a", "nx1_b", "nx1_c", "nx1_d",
+        "ny1_a", "ny1_b", "ny1_c", "ny1_d")]
+
+
+class Ukf(ctypes.Structure):
+    _fields_ = [
+        ("ni", ctypes.c_uint32),
+        ("nx", ctypes.c_uint32),
+        ("ny", ctypes.c_uint32),
+        ("x", Matrix), ("y", Matrix), ("u", Matrix), ("p", Matrix),
+        ("q", Matrix), ("r", Matrix), ("k", Matrix),
+        ("state_function", STATE_FUNCTION),
+        ("measurement_function", MEASUREMENT_FUNCTION),
+        ("alpha", REAL_T),
+        ("beta", REAL_T),
+        ("kappa", REAL_T),
+        ("scratch", UkfScratch),
+        ("mempool", ctypes.POINTER(REAL_T)),
+        ("singular", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
 class Cnum(ctypes.Structure):
     _fields_ = [
         ("re", REAL_T),
@@ -442,6 +502,25 @@ class Imf(ctypes.Structure):
         ("x", ctypes.POINTER(REAL_T)),
         ("y", ctypes.POINTER(REAL_T)),
         ("size", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Emd(ctypes.Structure):
+    _fields_ = [
+        ("x", ctypes.POINTER(REAL_T)),
+        ("y", ctypes.POINTER(REAL_T)),
+        ("size", ctypes.c_uint32),
+        ("cspline", CSpline),
+        ("cspline_mempool", CSplineMempool),
+        ("peak_buffer", ctypes.POINTER(REAL_T)),
+        ("peak_index_buffer", ctypes.POINTER(REAL_T)),
+        ("valley_buffer", ctypes.POINTER(REAL_T)),
+        ("valley_index_buffer", ctypes.POINTER(REAL_T)),
+        ("imf", ctypes.POINTER(Imf)),
+        ("imf_count", ctypes.c_uint32),
+        ("residue", ctypes.POINTER(REAL_T)),
+        ("working_buffer", ctypes.POINTER(REAL_T)),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -1035,6 +1114,81 @@ def load_library():
     library.convolve_by_transform.restype = ctypes.c_bool
 
     # cnum
+    # ekf
+    library.ekf_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                  ctypes.c_uint32]
+    library.ekf_alloc.restype = Ekf
+    library.ekf_set_state_function.argtypes = [ctypes.POINTER(Ekf),
+                                               STATE_FUNCTION]
+    library.ekf_set_state_function.restype = None
+    library.ekf_set_measurement_function.argtypes = [ctypes.POINTER(Ekf),
+                                                     MEASUREMENT_FUNCTION]
+    library.ekf_set_measurement_function.restype = None
+    library.ekf_set_derivative_step.argtypes = [ctypes.POINTER(Ekf), REAL_T]
+    library.ekf_set_derivative_step.restype = None
+    for name in ("ekf_set_state_matrix", "ekf_set_covariance_matrix",
+                 "ekf_set_process_noise_covariance_matrix",
+                 "ekf_set_measurement_covariance_matrix",
+                 "ekf_set_input_matrix", "ekf_set_measurement_matrix",
+                 "ekf_state_jacobian_into", "ekf_measurement_jacobian_into"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ekf), ctypes.POINTER(Matrix)]
+        function.restype = None
+    library.ekf_predict.argtypes = [ctypes.POINTER(Ekf)]
+    library.ekf_predict.restype = None
+    library.ekf_update.argtypes = [ctypes.POINTER(Ekf)]
+    library.ekf_update.restype = ctypes.c_bool
+    library.ekf_step.argtypes = [ctypes.POINTER(Ekf), ctypes.POINTER(Matrix),
+                                 ctypes.POINTER(Matrix)]
+    library.ekf_step.restype = ctypes.c_bool
+    for name in ("ekf_get_state_matrix", "ekf_get_covariance_matrix",
+                 "ekf_get_gain_matrix"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ekf)]
+        function.restype = ctypes.POINTER(Matrix)
+    library.ekf_free.argtypes = [ctypes.POINTER(Ekf)]
+    library.ekf_free.restype = None
+
+    # ukf
+    library.ukf_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                  ctypes.c_uint32]
+    library.ukf_alloc.restype = Ukf
+    library.ukf_set_state_function.argtypes = [ctypes.POINTER(Ukf),
+                                               STATE_FUNCTION]
+    library.ukf_set_state_function.restype = None
+    library.ukf_set_measurement_function.argtypes = [ctypes.POINTER(Ukf),
+                                                     MEASUREMENT_FUNCTION]
+    library.ukf_set_measurement_function.restype = None
+    library.ukf_is_valid_spread.argtypes = [ctypes.c_uint32, REAL_T, REAL_T]
+    library.ukf_is_valid_spread.restype = ctypes.c_bool
+    library.ukf_set_spread.argtypes = [ctypes.POINTER(Ukf), REAL_T, REAL_T,
+                                       REAL_T]
+    library.ukf_set_spread.restype = ctypes.c_bool
+    for name in ("ukf_set_state_matrix", "ukf_set_covariance_matrix",
+                 "ukf_set_process_noise_covariance_matrix",
+                 "ukf_set_measurement_covariance_matrix",
+                 "ukf_set_input_matrix", "ukf_set_measurement_matrix"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ukf), ctypes.POINTER(Matrix)]
+        function.restype = None
+    library.ukf_place_points_into.argtypes = [ctypes.POINTER(Ukf),
+                                              ctypes.POINTER(Matrix)]
+    library.ukf_place_points_into.restype = ctypes.c_bool
+    for name in ("ukf_predict", "ukf_update"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ukf)]
+        function.restype = ctypes.c_bool
+    library.ukf_step.argtypes = [ctypes.POINTER(Ukf), ctypes.POINTER(Matrix),
+                                 ctypes.POINTER(Matrix)]
+    library.ukf_step.restype = ctypes.c_bool
+    for name in ("ukf_get_state_matrix", "ukf_get_covariance_matrix",
+                 "ukf_get_gain_matrix"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ukf)]
+        function.restype = ctypes.POINTER(Matrix)
+    library.ukf_free.argtypes = [ctypes.POINTER(Ukf)]
+    library.ukf_free.restype = None
+
     # cmatrix
     library.cmatrix_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
     library.cmatrix_alloc.restype = Cmatrix
@@ -1643,6 +1797,24 @@ def load_library():
     library.adaptive_free.restype = None
 
     # imf and hht
+    # emd
+    library.emd_alloc.argtypes = [ctypes.c_uint32]
+    library.emd_alloc.restype = Emd
+    library.emd_initialize.argtypes = [ctypes.POINTER(Emd), ctypes.c_uint32,
+                                       ctypes.POINTER(Imf), FLOAT_POINTER,
+                                       FLOAT_POINTER, FLOAT_POINTER,
+                                       FLOAT_POINTER, FLOAT_POINTER,
+                                       FLOAT_POINTER]
+    library.emd_initialize.restype = None
+    library.emd_get_imf.argtypes = [ctypes.POINTER(Emd), ctypes.c_uint32,
+                                    ctypes.c_uint32,
+                                    ctypes.POINTER(ctypes.c_uint32)]
+    library.emd_get_imf.restype = ctypes.POINTER(Imf)
+    library.emd_sift.argtypes = [ctypes.POINTER(Emd), ctypes.c_uint32]
+    library.emd_sift.restype = ctypes.c_uint32
+    library.emd_free.argtypes = [Emd]
+    library.emd_free.restype = None
+
     library.imf_alloc.argtypes = [ctypes.c_uint32]
     library.imf_alloc.restype = Imf
     library.imf_free.argtypes = [Imf]
