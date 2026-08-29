@@ -206,3 +206,38 @@ void test_stats_of_an_empty_list_is_nothing(void)
     TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), stats_percentile(data, 0u, REAL_C(0.5)));
     TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.0), stats_mad(data, 0u, work));
 }
+
+void test_a_percentile_of_one_reading_is_that_reading(void)
+{
+    // One reading has no spread. Every percentile of it is the reading itself,
+    // and the arithmetic that finds a place between two readings has no second
+    // reading to reach for.
+    real_t only[1] = {REAL_C(7.5)};
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.5), stats_percentile(only, 1u,
+                                                          REAL_C(0.0)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.5), stats_percentile(only, 1u,
+                                                          REAL_C(0.5)));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(7.5), stats_percentile(only, 1u,
+                                                          REAL_C(1.0)));
+}
+
+void test_a_percentile_reads_the_same_whatever_order_the_readings_arrive_in(void)
+{
+    // The readings are NOT sorted first. The place is found by counting how
+    // many stand below it and then reaching for the nearest one above, thus
+    // the answer must not depend on the order the readings were written in.
+    real_t rising[7] = {REAL_C(1.0), REAL_C(2.0), REAL_C(3.0), REAL_C(4.0),
+                        REAL_C(5.0), REAL_C(6.0), REAL_C(7.0)};
+    real_t jumbled[7] = {REAL_C(5.0), REAL_C(1.0), REAL_C(7.0), REAL_C(3.0),
+                         REAL_C(6.0), REAL_C(2.0), REAL_C(4.0)};
+
+    for(uint32_t step = 0; step <= 10u; step++)
+    {
+        real_t part = REAL_C(0.1) * (real_t)step;
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001),
+                                stats_percentile(rising, 7u, part),
+                                stats_percentile(jumbled, 7u, part));
+    }
+}

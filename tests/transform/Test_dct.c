@@ -154,3 +154,33 @@ void test_dct_refuses_a_size_it_cannot_take(void)
     TEST_ASSERT_EQUAL(false, dct_inverse(given, out, 0u));
     TEST_ASSERT_EQUAL(false, dct_forward(given, out, DCT_LARGEST_SIZE + 1u));
 }
+
+void test_asking_for_the_whole_of_a_signal_keeps_the_whole_of_it(void)
+{
+    // The count for a share says how many cosines carry that share of the
+    // signal. Asking for all of it must give all of them: a signal is never
+    // wholly held by fewer cosines than it has, and the running total that
+    // gathers them must not stop short through rounding.
+    uint32_t size = 32u;
+    real_t signal[32];
+    real_t cosines[32];
+
+    for(uint32_t index = 0; index < size; index++)
+    {
+        signal[index] = (real_t)sin(0.3 * (double)index)
+                        + (real_t)cos(1.1 * (double)index);
+    }
+
+    TEST_ASSERT_TRUE(dct_forward(signal, cosines, size));
+
+    TEST_ASSERT_EQUAL(size, dct_count_for_share(cosines, size, REAL_C(1.0)));
+
+    // And a share of almost none is carried by very few of them.
+    uint32_t few = dct_count_for_share(cosines, size, REAL_C(0.01));
+    TEST_ASSERT_TRUE(few >= 1u);
+    TEST_ASSERT_TRUE(few < size);
+
+    // A share that means nothing is refused.
+    TEST_ASSERT_EQUAL(0, dct_count_for_share(cosines, size, REAL_C(0.0)));
+    TEST_ASSERT_EQUAL(0, dct_count_for_share(cosines, size, REAL_C(1.5)));
+}

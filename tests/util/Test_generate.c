@@ -793,3 +793,33 @@ void test_generate_the_new_kinds_reset_and_repeat(void)
         }
     }
 }
+
+void test_a_shape_that_does_not_exist_cannot_be_designed(void)
+{
+    generate_t generate = generate_make((generate_kind_t)200);
+
+    TEST_ASSERT_FALSE(generate_is_valid_kind((generate_kind_t)200));
+    TEST_ASSERT_FALSE(generate_design(&generate, REAL_C(100.0),
+                                      REAL_C(1000.0)));
+}
+
+void test_a_phase_set_below_nothing_is_brought_back_into_the_turn(void)
+{
+    // The phase says where in the turn the maker stands, from 0 to 1. A caller
+    // that keeps two makers in step by copying the phase from one to the other
+    // can hand over a number outside that range, and the maker must bring it
+    // back rather than read past the end of its own table.
+    generate_t generate = generate_make(GENERATE_SINE);
+    TEST_ASSERT_TRUE(generate_design(&generate, REAL_C(100.0),
+                                     REAL_C(1000.0)));
+
+    generate_set_phase(&generate, REAL_C(-0.25));
+
+    real_t value = generate_sample(&generate);
+    real_t phase = generate_get_phase(&generate);
+
+    TEST_ASSERT_TRUE(phase >= REAL_C(0.0));
+    TEST_ASSERT_TRUE(phase < REAL_C(1.0));
+    TEST_ASSERT_TRUE(value >= REAL_C(-1.5));
+    TEST_ASSERT_TRUE(value <= REAL_C(1.5));
+}
