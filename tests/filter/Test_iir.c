@@ -1153,3 +1153,55 @@ void test_the_delay_stays_sensible_where_the_phase_folds_over(void)
 
     iir_free(&iir);
 }
+
+void test_the_delay_is_right_at_the_very_place_where_the_phase_folds(void)
+{
+    // The sweep above crosses the fold only by luck. This one FINDS it.
+    //
+    // The phase comes back folded into one turn. Somewhere in the band there
+    // is a frequency where it steps from one edge of that turn to the other,
+    // and at that one frequency the two places the delay is measured between
+    // stand on opposite sides of the fold. The raw difference is then a whole
+    // turn out.
+    //
+    // Unfolding it is the whole of what makes the measurement work. Left
+    // folded, the delay at this one frequency would be a turn divided by the
+    // step, which is more than six thousand samples for a filter that really
+    // delays about ten.
+    iir_t iir = iir_alloc(8u);
+    TEST_ASSERT_TRUE(iir_design_low_pass(&iir, REAL_C(0.25)));
+
+    real_t step = REAL_C(0.000002);
+    real_t at_the_fold = REAL_C(0.0);
+    bool found = false;
+
+    for(uint32_t k = 250u; k < 249750u; k++)
+    {
+        real_t here = step * (real_t)k;
+        real_t before = iir_phase(&iir, here);
+        real_t after = iir_phase(&iir, here + step);
+
+        if((after - before) > REAL_C(3.1416))
+        {
+            at_the_fold = here;
+            found = true;
+            break;
+        }
+    }
+
+    TEST_ASSERT_TRUE(found);
+
+    real_t delay = iir_group_delay(&iir, at_the_fold);
+
+    TEST_ASSERT_TRUE(delay > REAL_C(-100.0));
+    TEST_ASSERT_TRUE(delay < REAL_C(100.0));
+
+    // And it agrees with the delay just to either side, which is the point:
+    // the fold must leave no mark on the reading.
+    real_t nearby = iir_group_delay(&iir,
+                                    at_the_fold + REAL_C(0.002));
+    TEST_ASSERT_TRUE(nearby > REAL_C(-100.0));
+    TEST_ASSERT_TRUE(nearby < REAL_C(100.0));
+
+    iir_free(&iir);
+}
