@@ -125,6 +125,18 @@ class Medfilt(ctypes.Structure):
     ]
 
 
+class Hampel(ctypes.Structure):
+    _fields_ = [
+        ("middle", Medfilt),
+        ("history", Ringbuf),
+        ("distance", ctypes.POINTER(REAL_T)),
+        ("threshold", REAL_T),
+        ("replaced", ctypes.c_uint32),
+        ("seen", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
 class Matrix(ctypes.Structure):
     _fields_ = [
         ("m", ctypes.c_uint32),
@@ -249,6 +261,16 @@ class Fir(ctypes.Structure):
         ("coefficient", ctypes.POINTER(REAL_T)),
         ("history", ctypes.POINTER(REAL_T)),
         ("position", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Resample(ctypes.Structure):
+    _fields_ = [
+        ("filter", Fir),
+        ("history", Ringbuf),
+        ("factor", ctypes.c_uint32),
+        ("phase", ctypes.c_uint32),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -764,6 +786,94 @@ def load_library():
                              ctypes.c_uint32]
         function.restype = ctypes.c_uint32
 
+    # ringbuf
+    library.ringbuf_alloc.argtypes = [ctypes.c_uint32]
+    library.ringbuf_alloc.restype = Ringbuf
+    library.ringbuf_static_alloc.argtypes = [ctypes.c_uint32, FLOAT_POINTER]
+    library.ringbuf_static_alloc.restype = Ringbuf
+    library.ringbuf_reset.argtypes = [ctypes.POINTER(Ringbuf)]
+    library.ringbuf_reset.restype = None
+    library.ringbuf_put.argtypes = [ctypes.POINTER(Ringbuf), REAL_T]
+    library.ringbuf_put.restype = None
+    library.ringbuf_get.argtypes = [ctypes.POINTER(Ringbuf), ctypes.c_uint32]
+    library.ringbuf_get.restype = REAL_T
+    library.ringbuf_count.argtypes = [ctypes.POINTER(Ringbuf)]
+    library.ringbuf_count.restype = ctypes.c_uint32
+    library.ringbuf_is_full.argtypes = [ctypes.POINTER(Ringbuf)]
+    library.ringbuf_is_full.restype = ctypes.c_bool
+    library.ringbuf_copy.argtypes = [ctypes.POINTER(Ringbuf), FLOAT_POINTER]
+    library.ringbuf_copy.restype = ctypes.c_uint32
+    library.ringbuf_free.argtypes = [ctypes.POINTER(Ringbuf)]
+    library.ringbuf_free.restype = None
+
+    # hampel
+    library.hampel_is_valid_window.argtypes = [ctypes.c_uint32]
+    library.hampel_is_valid_window.restype = ctypes.c_bool
+    library.hampel_alloc.argtypes = [ctypes.c_uint32]
+    library.hampel_alloc.restype = Hampel
+    library.hampel_static_alloc.argtypes = [ctypes.c_uint32, FLOAT_POINTER,
+                                            FLOAT_POINTER, FLOAT_POINTER,
+                                            FLOAT_POINTER]
+    library.hampel_static_alloc.restype = Hampel
+    library.hampel_set_threshold.argtypes = [ctypes.POINTER(Hampel), REAL_T]
+    library.hampel_set_threshold.restype = ctypes.c_bool
+    library.hampel_reset.argtypes = [ctypes.POINTER(Hampel)]
+    library.hampel_reset.restype = None
+    library.hampel_delay.argtypes = [ctypes.POINTER(Hampel)]
+    library.hampel_delay.restype = ctypes.c_uint32
+    library.hampel_process_sample.argtypes = [ctypes.POINTER(Hampel), REAL_T,
+                                              ctypes.POINTER(ctypes.c_bool)]
+    library.hampel_process_sample.restype = REAL_T
+    library.hampel_process_block.argtypes = [ctypes.POINTER(Hampel),
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32]
+    library.hampel_process_block.restype = ctypes.c_uint32
+    library.hampel_replaced_count.argtypes = [ctypes.POINTER(Hampel)]
+    library.hampel_replaced_count.restype = ctypes.c_uint32
+    library.hampel_free.argtypes = [ctypes.POINTER(Hampel)]
+    library.hampel_free.restype = None
+
+    # resample
+    library.resample_advised_length.argtypes = [ctypes.c_uint32]
+    library.resample_advised_length.restype = ctypes.c_uint32
+    library.resample_is_valid_factor.argtypes = [ctypes.c_uint32]
+    library.resample_is_valid_factor.restype = ctypes.c_bool
+    for name in ("resample_alloc_decimator", "resample_alloc_interpolator"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+        function.restype = Resample
+    library.resample_reset.argtypes = [ctypes.POINTER(Resample)]
+    library.resample_reset.restype = None
+    library.resample_decimate.argtypes = [ctypes.POINTER(Resample), REAL_T,
+                                          FLOAT_POINTER]
+    library.resample_decimate.restype = ctypes.c_bool
+    library.resample_interpolate.argtypes = [ctypes.POINTER(Resample), REAL_T,
+                                             FLOAT_POINTER]
+    library.resample_interpolate.restype = ctypes.c_uint32
+    for name in ("resample_decimate_block", "resample_interpolate_block"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Resample), FLOAT_POINTER,
+                             FLOAT_POINTER, ctypes.c_uint32]
+        function.restype = ctypes.c_uint32
+    library.resample_delay.argtypes = [ctypes.POINTER(Resample)]
+    library.resample_delay.restype = ctypes.c_uint32
+    library.resample_free.argtypes = [ctypes.POINTER(Resample)]
+    library.resample_free.restype = None
+
+    # filtfilt
+    library.filtfilt_padding.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.filtfilt_padding.restype = ctypes.c_uint32
+    library.filtfilt_iir_gain.argtypes = [ctypes.POINTER(Iir), REAL_T]
+    library.filtfilt_iir_gain.restype = REAL_T
+    library.filtfilt_fir_gain.argtypes = [ctypes.POINTER(Fir), REAL_T]
+    library.filtfilt_fir_gain.restype = REAL_T
+    library.filtfilt_iir.argtypes = [ctypes.POINTER(Iir), FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32]
+    library.filtfilt_iir.restype = ctypes.c_bool
+    library.filtfilt_fir.argtypes = [ctypes.POINTER(Fir), FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32]
+    library.filtfilt_fir.restype = ctypes.c_bool
+
     # medfilt
     library.medfilt_alloc.argtypes = [ctypes.c_uint32]
     library.medfilt_alloc.restype = Medfilt
@@ -1014,6 +1124,10 @@ def load_library():
         function = getattr(library, name)
         function.argtypes = [ctypes.POINTER(Iir), REAL_T]
         function.restype = REAL_T
+    library.iir_process_sample.argtypes = [ctypes.POINTER(Iir), REAL_T]
+    library.iir_process_sample.restype = REAL_T
+    library.iir_reset.argtypes = [ctypes.POINTER(Iir)]
+    library.iir_reset.restype = None
     library.iir_free.argtypes = [ctypes.POINTER(Iir)]
     library.iir_free.restype = None
 
@@ -1039,6 +1153,10 @@ def load_library():
     library.fir_get_coefficient.argtypes = [ctypes.POINTER(Fir),
                                             ctypes.c_uint32]
     library.fir_get_coefficient.restype = REAL_T
+    library.fir_process_sample.argtypes = [ctypes.POINTER(Fir), REAL_T]
+    library.fir_process_sample.restype = REAL_T
+    library.fir_reset.argtypes = [ctypes.POINTER(Fir)]
+    library.fir_reset.restype = None
     library.fir_free.argtypes = [ctypes.POINTER(Fir)]
     library.fir_free.restype = None
 
