@@ -57,6 +57,34 @@
 // is not defined any other way. The other three do not, because they are sums
 // and a caller who asks for a sum should get one.
 //
+// A SIGNAL MUST HAVE A SHAPE ABOVE ITS OWN ROUNDING, OR THERE IS NOTHING TO
+// MATCH
+//
+// The coefficient is worked out from how far each sample stands from the mean
+// of its window. Where a signal barely moves, those distances are the last
+// digits of the samples and nothing else, and a coefficient worked out from
+// them is a coefficient of the rounding.
+//
+// It is NOT enough for the signal to be large. A reading that sits at 3.0 and
+// wanders by a hundred-thousandth has plenty of energy and no shape at all:
+// at 32 bits a value near 3 is held to about three ten-millionths, thus a
+// wander of a hundred-thousandth carries barely two digits.
+//
+// The mark of it is that the coefficient stops being free of how loud the
+// signal is. Measured, on a window that sits at 3.0 and wanders by the amount
+// shown, the coefficient moved this much when the signal was merely turned up:
+//
+//     wander, as a part of the size     the coefficient moved by
+//              0.0003                            0.00002
+//              0.00003                           0.0002
+//              0.000003                          0.005
+//              0.0000003                         0.03
+//
+// A wander of less than about a millionth of the size leaves no coefficient
+// worth reading at 32 bits. There is no arithmetic that mends this: the digits
+// were never in the samples. Take a wider build, or measure something that
+// moves.
+//
 // The coefficient is worked out over the samples that overlap AT EACH LAG and
 // no others. The shorter way, which is the sum at each lag divided by the sum
 // at no lag, falls away as the lag grows: at a lag of k only size-k samples
@@ -95,7 +123,11 @@ bool correlate_is_valid_scaling(correlate_scaling_t scaling);
 // value that any lag can reach, and with CORRELATE_COEFFICIENT it is 1.
 //
 // The max_lag must be below the size. A lag as large as the size leaves no
-// samples that overlap, thus there is nothing to correlate.
+// samples that overlap, thus there is nothing to correlate.//
+// WITH CORRELATE_COEFFICIENT, the signal must have a shape above its own
+// rounding. A reading that barely moves has none, whatever its size, and the
+// coefficient is then worked out from the last digits of the samples. The top
+// of this file measures how far it drifts and says why nothing can mend it.
 //
 // Give false if the sizes do not fit together or the scaling is unknown.
 bool correlate_auto(const real_t* data, uint32_t size, real_t* output,
@@ -107,7 +139,11 @@ bool correlate_auto(const real_t* data, uint32_t size, real_t* output,
 // b holds at k samples later what a holds now, which is to say when b lags a
 // by k samples.
 //
-// Both signals must hold the same number of samples.
+// Both signals must hold the same number of samples.//
+// WITH CORRELATE_COEFFICIENT, the signal must have a shape above its own
+// rounding. A reading that barely moves has none, whatever its size, and the
+// coefficient is then worked out from the last digits of the samples. The top
+// of this file measures how far it drifts and says why nothing can mend it.
 //
 // Give false if the sizes do not fit together or the scaling is unknown.
 bool correlate_cross(const real_t* a, const real_t* b, uint32_t size,
