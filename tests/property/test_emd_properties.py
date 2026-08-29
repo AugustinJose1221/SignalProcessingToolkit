@@ -213,25 +213,41 @@ def test_the_fastest_mode_comes_out_first(lib, parts, size):
                       min_size=1, max_size=3),
        size=st.sampled_from([64, 96, 128]))
 @settings(max_examples=40, deadline=None)
-def test_what_is_left_over_turns_less_often_than_anything_taken_out(lib,
-                                                                    parts,
-                                                                    size):
-    """The residue is what is left when there is no more mode in the signal.
+def test_what_is_left_over_has_nothing_left_in_it(lib, parts, size):
+    """The residue is what is left when there is no more mode to take out.
 
-    It must therefore be the slowest thing of all: it turns direction no more
-    often than the last mode taken out of it.
+    That is a claim about the residue itself, and it is tested here by asking
+    the method the same question twice. The signal is taken apart, and then
+    what is left over is GIVEN BACK to a fresh decomposition. It must find
+    nothing at all.
+
+    This is the honest form of the rule. Counting how often the residue turns
+    direction was tried first and it does not work: where a signal is taken
+    apart completely, what is left is the rounding of the splines and rounding
+    turns at nearly every sample. The count then measures the rounding. Asking
+    the method whether it is finished measures what was meant.
+
+    A decomposition that stopped because it had filled every place the caller
+    offered is a different case, and it says nothing about the residue. It is
+    left out.
     """
     values = wandering(size, parts)
+
     work = Decomposition(lib, values)
     try:
         found = work.sift()
-        assume(found >= 1)
-        last = turning_points(work.mode(found - 1))
-        left = turning_points(work.rest())
+        residue = work.rest()
     finally:
         work.close()
 
-    assert left <= (last + 1)
+    # Only a decomposition that stopped of its own accord makes the claim.
+    assume(found < MOST)
+
+    again = Decomposition(lib, residue)
+    try:
+        assert again.sift() == 0
+    finally:
+        again.close()
 
 
 @given(parts=st.lists(st.tuples(st.integers(min_value=1, max_value=16),
