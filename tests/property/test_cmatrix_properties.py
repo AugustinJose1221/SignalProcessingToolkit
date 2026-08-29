@@ -16,6 +16,7 @@ its own complex numbers, which is a different road to the same place.
 """
 
 import ctypes
+import math
 import os
 import sys
 
@@ -107,6 +108,25 @@ def to_complex(value):
 
 def near(first, second, room=1e-3):
     return abs(first - second) <= (room * (1.0 + abs(first) + abs(second)))
+
+
+def hadamard(rows):
+    """A bound on how large a determinant of these rows can be.
+
+    The determinant is a sum of products, one element taken from each row, and
+    it can be no larger than the lengths of the rows multiplied together. That
+    bound is the natural SIZE OF THE ARITHMETIC that works it out, and it is
+    what the rounding of that arithmetic must be weighed against.
+
+    Weighing the rounding against the ANSWER instead is wrong in exactly the
+    case that matters. A determinant near nothing is one where large products
+    cancelled, and the digits thrown away in that cancelling do not become
+    small merely because their sum did.
+    """
+    total = 1.0
+    for row in rows:
+        total *= math.sqrt(sum(abs(value) ** 2 for value in row)) or 1.0
+    return total
 
 
 def rows_near(first, second, room=1e-3):
@@ -271,7 +291,12 @@ def test_the_determinant_of_a_product_is_the_product_of_the_determinants(
     for item in (first, second, product):
         lib.cmatrix_free(REFERENCE(item))
 
-    assert near(together, apart, 1e-2)
+    # The two roads to the same number pass through different products, thus
+    # they throw away different digits. How many they can throw away is set by
+    # the size of the products and not by the size of what is left at the end.
+    room = 1e-3 * (hadamard(first_rows) * hadamard(second_rows) + 1.0)
+
+    assert abs(together - apart) <= room
 
 
 @given(pair=multipliable_complex_pair())
