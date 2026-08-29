@@ -120,6 +120,25 @@ def test_the_coefficient_does_not_move_when_a_signal_is_scaled(lib, first,
     assume(sum(value * value for value in first) > 0.25)
     assume(sum(value * value for value in second) > 0.25)
 
+    # ENERGY IS NOT SHAPE, AND THE COEFFICIENT IS MADE OF SHAPE.
+    #
+    # A reading that sits at 3.0 and wanders by a hundred-thousandth has all
+    # the energy the two lines above ask for and no shape at all: at 32 bits a
+    # value near 3 is held to about three ten-millionths, thus the distances
+    # from the mean carry barely two digits and the coefficient is worked out
+    # from rounding.
+    #
+    # Such a signal is exactly where the coefficient stops being free of how
+    # loud it is, which is what this test measures. The header of the module
+    # now records how far it drifts and why nothing can mend it. Here the rule
+    # is asked only of signals that really do have a shape: the wander must
+    # stand well clear of the last digits of the samples themselves.
+    for values in (first, second):
+        largest = max(abs(value) for value in values) + 1.0
+        middle = sum(values) / len(values)
+        wander = max(abs(value - middle) for value in values)
+        assume(wander > (1e-3 * largest))
+
     largest_lag = size // 2
 
     plain = correlated(lib, first, second, largest_lag,

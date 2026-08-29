@@ -34,7 +34,11 @@ At a lag of 0 a signal always matches itself, thus output[0] is the largest
 value that any lag can reach, and with CORRELATE_COEFFICIENT it is 1.
 
 The max_lag must be below the size. A lag as large as the size leaves no
-samples that overlap, thus there is nothing to correlate.
+samples that overlap, thus there is nothing to correlate.//
+WITH CORRELATE_COEFFICIENT, the signal must have a shape above its own
+rounding. A reading that barely moves has none, whatever its size, and the
+coefficient is then worked out from the last digits of the samples. The top
+of this file measures how far it drifts and says why nothing can mend it.
 
 Give false if the sizes do not fit together or the scaling is unknown.
 
@@ -50,7 +54,11 @@ The lag moves the SECOND signal later in time. Thus output[k] is large when
 b holds at k samples later what a holds now, which is to say when b lags a
 by k samples.
 
-Both signals must hold the same number of samples.
+Both signals must hold the same number of samples.//
+WITH CORRELATE_COEFFICIENT, the signal must have a shape above its own
+rounding. A reading that barely moves has none, whatever its size, and the
+coefficient is then worked out from the last digits of the samples. The top
+of this file measures how far it drifts and says why nothing can mend it.
 
 Give false if the sizes do not fit together or the scaling is unknown.
 
