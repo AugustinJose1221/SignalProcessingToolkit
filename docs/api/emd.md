@@ -104,7 +104,12 @@ it. The pointer shows into the list that emd_initialize took.
 
 The parameter stopping_threshold says how many times the method may repeat
 its step. The status becomes 1 if the method did at least one step, and 0 if
-it did none. A status of 0 says that the residue holds no more function.
+it did none. A status of 0 says that the residue holds no more function, and
+the function that comes back is then zero at every sample.
+
+A RESIDUE THAT ONLY RISES OR ONLY FALLS HOLDS NO FUNCTION. A mode is an
+oscillation, and a signal that never turns does not oscillate. The status is
+then 0 and what is left belongs to the residue.
 
 A signal with fewer than EMD_MINIMUM_SIZE samples holds no peak and no
 valley. The function then gives a function with the value zero and the
@@ -123,6 +128,14 @@ The function fills the list that emd_initialize took, and it leaves the rest
 of the signal in the residue. The sum of all the functions and the residue
 gives the signal again. The method stops when it has as many functions as
 emd_initialize allowed, or when the residue holds no more function.
+
+THE NUMBER GIVEN IS THE NUMBER OF FUNCTIONS THAT WERE REALLY FOUND. It is
+not always the number that emd_initialize allowed. A signal that holds two
+modes gives 2, and a straight line gives 0 with the whole signal left in the
+residue.
+
+Read only that many functions from the list. The places past it were not
+written and hold whatever they held before.
 
 ### `emd_free`
 
