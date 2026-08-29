@@ -328,3 +328,19 @@ void test_convolve_refuses_what_it_cannot_do(void)
     TEST_ASSERT_EQUAL(false, convolve_direct(signal, 4u, shape, 8u, output,
                           (convolve_mode_t)(CONVOLVE_VALID + 1)));
 }
+
+void test_a_shape_longer_than_the_signal_has_no_valid_answer(void)
+{
+    // CONVOLVE_VALID keeps only the places where the shape lies WHOLLY inside
+    // the signal. A shape longer than the signal has no such place, thus there
+    // is no answer to give and the module must refuse rather than write a
+    // list of nothing.
+    real_t signal[3] = {REAL_C(1.0), REAL_C(2.0), REAL_C(3.0)};
+    real_t shape[5] = {REAL_C(1.0), REAL_C(1.0), REAL_C(1.0), REAL_C(1.0),
+                       REAL_C(1.0)};
+    real_t output[8];
+
+    TEST_ASSERT_EQUAL(0, convolve_output_size(3u, 5u, CONVOLVE_VALID));
+    TEST_ASSERT_FALSE(convolve_direct(signal, 3u, shape, 5u, output,
+                                      CONVOLVE_VALID));
+}

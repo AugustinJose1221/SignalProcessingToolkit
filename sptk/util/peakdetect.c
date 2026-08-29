@@ -360,16 +360,18 @@ uint32_t peakdetect_find(const real_t* input, uint32_t size,
                 }
                 index_out[found - 1u] = at;
 
-                // The list must stay in the order the peaks stand in the
-                // signal, thus the new one is put into its place.
-                uint32_t last = found - 1u;
-                while((last > 0u) && (index_out[last - 1u] > index_out[last]))
-                {
-                    uint32_t held = index_out[last - 1u];
-                    index_out[last - 1u] = index_out[last];
-                    index_out[last] = held;
-                    last--;
-                }
+                // THE LIST IS STILL IN THE ORDER THE PEAKS STAND IN, AND
+                // NOTHING NEEDS TO BE DONE TO KEEP IT THAT WAY.
+                //
+                // The signal is walked once, from the start to the end, thus
+                // every peak that arrives stands FURTHER ALONG than every peak
+                // already kept. Taking one out and putting the new one at the
+                // end therefore leaves the list in order by itself.
+                //
+                // There was a sort here that put the new peak back into its
+                // place. It could never run, because the condition it tested
+                // asks whether the new peak stands before one already kept,
+                // and that cannot happen while the walk goes one way.
             }
         }
     }

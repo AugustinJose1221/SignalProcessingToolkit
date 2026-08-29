@@ -577,7 +577,16 @@ void test_readings_that_never_move_are_accounted_for_whole(void)
     real_t x[4] = {REAL_C(0.0), REAL_C(1.0), REAL_C(2.0), REAL_C(3.0)};
     real_t y[4] = {REAL_C(5.0), REAL_C(5.0), REAL_C(5.0), REAL_C(5.0)};
     real_t coefficients[2] = {REAL_C(5.0), REAL_C(0.0)};
+    real_t centre;
+    real_t width;
 
     TEST_ASSERT_EQUAL_REAL(REAL_C(1.0),
                            lstsq_fit_quality(x, y, 4u, coefficients, 1u));
+
+    // The scaled reading must say the same. It is a separate piece of
+    // arithmetic with the same division in it, thus it needs the same guard.
+    lstsq_scaling(x, 4u, &centre, &width);
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0),
+                           lstsq_fit_quality_scaled(x, y, 4u, coefficients, 1u,
+                                                    centre, width));
 }
