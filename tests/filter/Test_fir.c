@@ -867,7 +867,27 @@ void test_a_design_that_asks_for_a_cutoff_the_length_cannot_hold_is_refused(void
                                                                + 1),
                                                REAL_C(0.0)));
 
+    // A high pass is built by taking a low pass away from a filter that passes
+    // everything, and that filter is a single 1 in the MIDDLE. It therefore
+    // refuses everything the low pass refuses, and an even length as well,
+    // because an even length has no middle to put the 1 in.
+    TEST_ASSERT_FALSE(fir_design_high_pass_with(&fir, REAL_C(0.0),
+                                                WINDOW_HAMMING, REAL_C(0.0)));
+    TEST_ASSERT_FALSE(fir_design_high_pass_with(&fir, REAL_C(0.5),
+                                                WINDOW_HAMMING, REAL_C(0.0)));
+    TEST_ASSERT_FALSE(fir_design_high_pass_with(&fir, REAL_C(0.2),
+                                                (window_kind_t)(WINDOW_KAISER
+                                                                + 1),
+                                                REAL_C(0.0)));
+    TEST_ASSERT_TRUE(fir_design_high_pass_with(&fir, REAL_C(0.2),
+                                               WINDOW_HAMMING, REAL_C(0.0)));
+
     fir_free(&fir);
+
+    fir_t even = fir_alloc(10u);
+    TEST_ASSERT_FALSE(fir_design_high_pass_with(&even, REAL_C(0.2),
+                                                WINDOW_HAMMING, REAL_C(0.0)));
+    fir_free(&even);
 }
 
 void test_the_delay_of_a_filter_built_by_hand_is_measured_at_both_ends(void)
