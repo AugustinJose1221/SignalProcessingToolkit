@@ -210,6 +210,27 @@ class Cnum(ctypes.Structure):
     ]
 
 
+class Cmatrix(ctypes.Structure):
+    _fields_ = [
+        ("m", ctypes.c_uint32),
+        ("n", ctypes.c_uint32),
+        ("elem", ctypes.POINTER(Cnum)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+PMATRIX_FUNCTION = ctypes.CFUNCTYPE(REAL_T, REAL_T)
+
+
+class Pmatrix(ctypes.Structure):
+    _fields_ = [
+        ("m", ctypes.c_uint32),
+        ("n", ctypes.c_uint32),
+        ("elem", ctypes.POINTER(PMATRIX_FUNCTION)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
 class Fft(ctypes.Structure):
     _fields_ = [
         ("size", ctypes.c_uint32),
@@ -1014,6 +1035,133 @@ def load_library():
     library.convolve_by_transform.restype = ctypes.c_bool
 
     # cnum
+    # cmatrix
+    library.cmatrix_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.cmatrix_alloc.restype = Cmatrix
+    library.cmatrix_add_element.argtypes = [ctypes.POINTER(Cmatrix),
+                                            ctypes.c_uint32, ctypes.c_uint32,
+                                            Cnum]
+    library.cmatrix_add_element.restype = None
+    library.cmatrix_get_element.argtypes = [ctypes.POINTER(Cmatrix),
+                                            ctypes.c_uint32, ctypes.c_uint32]
+    library.cmatrix_get_element.restype = Cnum
+    library.cmatrix_create_unit_matrix.argtypes = [ctypes.c_uint32]
+    library.cmatrix_create_unit_matrix.restype = Cmatrix
+    library.cmatrix_create_zero_matrix.argtypes = [ctypes.c_uint32,
+                                                   ctypes.c_uint32]
+    library.cmatrix_create_zero_matrix.restype = Cmatrix
+    for name in ("cmatrix_is_equal", "cmatrix_is_multipliable"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix), ctypes.POINTER(Cmatrix)]
+        function.restype = ctypes.c_bool
+    library.cmatrix_is_near.argtypes = [ctypes.POINTER(Cmatrix),
+                                        ctypes.POINTER(Cmatrix), REAL_T]
+    library.cmatrix_is_near.restype = ctypes.c_bool
+    for name in ("cmatrix_is_square", "cmatrix_is_zero", "cmatrix_is_unit",
+                 "cmatrix_is_hermitian"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix)]
+        function.restype = ctypes.c_bool
+    for name in ("cmatrix_add", "cmatrix_subtract", "cmatrix_multiply"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix), ctypes.POINTER(Cmatrix)]
+        function.restype = Cmatrix
+    library.cmatrix_multiply_scalar.argtypes = [ctypes.POINTER(Cmatrix), Cnum]
+    library.cmatrix_multiply_scalar.restype = Cmatrix
+    for name in ("cmatrix_transpose", "cmatrix_conjugate_transpose",
+                 "cmatrix_inverse"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix)]
+        function.restype = Cmatrix
+    for name in ("cmatrix_trace", "cmatrix_determinant"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix)]
+        function.restype = Cnum
+    library.cmatrix_copy.argtypes = [ctypes.POINTER(Cmatrix),
+                                     ctypes.POINTER(Cmatrix)]
+    library.cmatrix_copy.restype = None
+    for name in ("cmatrix_add_into", "cmatrix_subtract_into",
+                 "cmatrix_multiply_into"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix), ctypes.POINTER(Cmatrix),
+                             ctypes.POINTER(Cmatrix)]
+        function.restype = None
+    library.cmatrix_multiply_scalar_into.argtypes = [ctypes.POINTER(Cmatrix),
+                                                     Cnum,
+                                                     ctypes.POINTER(Cmatrix)]
+    library.cmatrix_multiply_scalar_into.restype = None
+    for name in ("cmatrix_transpose_into", "cmatrix_conjugate_transpose_into"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix), ctypes.POINTER(Cmatrix)]
+        function.restype = None
+    for name in ("cmatrix_set_unit", "cmatrix_set_zero", "cmatrix_free"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix)]
+        function.restype = None
+    library.cmatrix_determinant_into.argtypes = [ctypes.POINTER(Cmatrix),
+                                                 ctypes.POINTER(Cmatrix)]
+    library.cmatrix_determinant_into.restype = Cnum
+    library.cmatrix_inverse_into.argtypes = [ctypes.POINTER(Cmatrix),
+                                             ctypes.POINTER(Cmatrix),
+                                             ctypes.POINTER(Cmatrix)]
+    library.cmatrix_inverse_into.restype = ctypes.c_bool
+
+    # pmatrix
+    library.pmatrix_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.pmatrix_alloc.restype = Pmatrix
+    library.pmatrix_static_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                             ctypes.POINTER(PMATRIX_FUNCTION)]
+    library.pmatrix_static_alloc.restype = Pmatrix
+    library.pmatrix_add_element.argtypes = [ctypes.POINTER(Pmatrix),
+                                            ctypes.c_uint32, ctypes.c_uint32,
+                                            PMATRIX_FUNCTION]
+    library.pmatrix_add_element.restype = None
+    library.pmatrix_get_element.argtypes = [ctypes.POINTER(Pmatrix),
+                                            ctypes.c_uint32, ctypes.c_uint32]
+    library.pmatrix_get_element.restype = PMATRIX_FUNCTION
+    library.pmatrix_set_zero.argtypes = [ctypes.POINTER(Pmatrix)]
+    library.pmatrix_set_zero.restype = None
+    library.pmatrix_evaluate_element.argtypes = [ctypes.POINTER(Pmatrix),
+                                                 ctypes.c_uint32,
+                                                 ctypes.c_uint32, REAL_T]
+    library.pmatrix_evaluate_element.restype = REAL_T
+    library.pmatrix_evaluate.argtypes = [ctypes.POINTER(Pmatrix), REAL_T]
+    library.pmatrix_evaluate.restype = Matrix
+    library.pmatrix_evaluate_into.argtypes = [ctypes.POINTER(Pmatrix), REAL_T,
+                                              ctypes.POINTER(Matrix)]
+    library.pmatrix_evaluate_into.restype = None
+    for name in ("pmatrix_zero", "pmatrix_one"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T]
+        function.restype = REAL_T
+    library.pmatrix_free.argtypes = [ctypes.POINTER(Pmatrix)]
+    library.pmatrix_free.restype = None
+
+    # vector2d
+    library.vector2d_alloc.argtypes = []
+    library.vector2d_alloc.restype = Vector
+    library.vector2d_static_alloc.argtypes = [FLOAT_POINTER]
+    library.vector2d_static_alloc.restype = Vector
+    library.vector2d_add_point_at_index.argtypes = [ctypes.POINTER(Vector),
+                                                    ctypes.c_uint32, REAL_T]
+    library.vector2d_add_point_at_index.restype = None
+    library.vector2d_add_from_array.argtypes = [ctypes.POINTER(Vector),
+                                                FLOAT_POINTER]
+    library.vector2d_add_from_array.restype = None
+    library.vector2d_get.argtypes = [ctypes.POINTER(Vector), ctypes.c_uint32]
+    library.vector2d_get.restype = REAL_T
+    library.vector2d_dot_product.argtypes = [ctypes.POINTER(Vector),
+                                             ctypes.POINTER(Vector)]
+    library.vector2d_dot_product.restype = REAL_T
+    library.vector2d_norm.argtypes = [ctypes.POINTER(Vector)]
+    library.vector2d_norm.restype = REAL_T
+
+    # real, as elements of a parameter matrix
+    for name in ("real_sin", "real_cos", "real_sqrt", "real_abs"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T]
+        function.restype = REAL_T
+
     library.cnum_make.argtypes = [REAL_T, REAL_T]
     library.cnum_make.restype = Cnum
     library.cnum_magnitude.argtypes = [Cnum]
