@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Delaying by a part of a sample. Declared in `sptk/filter/farrow.h`.
+Delaying by a part of a sample. Declared in `ffitt/filter/farrow.h`.
 
-[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+[Back to the index](../API.md) | [How the filter modules work](../../ffitt/filter/README.md)
 
 ## Macros
 

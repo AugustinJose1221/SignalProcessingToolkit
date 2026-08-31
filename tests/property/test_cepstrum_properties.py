@@ -14,7 +14,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=20, deadline=None)
@@ -54,10 +54,10 @@ def note(period, lowest, highest, noise_level, seed=1):
 
 def cepstrum_of(lib, values):
     ceps = lib.cepstrum_alloc(SIZE)
-    out = sptk.real_buffer(SIZE)
+    out = ffitt.real_buffer(SIZE)
 
     try:
-        assert lib.cepstrum_real(ceps, sptk.float_array(values), out)
+        assert lib.cepstrum_real(ceps, ffitt.float_array(values), out)
     finally:
         lib.cepstrum_free(ceps)
 
@@ -65,7 +65,7 @@ def cepstrum_of(lib, values):
 
 
 def best(lib, ceps, low=20, high=300):
-    strength = sptk.real_buffer(1)
+    strength = ffitt.real_buffer(1)
     where = lib.cepstrum_best_quefrency(ceps, SIZE, low, high, strength)
 
     return where, strength[0]
@@ -210,12 +210,12 @@ def test_only_a_block_the_transform_can_take_is_taken(lib, size):
 def test_a_range_that_does_not_fit_is_refused(lib, low, high):
     """The first few places hold the shape of the spectrum, which is always
     large and always there, and the second half is the mirror of the first."""
-    ceps = sptk.real_buffer(SIZE)
+    ceps = ffitt.real_buffer(SIZE)
 
     for index in range(SIZE):
         ceps[index] = sp.to_float32(float(index))
 
-    strength = sptk.real_buffer(1)
+    strength = ffitt.real_buffer(1)
     strength[0] = sp.to_float32(7.0)
 
     fits = (low >= 1) and (high > low) and (high < SIZE // 2)

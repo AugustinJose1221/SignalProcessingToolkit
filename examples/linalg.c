@@ -15,15 +15,15 @@
 
 #if (RUN_EXAMPLE == RUN_LINALG_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/core/point2d.h>
-#include <sptk/core/callback.h>
-#include <sptk/linalg/matrix.h>
-#include <sptk/linalg/pmatrix.h>
-#include <sptk/linalg/cmatrix.h>
-#include <sptk/linalg/cnum.h>
-#include <sptk/linalg/vector.h>
-#include <sptk/linalg/vector2d.h>
+#include <ffitt/core/real.h>
+#include <ffitt/core/point2d.h>
+#include <ffitt/core/callback.h>
+#include <ffitt/linalg/matrix.h>
+#include <ffitt/linalg/pmatrix.h>
+#include <ffitt/linalg/cmatrix.h>
+#include <ffitt/linalg/cnum.h>
+#include <ffitt/linalg/vector.h>
+#include <ffitt/linalg/vector2d.h>
 #include <math.h>
 #include <stdio.h>
 

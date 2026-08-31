@@ -15,17 +15,17 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 ROOTS = settings(max_examples=50)
 
 # The cap follows the width, thus so does what these tests may ask for.
-LARGEST_ORDER = 12 if sptk.REAL_64 else 4
+LARGEST_ORDER = 12 if ffitt.REAL_64 else 4
 
 
 def coefficients(values):
-    return sptk.float_array(values)
+    return ffitt.float_array(values)
 
 
 @st.composite
@@ -91,7 +91,7 @@ def test_a_product_read_at_a_place_is_the_two_read_and_multiplied(lib, first,
     order = first_order + second_order
     assume(order <= 20)
 
-    product = sptk.real_buffer(order + 1)
+    product = ffitt.real_buffer(order + 1)
 
     assert lib.poly_multiply(coefficients(first), first_order,
                              coefficients(second), second_order, product,
@@ -116,8 +116,8 @@ def test_multiplying_does_not_depend_on_the_order_of_the_two(lib, first,
     second_order = len(second) - 1
     order = first_order + second_order
 
-    one = sptk.real_buffer(order + 1)
-    other = sptk.real_buffer(order + 1)
+    one = ffitt.real_buffer(order + 1)
+    other = ffitt.real_buffer(order + 1)
 
     lib.poly_multiply(coefficients(first), first_order, coefficients(second),
                       second_order, one, order + 1)
@@ -135,7 +135,7 @@ def test_the_derivative_is_how_fast_the_polynomial_is_changing(lib, p, at):
     """Measured against the polynomial itself: moving a little way along must
     change the value by about the derivative multiplied by that way."""
     order = len(p) - 1
-    slope = sptk.real_buffer(max(order, 1))
+    slope = ffitt.real_buffer(max(order, 1))
 
     assert lib.poly_derivative(coefficients(p), order, slope)
 
@@ -158,7 +158,7 @@ def test_every_root_that_comes_back_is_really_a_root(lib, p):
     """THE RULE THAT SAYS THE ANSWER IS AN ANSWER. A root is a place where the
     polynomial is nothing, and nothing else about it matters."""
     order = len(p) - 1
-    roots = (sptk.Cnum * (order + 1))()
+    roots = (ffitt.Cnum * (order + 1))()
 
     assume(lib.poly_roots(coefficients(p), order, roots))
 
@@ -180,7 +180,7 @@ def test_a_root_off_the_real_line_brings_its_mirror_with_it(lib, p):
     A module that gave one without the other would be describing a polynomial
     with coefficients that are not real."""
     order = len(p) - 1
-    roots = (sptk.Cnum * (order + 1))()
+    roots = (ffitt.Cnum * (order + 1))()
 
     assume(lib.poly_roots(coefficients(p), order, roots))
 
@@ -213,16 +213,16 @@ def test_a_filter_built_from_poles_inside_the_circle_is_stable(lib, places):
     degree = 0
 
     for place in places:
-        factor = sptk.float_array([sp.to_float32(-place), sp.to_float32(1.0)])
-        out = sptk.real_buffer(degree + 2)
+        factor = ffitt.float_array([sp.to_float32(-place), sp.to_float32(1.0)])
+        out = ffitt.real_buffer(degree + 2)
 
-        lib.poly_multiply(sptk.float_array(built), degree, factor, 1, out,
+        lib.poly_multiply(ffitt.float_array(built), degree, factor, 1, out,
                           degree + 2)
 
         degree += 1
         built = [out[index] for index in range(degree + 1)]
 
-    assert lib.poly_is_inside_circle(sptk.float_array(built), order)
+    assert lib.poly_is_inside_circle(ffitt.float_array(built), order)
 
 
 @given(st.lists(st.floats(min_value=-0.875, max_value=0.875, width=32),
@@ -239,23 +239,23 @@ def test_one_pole_outside_the_circle_is_enough_to_run_away(lib, inside,
     degree = 0
 
     for place in list(inside) + [outside]:
-        factor = sptk.float_array([sp.to_float32(-place), sp.to_float32(1.0)])
-        out = sptk.real_buffer(degree + 2)
+        factor = ffitt.float_array([sp.to_float32(-place), sp.to_float32(1.0)])
+        out = ffitt.real_buffer(degree + 2)
 
-        lib.poly_multiply(sptk.float_array(built), degree, factor, 1, out,
+        lib.poly_multiply(ffitt.float_array(built), degree, factor, 1, out,
                           degree + 2)
 
         degree += 1
         built = [out[index] for index in range(degree + 1)]
 
-    assert not lib.poly_is_inside_circle(sptk.float_array(built), order)
+    assert not lib.poly_is_inside_circle(ffitt.float_array(built), order)
 
 
 @given(st.integers(min_value=0, max_value=20))
 def test_only_the_orders_the_module_can_hold_are_taken(lib, order):
     """The cap follows the width, because by then the coefficients no longer
     describe the polynomial that was meant."""
-    expected = 1 <= order <= (12 if sptk.REAL_64 else 4)
+    expected = 1 <= order <= (12 if ffitt.REAL_64 else 4)
 
     assert lib.poly_is_valid_order(order) == expected
 
@@ -266,7 +266,7 @@ def test_a_highest_coefficient_of_nothing_is_refused(lib, p):
     though it were not would give a root at infinity."""
     order = len(p)
     lowered = list(p) + [0.0]
-    roots = (sptk.Cnum * (order + 2))()
+    roots = (ffitt.Cnum * (order + 2))()
 
     assume(lib.poly_is_valid_order(order))
 

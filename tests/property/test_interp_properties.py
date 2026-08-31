@@ -13,15 +13,15 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 
 def slopes_for(lib, x, y):
     """Give the slopes that pchip needs for this table."""
     size = len(x)
-    slopes = sptk.real_buffer(size)
-    assert lib.interp_pchip_slopes(sptk.float_array(x), sptk.float_array(y),
+    slopes = ffitt.real_buffer(size)
+    assert lib.interp_pchip_slopes(ffitt.float_array(x), ffitt.float_array(y),
                                    size, slopes)
     return slopes
 
@@ -48,7 +48,7 @@ def test_pchip_never_leaves_the_range_of_the_table(lib, points):
     lowest, highest = min(y), max(y)
 
     for place in places_across(x):
-        value = lib.interp_pchip(sptk.float_array(x), sptk.float_array(y),
+        value = lib.interp_pchip(ffitt.float_array(x), ffitt.float_array(y),
                                  slopes, len(x), place)
         # A little room for the rounding of a float, and no more.
         room = 1e-4 + (1e-4 * max(abs(lowest), abs(highest)))
@@ -70,7 +70,7 @@ def test_pchip_never_turns_back_on_a_table_that_only_rises(lib, points):
 
     slopes = slopes_for(lib, x, y)
     places = places_across(x, 60)
-    values = [lib.interp_pchip(sptk.float_array(x), sptk.float_array(y),
+    values = [lib.interp_pchip(ffitt.float_array(x), ffitt.float_array(y),
                                slopes, len(x), place) for place in places]
 
     for first, second in zip(values, values[1:]):
@@ -88,9 +88,9 @@ def test_every_reading_passes_through_the_points_of_the_table(lib, points):
     slopes = slopes_for(lib, x, y)
 
     for index, place in enumerate(x):
-        straight = lib.interp_linear(sptk.float_array(x), sptk.float_array(y),
+        straight = lib.interp_linear(ffitt.float_array(x), ffitt.float_array(y),
                                      len(x), place)
-        smooth = lib.interp_pchip(sptk.float_array(x), sptk.float_array(y),
+        smooth = lib.interp_pchip(ffitt.float_array(x), ffitt.float_array(y),
                                   slopes, len(x), place)
         assert sp.close(straight, y[index])
         assert sp.close(smooth, y[index])
@@ -112,10 +112,10 @@ def test_outside_the_table_the_answer_is_held_flat(lib, points, distance):
     above = sp.to_float32(x[-1] + distance)
 
     for kind, call in (("linear", lambda place: lib.interp_linear(
-                            sptk.float_array(x), sptk.float_array(y), len(x),
+                            ffitt.float_array(x), ffitt.float_array(y), len(x),
                             place)),
                        ("pchip", lambda place: lib.interp_pchip(
-                            sptk.float_array(x), sptk.float_array(y), slopes,
+                            ffitt.float_array(x), ffitt.float_array(y), slopes,
                             len(x), place))):
         assert sp.close(call(below), y[0]), kind
         assert sp.close(call(above), y[-1]), kind
@@ -130,7 +130,7 @@ def test_a_straight_line_read_by_straight_lines_is_that_line(lib, points):
     y = [sp.to_float32(offset + (slope * value)) for value in x]
 
     for place in places_across(x):
-        value = lib.interp_linear(sptk.float_array(x), sptk.float_array(y),
+        value = lib.interp_linear(ffitt.float_array(x), ffitt.float_array(y),
                                   len(x), place)
         assert sp.close(value, sp.to_float32(offset + (slope * place)),
                         relative=1e-3, absolute=1e-3)
@@ -149,11 +149,11 @@ def test_a_table_that_never_moves_is_read_as_never_moving(lib, points):
     slopes = slopes_for(lib, x, y)
 
     for place in places_across(x):
-        assert sp.close(lib.interp_linear(sptk.float_array(x),
-                                          sptk.float_array(y), len(x), place),
+        assert sp.close(lib.interp_linear(ffitt.float_array(x),
+                                          ffitt.float_array(y), len(x), place),
                         level)
-        assert sp.close(lib.interp_pchip(sptk.float_array(x),
-                                         sptk.float_array(y), slopes, len(x),
+        assert sp.close(lib.interp_pchip(ffitt.float_array(x),
+                                         ffitt.float_array(y), slopes, len(x),
                                          place), level)
 
 
@@ -164,21 +164,21 @@ def test_reading_a_block_agrees_with_reading_one_place_at_a_time(lib, points):
     slopes = slopes_for(lib, x, y)
     places = places_across(x)
     count = len(places)
-    answers = sptk.real_buffer(count)
+    answers = ffitt.real_buffer(count)
 
-    for kind, slope_argument in ((sptk.INTERP_LINEAR, None),
-                                 (sptk.INTERP_PCHIP, slopes)):
-        assert lib.interp_block(sptk.float_array(x), sptk.float_array(y),
+    for kind, slope_argument in ((ffitt.INTERP_LINEAR, None),
+                                 (ffitt.INTERP_PCHIP, slopes)):
+        assert lib.interp_block(ffitt.float_array(x), ffitt.float_array(y),
                                 slope_argument, len(x), kind,
-                                sptk.float_array(places), answers, count)
+                                ffitt.float_array(places), answers, count)
 
         for index, place in enumerate(places):
-            if kind == sptk.INTERP_LINEAR:
-                one = lib.interp_linear(sptk.float_array(x),
-                                        sptk.float_array(y), len(x), place)
+            if kind == ffitt.INTERP_LINEAR:
+                one = lib.interp_linear(ffitt.float_array(x),
+                                        ffitt.float_array(y), len(x), place)
             else:
-                one = lib.interp_pchip(sptk.float_array(x),
-                                       sptk.float_array(y), slopes, len(x),
+                one = lib.interp_pchip(ffitt.float_array(x),
+                                       ffitt.float_array(y), slopes, len(x),
                                        place)
             assert sp.close(answers[index], one)
 
@@ -194,10 +194,10 @@ def test_a_table_whose_places_do_not_rise_is_refused(lib, points):
     broken[1], broken[0] = broken[0], broken[1]
     assume(broken[0] != broken[1])
 
-    assert not lib.interp_is_valid_table(sptk.float_array(broken), len(broken))
-    assert lib.interp_is_valid_table(sptk.float_array(x), len(x))
+    assert not lib.interp_is_valid_table(ffitt.float_array(broken), len(broken))
+    assert lib.interp_is_valid_table(ffitt.float_array(x), len(x))
 
-    slopes = sptk.real_buffer(len(x))
-    assert not lib.interp_pchip_slopes(sptk.float_array(broken),
-                                       sptk.float_array(y), len(broken),
+    slopes = ffitt.real_buffer(len(x))
+    assert not lib.interp_pchip_slopes(ffitt.float_array(broken),
+                                       ffitt.float_array(y), len(broken),
                                        slopes)

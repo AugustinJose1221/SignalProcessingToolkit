@@ -105,7 +105,7 @@ void test_the_error_of_each_method_falls_as_its_order_says(void)
 
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.4), REAL_C(4.0), coarse / fine);
 
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     // AT 32 BITS THIS CANNOT BE ASKED. The method is so accurate that by a
     // step of 0.05 its error is already below the rounding of the state
     // itself, and halving the step only adds more roundings. The header

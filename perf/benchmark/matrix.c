@@ -1,7 +1,7 @@
 #include <perf/benchmark/benchmark.h>
 
-#include <sptk/core/real.h>
-#include <sptk/linalg/matrix.h>
+#include <ffitt/core/real.h>
+#include <ffitt/linalg/matrix.h>
 
 #include <stdlib.h>
 

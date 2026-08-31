@@ -13,23 +13,23 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
 
 # The shapes that swing either way about nothing, thus the ones a rule about
 # crossing nothing or adding up to nothing may be given.
-SHAPES = st.sampled_from(sptk.GENERATE_WAVES)
+SHAPES = st.sampled_from(ffitt.GENERATE_WAVES)
 
-NOISES = st.sampled_from(sptk.GENERATE_NOISES)
+NOISES = st.sampled_from(ffitt.GENERATE_NOISES)
 
-KINDS = st.sampled_from(sptk.GENERATE_KINDS)
+KINDS = st.sampled_from(ffitt.GENERATE_KINDS)
 
 # The kinds held inside the range of one. Three are not: the gaussian noise
 # runs as far as its tails go, the brown noise is a walk with no bound, and the
 # blue noise is a difference and reaches further than what it is taken of.
-BOUNDED = st.sampled_from(sptk.GENERATE_BOUNDED)
+BOUNDED = st.sampled_from(ffitt.GENERATE_BOUNDED)
 
 # Parts a float of 32 bits holds exactly.
 PARTS = st.sampled_from([0.0625, 0.125, 0.25, 0.5, 0.75, 0.875])
@@ -41,7 +41,7 @@ FREQUENCIES = st.sampled_from([1.0, 7.0, 64.0, 300.0, 1000.0, 3000.0])
 
 
 def block(lib, generator, count):
-    out = sptk.real_buffer(count)
+    out = ffitt.real_buffer(count)
     assert lib.generate_block(generator, out, count)
     return [out[index] for index in range(count)]
 
@@ -243,7 +243,7 @@ def test_a_sweep_begins_and_ends_where_it_was_told_to(lib, start, finish):
 
     samples = 4000
 
-    generator = lib.generate_make(sptk.GENERATE_SINE)
+    generator = lib.generate_make(ffitt.GENERATE_SINE)
     assert lib.generate_design_sweep(generator, sp.to_float32(start),
                                      sp.to_float32(finish),
                                      sp.to_float32(SAMPLE_RATE), samples)
@@ -278,7 +278,7 @@ def test_a_sweep_begins_and_ends_where_it_was_told_to(lib, start, finish):
 @given(st.integers(min_value=-4, max_value=20))
 def test_only_the_kinds_that_exist_are_taken(lib, kind):
     assert (lib.generate_is_valid_kind(kind)
-            == (0 <= kind <= sptk.GENERATE_LAST_KIND))
+            == (0 <= kind <= ffitt.GENERATE_LAST_KIND))
 
 
 @given(st.floats(min_value=-8192.0, max_value=8192.0, width=32),
@@ -309,8 +309,8 @@ def test_a_pulse_of_half_a_turn_is_the_square_wave(lib, frequency, part):
     for half of each turn IS the square wave, thus the two must agree sample
     for sample. If they did not, one of the two would be wrong about where its
     corners stand."""
-    _, pulse = made(lib, sptk.GENERATE_PULSE, frequency, 2000, part=0.5)
-    _, square = made(lib, sptk.GENERATE_SQUARE, frequency, 2000)
+    _, pulse = made(lib, ffitt.GENERATE_PULSE, frequency, 2000, part=0.5)
+    _, square = made(lib, ffitt.GENERATE_SQUARE, frequency, 2000)
 
     for one, other in zip(pulse, square):
         assert abs(one - other) <= 1e-5
@@ -326,7 +326,7 @@ def test_a_pulse_is_high_for_the_part_it_was_given(lib, frequency, part):
     per_turn = SAMPLE_RATE / frequency
     count = int(round(per_turn * turns))
 
-    _, values = made(lib, sptk.GENERATE_PULSE, frequency, count, part=part)
+    _, values = made(lib, ffitt.GENERATE_PULSE, frequency, count, part=part)
 
     mean = sum(values) / len(values)
     expected = part - (1.0 - part)
@@ -346,7 +346,7 @@ def test_a_gaussian_pulse_is_a_bump_that_never_goes_below_nothing(
     thing that swings. A caller adding it to a reading is adding a bump, and a
     bump that dipped below nothing on its way would be two events and not
     one."""
-    _, values = made(lib, sptk.GENERATE_GAUSSIAN_PULSE, frequency, 4000,
+    _, values = made(lib, ffitt.GENERATE_GAUSSIAN_PULSE, frequency, 4000,
                      part=part)
 
     for value in values:
@@ -364,9 +364,9 @@ def test_a_wider_gaussian_pulse_holds_more(lib, frequency, part):
     per_turn = SAMPLE_RATE / frequency
     count = int(round(per_turn * 20))
 
-    _, narrow = made(lib, sptk.GENERATE_GAUSSIAN_PULSE, frequency, count,
+    _, narrow = made(lib, ffitt.GENERATE_GAUSSIAN_PULSE, frequency, count,
                      part=part)
-    _, wide = made(lib, sptk.GENERATE_GAUSSIAN_PULSE, frequency, count,
+    _, wide = made(lib, ffitt.GENERATE_GAUSSIAN_PULSE, frequency, count,
                    part=part * 2.0)
 
     assert sum(wide) > sum(narrow)
@@ -381,7 +381,7 @@ def test_an_impulse_stands_once_each_turn_and_nowhere_else(lib, frequency):
     turns = 20
     count = int(round(per_turn * turns))
 
-    _, values = made(lib, sptk.GENERATE_IMPULSE, frequency, count)
+    _, values = made(lib, ffitt.GENERATE_IMPULSE, frequency, count)
 
     standing = [index for index, value in enumerate(values) if value != 0.0]
 
@@ -404,7 +404,7 @@ def test_the_gaussian_noise_really_has_the_tails_of_a_normal_spread(
     the usual shortcut of adding a dozen even draws together has far too few
     past three. Everything in this library that turns a rate of false alarms
     into a threshold rests on those shares."""
-    _, values = made(lib, sptk.GENERATE_GAUSSIAN_NOISE, frequency, 200000)
+    _, values = made(lib, ffitt.GENERATE_GAUSSIAN_NOISE, frequency, 200000)
 
     count = len(values)
     mean = sum(values) / count
@@ -432,10 +432,10 @@ def test_the_brown_noise_wanders_and_the_blue_noise_jitters(lib, frequency):
     than the falling one it is the mirror of."""
     count = 100000
 
-    _, white = made(lib, sptk.GENERATE_WHITE_NOISE, frequency, count, seed=11)
-    _, brown = made(lib, sptk.GENERATE_BROWN_NOISE, frequency, count, seed=11)
-    _, pink = made(lib, sptk.GENERATE_PINK_NOISE, frequency, count, seed=11)
-    _, blue = made(lib, sptk.GENERATE_BLUE_NOISE, frequency, count, seed=11)
+    _, white = made(lib, ffitt.GENERATE_WHITE_NOISE, frequency, count, seed=11)
+    _, brown = made(lib, ffitt.GENERATE_BROWN_NOISE, frequency, count, seed=11)
+    _, pink = made(lib, ffitt.GENERATE_PINK_NOISE, frequency, count, seed=11)
+    _, blue = made(lib, ffitt.GENERATE_BLUE_NOISE, frequency, count, seed=11)
 
     def moved(values):
         return sum((values[index] - values[index - 1]) ** 2

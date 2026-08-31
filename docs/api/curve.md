@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The shapes a peak can have. Declared in `sptk/util/curve.h`.
+The shapes a peak can have. Declared in `ffitt/util/curve.h`.
 
-[Back to the index](../API.md) | [How the util modules work](../../sptk/util/README.md)
+[Back to the index](../API.md) | [How the util modules work](../../ffitt/util/README.md)
 
 ## Functions
 

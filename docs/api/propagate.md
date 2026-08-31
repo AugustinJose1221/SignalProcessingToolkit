@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Carrying a state forward through a rate of change. Declared in `sptk/estimate/propagate.h`.
+Carrying a state forward through a rate of change. Declared in `ffitt/estimate/propagate.h`.
 
-[Back to the index](../API.md) | [How the estimate modules work](../../sptk/estimate/README.md)
+[Back to the index](../API.md) | [How the estimate modules work](../../ffitt/estimate/README.md)
 
 ## Macros
 

@@ -43,7 +43,7 @@
 
 # further details to configure the way Ceedling handles release code
 :release_build:
-  :output: SignalProcessingToolkit.out
+  :output: ffitt.out
   :use_assembly: FALSE
   :artifacts: []
 
@@ -107,25 +107,25 @@
     - tests/core/**
     - tests/detect/**
   :source:
-    - sptk/core/**
-    - sptk/linalg/**
-    - sptk/interpolate/**
-    - sptk/transform/**
-    - sptk/filter/**
-    - sptk/estimate/**
-    - sptk/decompose/**
-    - sptk/util/**
-    - sptk/detect/**
+    - ffitt/core/**
+    - ffitt/linalg/**
+    - ffitt/interpolate/**
+    - ffitt/transform/**
+    - ffitt/filter/**
+    - ffitt/estimate/**
+    - ffitt/decompose/**
+    - ffitt/util/**
+    - ffitt/detect/**
   :include:
-    - sptk/core/**
-    - sptk/linalg/**
-    - sptk/interpolate/**
-    - sptk/transform/**
-    - sptk/filter/**
-    - sptk/estimate/**
-    - sptk/decompose/**
-    - sptk/util/**
-    - sptk/detect/**
+    - ffitt/core/**
+    - ffitt/linalg/**
+    - ffitt/interpolate/**
+    - ffitt/transform/**
+    - ffitt/filter/**
+    - ffitt/estimate/**
+    - ffitt/decompose/**
+    - ffitt/util/**
+    - ffitt/detect/**
     - tests/support/**
   :support:
     - tests/support/**
@@ -146,7 +146,7 @@
 :defines:
   :test:
     - TEST # Simple list option to add symbol 'TEST' to compilation of all files in all test executables
-    - "#{ENV['SPTK_DEFINE'] || 'SPTK_REAL_32'}"
+    - "#{ENV['FFITT_DEFINE'] || 'FFITT_REAL_32'}"
   :release: []
 
   # Enable to inject name of a test as a unique compilation symbol into its respective executable build. 
@@ -309,7 +309,7 @@
     # cannot meet while those guards stand, and taking the guards out to meet
     # it would be the wrong trade.
     :fail_under_line: 98
-    :html_artifact_filename: SignalProcessingToolkit Test Report.html
+    :html_artifact_filename: ffitt Test Report.html
     :html_title: Test Coverage Report
     :html_medium_threshold: 75
     :html_high_threshold: 90

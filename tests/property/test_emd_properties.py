@@ -26,7 +26,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 REFERENCE = ctypes.byref
@@ -46,21 +46,21 @@ class Decomposition:
         self.values = [sp.to_float32(value) for value in values]
 
         self.emd = lib.emd_alloc(self.size)
-        self.x = sptk.float_array([sp.to_float32(float(index))
+        self.x = ffitt.float_array([sp.to_float32(float(index))
                                    for index in range(self.size)])
-        self.y = sptk.float_array(self.values)
-        self.residue = sptk.real_buffer(self.size)
-        self.working = sptk.real_buffer(self.size)
-        self.peak_index = sptk.real_buffer(self.size)
-        self.valley_index = sptk.real_buffer(self.size)
+        self.y = ffitt.float_array(self.values)
+        self.residue = ffitt.real_buffer(self.size)
+        self.working = ffitt.real_buffer(self.size)
+        self.peak_index = ffitt.real_buffer(self.size)
+        self.valley_index = ffitt.real_buffer(self.size)
 
-        self.imf = (sptk.Imf * MOST)()
-        self.room = [sptk.real_buffer(self.size) for _ in range(2 * MOST)]
+        self.imf = (ffitt.Imf * MOST)()
+        self.room = [ffitt.real_buffer(self.size) for _ in range(2 * MOST)]
         for index in range(MOST):
             self.imf[index].x = ctypes.cast(self.room[2 * index],
-                                            ctypes.POINTER(sptk.REAL_T))
+                                            ctypes.POINTER(ffitt.REAL_T))
             self.imf[index].y = ctypes.cast(self.room[2 * index + 1],
-                                            ctypes.POINTER(sptk.REAL_T))
+                                            ctypes.POINTER(ffitt.REAL_T))
             self.imf[index].size = self.size
             self.imf[index].dynamic_alloc = False
 

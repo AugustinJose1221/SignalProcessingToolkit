@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-A transform of any size. Declared in `sptk/transform/bluestein.h`.
+A transform of any size. Declared in `ffitt/transform/bluestein.h`.
 
-[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
+[Back to the index](../API.md) | [How the transform modules work](../../ffitt/transform/README.md)
 
 ## Macros
 

@@ -24,10 +24,10 @@
 
 #if (RUN_EXAMPLE == RUN_SPECTROGRAM_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/transform/stft.h>
-#include <sptk/transform/spectrogram.h>
-#include <sptk/transform/window.h>
+#include <ffitt/core/real.h>
+#include <ffitt/transform/stft.h>
+#include <ffitt/transform/spectrogram.h>
+#include <ffitt/transform/window.h>
 #include <math.h>
 #include <stdio.h>
 

@@ -31,11 +31,11 @@
 
 #if (RUN_EXAMPLE == RUN_FILTFILT_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/filter/filtfilt.h>
-#include <sptk/filter/iir.h>
-#include <sptk/util/peakdetect.h>
-#include <sptk/util/valleydetect.h>
+#include <ffitt/core/real.h>
+#include <ffitt/filter/filtfilt.h>
+#include <ffitt/filter/iir.h>
+#include <ffitt/util/peakdetect.h>
+#include <ffitt/util/valleydetect.h>
 #include <math.h>
 #include <stdio.h>
 

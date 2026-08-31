@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-How far one reading stands behind another. Declared in `sptk/detect/delay.h`.
+How far one reading stands behind another. Declared in `ffitt/detect/delay.h`.
 
-[Back to the index](../API.md) | [How the detect modules work](../../sptk/detect/README.md)
+[Back to the index](../API.md) | [How the detect modules work](../../ffitt/detect/README.md)
 
 ## Macros
 

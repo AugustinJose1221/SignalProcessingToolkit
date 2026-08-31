@@ -14,7 +14,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=30, deadline=None)
@@ -73,13 +73,13 @@ def build_pair(behind, noise_level=0.0, seed=3):
         first.append(sp.to_float32(one))
         second.append(sp.to_float32(other))
 
-    return sptk.float_array(first), sptk.float_array(second)
+    return ffitt.float_array(first), ffitt.float_array(second)
 
 
 def by_correlation(lib, first, second, strength=False):
-    work = sptk.real_buffer(2 * LARGEST_LAG + 1)
-    found = sptk.real_buffer(1)
-    how_much = sptk.real_buffer(1) if strength else None
+    work = ffitt.real_buffer(2 * LARGEST_LAG + 1)
+    found = ffitt.real_buffer(1)
+    how_much = ffitt.real_buffer(1) if strength else None
 
     assert lib.delay_by_correlation(first, second, SIZE, LARGEST_LAG, work,
                                     found, how_much)
@@ -89,9 +89,9 @@ def by_correlation(lib, first, second, strength=False):
 
 def by_phase(lib, first, second):
     fft = lib.fft_alloc(SIZE)
-    one = (sptk.Cnum * SIZE)()
-    other = (sptk.Cnum * SIZE)()
-    found = sptk.real_buffer(1)
+    one = (ffitt.Cnum * SIZE)()
+    other = (ffitt.Cnum * SIZE)()
+    found = ffitt.real_buffer(1)
 
     try:
         assert lib.delay_by_phase(first, second, SIZE, fft, one, other, found)
@@ -203,7 +203,7 @@ def test_the_delay_does_not_depend_on_how_loud_either_reading_is(lib, behind,
     about time, thus the answer must not move."""
     first, second = build_pair(behind)
 
-    big = sptk.float_array([sp.to_float32(second[index] * louder)
+    big = ffitt.float_array([sp.to_float32(second[index] * louder)
                             for index in range(SIZE)])
 
     assert abs(by_phase(lib, first, second)
@@ -249,7 +249,7 @@ def test_a_refined_peak_never_leaves_the_step_it_was_found_in(lib, made):
     that would put the peak past a point that is lower than the peak."""
     values, peak = made
 
-    within = lib.delay_refine_peak(sptk.float_array(values), len(values), peak)
+    within = lib.delay_refine_peak(ffitt.float_array(values), len(values), peak)
 
     assert -0.5 <= within <= 0.5
 
@@ -263,14 +263,14 @@ def test_a_peak_with_even_neighbours_needs_no_refining(lib, values):
     values[0] = sp.to_float32(values[2])
     values[1] = sp.to_float32(abs(values[0]) + 1.0)
 
-    assert abs(lib.delay_refine_peak(sptk.float_array(values), count, 1)) <= 1e-5
+    assert abs(lib.delay_refine_peak(ffitt.float_array(values), count, 1)) <= 1e-5
 
 
 @given(st.lists(sp.elements(4.0), min_size=3, max_size=32))
 def test_there_is_nothing_to_refine_at_either_end(lib, values):
     """There are not three points at an end."""
     count = len(values)
-    given_values = sptk.float_array(values)
+    given_values = ffitt.float_array(values)
 
     assert lib.delay_refine_peak(given_values, count, 0) == 0.0
     assert lib.delay_refine_peak(given_values, count, count - 1) == 0.0
@@ -288,8 +288,8 @@ def test_a_search_that_does_not_fit_inside_the_reading_is_refused(lib, behind):
     a lag of nothing leaves no range to search."""
     first, second = build_pair(behind)
 
-    work = sptk.real_buffer(2 * SIZE + 1)
-    found = sptk.real_buffer(1)
+    work = ffitt.real_buffer(2 * SIZE + 1)
+    found = ffitt.real_buffer(1)
     found[0] = sp.to_float32(77.0)
 
     assert not lib.delay_by_correlation(first, second, SIZE, SIZE, work, found,

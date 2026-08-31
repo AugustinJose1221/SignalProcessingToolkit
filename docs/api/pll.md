@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Following a tone that will not stay still. Declared in `sptk/estimate/pll.h`.
+Following a tone that will not stay still. Declared in `ffitt/estimate/pll.h`.
 
-[Back to the index](../API.md) | [How the estimate modules work](../../sptk/estimate/README.md)
+[Back to the index](../API.md) | [How the estimate modules work](../../ffitt/estimate/README.md)
 
 ## Macros
 

@@ -26,7 +26,7 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 REFERENCE = ctypes.byref
@@ -38,22 +38,22 @@ angles = st.floats(min_value=-6.0, max_value=6.0, allow_nan=False,
 # The elements. These are kept at the top level and not built inside a test,
 # because a pointer to a function that Python has let go of is a pointer into
 # nothing.
-@sptk.PMATRIX_FUNCTION
+@ffitt.PMATRIX_FUNCTION
 def sine(x):
     return math.sin(x)
 
 
-@sptk.PMATRIX_FUNCTION
+@ffitt.PMATRIX_FUNCTION
 def cosine(x):
     return math.cos(x)
 
 
-@sptk.PMATRIX_FUNCTION
+@ffitt.PMATRIX_FUNCTION
 def minus_sine(x):
     return -math.sin(x)
 
 
-@sptk.PMATRIX_FUNCTION
+@ffitt.PMATRIX_FUNCTION
 def twice(x):
     return 2.0 * x
 
@@ -69,7 +69,7 @@ def rotation(lib):
 
 
 def values(lib, matrix):
-    return sptk.matrix_rows(lib, matrix)
+    return ffitt.matrix_rows(lib, matrix)
 
 
 def near_rows(first, second, room=1e-4):
@@ -234,7 +234,7 @@ def test_memory_of_the_caller_holds_what_memory_of_the_heap_holds(lib, rows,
                                                                   columns,
                                                                   value):
     value = sp.to_float32(value)
-    room = (sptk.PMATRIX_FUNCTION * (rows * columns))()
+    room = (ffitt.PMATRIX_FUNCTION * (rows * columns))()
 
     heap = lib.pmatrix_alloc(rows, columns)
     given_room = lib.pmatrix_static_alloc(rows, columns, room)

@@ -29,10 +29,10 @@
 
 #if (RUN_EXAMPLE == RUN_CALIBRATE_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/interpolate/cspline.h>
-#include <sptk/util/binarysearch.h>
-#include <sptk/util/stats.h>
+#include <ffitt/core/real.h>
+#include <ffitt/interpolate/cspline.h>
+#include <ffitt/util/binarysearch.h>
+#include <ffitt/util/stats.h>
 #include <math.h>
 #include <stdio.h>
 

@@ -16,7 +16,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 samples = st.lists(sp.elements(), min_size=1, max_size=40)
@@ -28,7 +28,7 @@ def as_float32(values):
 
 @given(data=samples)
 def test_the_mean_is_the_sum_divided_by_the_count(lib, data):
-    array = sptk.float_array(data)
+    array = ffitt.float_array(data)
     expected = statistics.fmean(as_float32(data))
 
     result = lib.stats_mean(array, len(data))
@@ -38,7 +38,7 @@ def test_the_mean_is_the_sum_divided_by_the_count(lib, data):
 
 @given(data=samples)
 def test_the_median_matches_a_plain_sort(lib, data):
-    array = sptk.float_array(data)
+    array = ffitt.float_array(data)
     expected = statistics.median(sorted(as_float32(data)))
 
     result = lib.stats_median(array, len(data))
@@ -49,7 +49,7 @@ def test_the_median_matches_a_plain_sort(lib, data):
 @given(data=samples)
 def test_the_median_leaves_the_same_samples_behind(lib, data):
     """The select reorders the list. It must not lose or change a sample."""
-    array = sptk.float_array(data)
+    array = ffitt.float_array(data)
 
     lib.stats_median(array, len(data))
 
@@ -60,7 +60,7 @@ def test_the_median_leaves_the_same_samples_behind(lib, data):
 
 @given(data=samples, part=st.floats(min_value=0.0, max_value=1.0, width=32))
 def test_the_percentile_matches_a_plain_sort(lib, data, part):
-    array = sptk.float_array(data)
+    array = ffitt.float_array(data)
 
     result = lib.stats_percentile(array, len(data), part)
 
@@ -80,7 +80,7 @@ def test_the_percentile_matches_a_plain_sort(lib, data, part):
 @given(data=samples)
 def test_the_percentile_never_leaves_the_range_of_the_samples(lib, data):
     for part in (0.0, 0.1, 0.5, 0.9, 1.0):
-        array = sptk.float_array(data)
+        array = ffitt.float_array(data)
         result = lib.stats_percentile(array, len(data), part)
         assert min(as_float32(data)) - 1e-3 <= result <= max(as_float32(data)) + 1e-3
 
@@ -89,7 +89,7 @@ def test_the_percentile_never_leaves_the_range_of_the_samples(lib, data):
 def test_the_percentile_rises_with_the_part(lib, data):
     previous = None
     for part in (0.0, 0.25, 0.5, 0.75, 1.0):
-        array = sptk.float_array(data)
+        array = ffitt.float_array(data)
         result = lib.stats_percentile(array, len(data), part)
         if previous is not None:
             assert result >= previous - 1e-3
@@ -98,8 +98,8 @@ def test_the_percentile_rises_with_the_part(lib, data):
 
 @given(data=samples)
 def test_the_median_absolute_deviation_matches_a_plain_sort(lib, data):
-    array = sptk.float_array(data)
-    work = sptk.float_array([0.0] * len(data))
+    array = ffitt.float_array(data)
+    work = ffitt.float_array([0.0] * len(data))
     values = as_float32(data)
     middle = statistics.median(sorted(values))
     expected = statistics.median(sorted(abs(value - middle) for value in values))
@@ -111,8 +111,8 @@ def test_the_median_absolute_deviation_matches_a_plain_sort(lib, data):
 
 @given(data=samples)
 def test_the_median_absolute_deviation_leaves_the_data_as_it_was(lib, data):
-    array = sptk.float_array(data)
-    work = sptk.float_array([0.0] * len(data))
+    array = ffitt.float_array(data)
+    work = ffitt.float_array([0.0] * len(data))
 
     lib.stats_mad(array, len(data), work)
 
@@ -122,7 +122,7 @@ def test_the_median_absolute_deviation_leaves_the_data_as_it_was(lib, data):
 
 @given(data=samples)
 def test_the_deviation_is_the_root_of_the_variance(lib, data):
-    array = sptk.float_array(data)
+    array = ffitt.float_array(data)
 
     variance = lib.stats_variance(array, len(data))
     deviation = lib.stats_deviation(array, len(data))
@@ -133,7 +133,7 @@ def test_the_deviation_is_the_root_of_the_variance(lib, data):
 
 @given(data=samples)
 def test_the_smallest_is_not_above_the_median_and_the_median_not_above_the_largest(lib, data):
-    array = sptk.float_array(data)
+    array = ffitt.float_array(data)
     smallest = lib.stats_min(array, len(data))
     largest = lib.stats_max(array, len(data))
     middle = lib.stats_median(array, len(data))
@@ -145,8 +145,8 @@ def test_the_smallest_is_not_above_the_median_and_the_median_not_above_the_large
 @given(data=samples, shift=sp.elements())
 def test_moving_every_sample_moves_the_median_by_the_same_amount(lib, data, shift):
     """The median follows the samples; the deviation does not change at all."""
-    array = sptk.float_array(data)
-    moved = sptk.float_array([sp.to_float32(value + shift) for value in data])
+    array = ffitt.float_array(data)
+    moved = ffitt.float_array([sp.to_float32(value + shift) for value in data])
 
     before = lib.stats_median(array, len(data))
     after = lib.stats_median(moved, len(data))

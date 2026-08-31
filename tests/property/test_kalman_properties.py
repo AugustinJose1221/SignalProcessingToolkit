@@ -9,7 +9,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 REFERENCE = ctypes.byref
@@ -33,7 +33,7 @@ def make_scalar_filter(lib, state, covariance, process_noise, measurement_noise)
             ("kalman_set_process_noise_covariance_matrix", process_noise),
             ("kalman_set_measurement_covariance_matrix", measurement_noise),
             ("kalman_set_observation_matrix", 1.0)):
-        matrix = sptk.make_matrix(lib, [[value]])
+        matrix = ffitt.make_matrix(lib, [[value]])
         getattr(lib, setter)(REFERENCE(kalman), REFERENCE(matrix))
         lib.matrix_free(REFERENCE(matrix))
 
@@ -53,7 +53,7 @@ def test_the_gain_of_a_scalar_filter_stays_between_zero_and_one(lib, state,
     # For a scalar filter the gain is P/(P+R). Both values are never less than
     # zero, thus the gain must stay between zero and one.
     kalman = make_scalar_filter(lib, state, covariance, process, noise)
-    y = sptk.make_matrix(lib, [[measurement]])
+    y = ffitt.make_matrix(lib, [[measurement]])
 
     assert lib.kalman_step(REFERENCE(kalman), None, REFERENCE(y))
     gain = element(lib, kalman.k)
@@ -70,7 +70,7 @@ def test_the_new_state_stays_between_the_old_state_and_the_measurement(
     # The filter mixes the estimate and the measurement. With no process noise
     # the result cannot go outside the two values.
     kalman = make_scalar_filter(lib, state, covariance, 0.0, noise)
-    y = sptk.make_matrix(lib, [[measurement]])
+    y = ffitt.make_matrix(lib, [[measurement]])
 
     assert lib.kalman_step(REFERENCE(kalman), None, REFERENCE(y))
     result = element(lib, kalman.x)
@@ -91,7 +91,7 @@ def test_the_new_state_stays_between_the_old_state_and_the_measurement(
 def test_the_covariance_never_grows_when_there_is_no_process_noise(
         lib, state, covariance, noise, measurement, count):
     kalman = make_scalar_filter(lib, state, covariance, 0.0, noise)
-    y = sptk.make_matrix(lib, [[measurement]])
+    y = ffitt.make_matrix(lib, [[measurement]])
 
     previous = element(lib, kalman.p)
     for _ in range(count):
@@ -124,11 +124,11 @@ def test_the_covariance_of_a_filter_with_two_states_stays_symmetric(
         ("kalman_set_observation_matrix", [[1.0, 0.0]]),
     )
     for setter, rows in settings:
-        matrix = sptk.make_matrix(lib, rows)
+        matrix = ffitt.make_matrix(lib, rows)
         getattr(lib, setter)(REFERENCE(kalman), REFERENCE(matrix))
         lib.matrix_free(REFERENCE(matrix))
 
-    y = sptk.make_matrix(lib, [[measurement]])
+    y = ffitt.make_matrix(lib, [[measurement]])
 
     for _ in range(3):
         assert lib.kalman_step(REFERENCE(kalman), None, REFERENCE(y))
@@ -153,7 +153,7 @@ def test_a_measurement_with_no_noise_gives_the_measurement_as_the_state(
     # With R = 0 the measurement has no doubt. Thus the gain is one, and the
     # state must take the value of the measurement.
     kalman = make_scalar_filter(lib, state, covariance, 0.0, 0.0)
-    y = sptk.make_matrix(lib, [[measurement]])
+    y = ffitt.make_matrix(lib, [[measurement]])
 
     assert lib.kalman_step(REFERENCE(kalman), None, REFERENCE(y))
 
@@ -170,7 +170,7 @@ def test_an_estimate_with_no_doubt_does_not_change(lib, state, noise, measuremen
     # With P = 0 and Q = 0 the estimate has no doubt. Thus the gain is zero,
     # and the measurement does not change the state.
     kalman = make_scalar_filter(lib, state, 0.0, 0.0, noise)
-    y = sptk.make_matrix(lib, [[measurement]])
+    y = ffitt.make_matrix(lib, [[measurement]])
 
     assert lib.kalman_step(REFERENCE(kalman), None, REFERENCE(y))
 
@@ -188,7 +188,7 @@ def test_equal_measurements_move_the_state_to_that_value(lib, covariance, noise,
     # The filter reads the same value again and again. With no process noise
     # the state must come nearer to that value at every step.
     kalman = make_scalar_filter(lib, 0.0, covariance, 0.0, noise)
-    y = sptk.make_matrix(lib, [[measurement]])
+    y = ffitt.make_matrix(lib, [[measurement]])
 
     previous_distance = abs(measurement - element(lib, kalman.x))
     for _ in range(count):
@@ -207,7 +207,7 @@ def test_the_filter_never_gives_a_value_that_is_not_a_number(lib, state, covaria
                                                              process, noise,
                                                              measurement):
     kalman = make_scalar_filter(lib, state, covariance, process, noise)
-    y = sptk.make_matrix(lib, [[measurement]])
+    y = ffitt.make_matrix(lib, [[measurement]])
 
     for _ in range(5):
         assert lib.kalman_step(REFERENCE(kalman), None, REFERENCE(y))

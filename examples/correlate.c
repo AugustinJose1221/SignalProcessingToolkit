@@ -28,8 +28,8 @@
 
 #if (RUN_EXAMPLE == RUN_CORRELATE_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/transform/correlate.h>
+#include <ffitt/core/real.h>
+#include <ffitt/transform/correlate.h>
 #include <math.h>
 #include <stdio.h>
 

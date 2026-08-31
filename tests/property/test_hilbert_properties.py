@@ -19,7 +19,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=30, deadline=None)
@@ -35,10 +35,10 @@ BINS = st.integers(min_value=3, max_value=12)
 def analytic(lib, values):
     size = len(values)
     fft = lib.fft_alloc(size)
-    out = (sptk.Cnum * size)()
+    out = (ffitt.Cnum * size)()
 
     try:
-        lib.hilbert_analytic_signal(fft, sptk.float_array(values), out)
+        lib.hilbert_analytic_signal(fft, ffitt.float_array(values), out)
     finally:
         lib.fft_free(fft)
 
@@ -48,11 +48,11 @@ def analytic(lib, values):
 def amplitude(lib, values):
     size = len(values)
     fft = lib.fft_alloc(size)
-    work = (sptk.Cnum * size)()
-    out = sptk.real_buffer(size)
+    work = (ffitt.Cnum * size)()
+    out = ffitt.real_buffer(size)
 
     try:
-        lib.hilbert_analytic_signal(fft, sptk.float_array(values), work)
+        lib.hilbert_analytic_signal(fft, ffitt.float_array(values), work)
         lib.hilbert_amplitude(work, out, size)
     finally:
         lib.fft_free(fft)
@@ -212,13 +212,13 @@ def test_the_phase_of_a_steady_tone_moves_at_the_rate_of_that_tone(lib, size,
     where nothing moved."""
     values = tone(size, bin_index)
     fft = lib.fft_alloc(size)
-    work = (sptk.Cnum * size)()
-    out = sptk.real_buffer(size)
+    work = (ffitt.Cnum * size)()
+    out = ffitt.real_buffer(size)
 
     rate = 1024.0
 
     try:
-        lib.hilbert_analytic_signal(fft, sptk.float_array(values), work)
+        lib.hilbert_analytic_signal(fft, ffitt.float_array(values), work)
         lib.hilbert_frequency(work, out, size, sp.to_float32(rate))
     finally:
         lib.fft_free(fft)

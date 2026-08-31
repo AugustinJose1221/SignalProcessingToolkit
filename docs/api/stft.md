@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The transform in short pieces. Declared in `sptk/transform/stft.h`.
+The transform in short pieces. Declared in `ffitt/transform/stft.h`.
 
-[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
+[Back to the index](../API.md) | [How the transform modules work](../../ffitt/transform/README.md)
 
 ## Macros
 

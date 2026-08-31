@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-How alike two signals are. Declared in `sptk/transform/correlate.h`.
+How alike two signals are. Declared in `ffitt/transform/correlate.h`.
 
-[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
+[Back to the index](../API.md) | [How the transform modules work](../../ffitt/transform/README.md)
 
 ## Functions
 

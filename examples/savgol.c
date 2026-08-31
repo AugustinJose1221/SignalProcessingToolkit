@@ -26,8 +26,8 @@
 
 #if (RUN_EXAMPLE == RUN_SAVGOL_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/filter/savgol.h>
+#include <ffitt/core/real.h>
+#include <ffitt/filter/savgol.h>
 #include <math.h>
 #include <stdio.h>
 

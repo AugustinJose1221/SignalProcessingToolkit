@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Putting a signal into steps. Declared in `sptk/util/quantise.h`.
+Putting a signal into steps. Declared in `ffitt/util/quantise.h`.
 
-[Back to the index](../API.md) | [How the util modules work](../../sptk/util/README.md)
+[Back to the index](../API.md) | [How the util modules work](../../ffitt/util/README.md)
 
 ## Macros
 

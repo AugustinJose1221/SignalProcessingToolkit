@@ -35,14 +35,14 @@
 
 #if (RUN_EXAMPLE == RUN_SURVEY_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/filter/adaptive.h>
-#include <sptk/filter/dcblock.h>
-#include <sptk/filter/rls.h>
-#include <sptk/transform/csd.h>
-#include <sptk/transform/window.h>
-#include <sptk/util/generate.h>
-#include <sptk/util/stats.h>
+#include <ffitt/core/real.h>
+#include <ffitt/filter/adaptive.h>
+#include <ffitt/filter/dcblock.h>
+#include <ffitt/filter/rls.h>
+#include <ffitt/transform/csd.h>
+#include <ffitt/transform/window.h>
+#include <ffitt/util/generate.h>
+#include <ffitt/util/stats.h>
 #include <math.h>
 #include <stdio.h>
 

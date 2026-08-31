@@ -21,8 +21,8 @@
 
 #if (RUN_EXAMPLE == RUN_DWT_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/transform/dwt.h>
+#include <ffitt/core/real.h>
+#include <ffitt/transform/dwt.h>
 #include <math.h>
 #include <stdio.h>
 

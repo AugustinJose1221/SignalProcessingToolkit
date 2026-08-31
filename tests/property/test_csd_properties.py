@@ -16,7 +16,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=25, deadline=None)
@@ -24,7 +24,7 @@ RUNS = settings(max_examples=25, deadline=None)
 # Blocks the transform can use. Small ones keep the runs short.
 BLOCKS = st.sampled_from([32, 64, 128])
 
-WINDOWS = st.sampled_from(sptk.WINDOWS_WITHOUT_A_PARAMETER)
+WINDOWS = st.sampled_from(ffitt.WINDOWS_WITHOUT_A_PARAMETER)
 
 SAMPLE_RATE = 8192.0
 
@@ -52,10 +52,10 @@ def designed(lib, block, window, overlap=None):
 
 
 def coherence_of(lib, csd, first, second, size, bins):
-    out = sptk.real_buffer(bins)
+    out = ffitt.real_buffer(bins)
 
-    assert lib.csd_coherence(csd, sptk.float_array(first),
-                             sptk.float_array(second), size, out)
+    assert lib.csd_coherence(csd, ffitt.float_array(first),
+                             ffitt.float_array(second), size, out)
 
     return [out[index] for index in range(bins)]
 
@@ -219,14 +219,14 @@ def test_what_two_signals_share_is_the_same_either_way_round(lib, block,
             assert abs(one - other) <= 1e-4
 
         # And the cross spectrum turns its phase round and keeps its size.
-        forward = (sptk.Cnum * bins)()
-        backward = (sptk.Cnum * bins)()
+        forward = (ffitt.Cnum * bins)()
+        backward = (ffitt.Cnum * bins)()
 
-        assert lib.csd_estimate(csd, sptk.float_array(first),
-                                sptk.float_array(second), size,
+        assert lib.csd_estimate(csd, ffitt.float_array(first),
+                                ffitt.float_array(second), size,
                                 sp.to_float32(SAMPLE_RATE), forward)
-        assert lib.csd_estimate(csd, sptk.float_array(second),
-                                sptk.float_array(first), size,
+        assert lib.csd_estimate(csd, ffitt.float_array(second),
+                                ffitt.float_array(first), size,
                                 sp.to_float32(SAMPLE_RATE), backward)
 
         for index in range(bins):
@@ -254,11 +254,11 @@ def test_the_transfer_of_a_signal_scaled_is_that_scale(lib, block, window,
 
     csd = designed(lib, block, window)
     bins = bins_of(block)
-    out = (sptk.Cnum * bins)()
+    out = (ffitt.Cnum * bins)()
 
     try:
-        assert lib.csd_transfer(csd, sptk.float_array(first),
-                                sptk.float_array(second), size, out)
+        assert lib.csd_transfer(csd, ffitt.float_array(first),
+                                ffitt.float_array(second), size, out)
 
         # Bin 0 holds the level and the last bin the highest frequency; both
         # are read from fewer numbers than the rest and are left out.
@@ -277,11 +277,11 @@ def test_a_reading_shorter_than_a_block_is_refused(lib, block, window):
     bins = bins_of(block)
 
     values = noise(block)
-    out = sptk.real_buffer(bins)
+    out = ffitt.real_buffer(bins)
 
     try:
-        assert not lib.csd_coherence(csd, sptk.float_array(values),
-                                     sptk.float_array(values), block // 2,
+        assert not lib.csd_coherence(csd, ffitt.float_array(values),
+                                     ffitt.float_array(values), block // 2,
                                      out)
     finally:
         lib.csd_free(csd)

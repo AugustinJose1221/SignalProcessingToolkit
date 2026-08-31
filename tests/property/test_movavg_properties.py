@@ -19,7 +19,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
@@ -33,9 +33,9 @@ def through(lib, size, values):
     movavg = lib.movavg_alloc(size)
 
     try:
-        out = sptk.real_buffer(len(values))
+        out = ffitt.real_buffer(len(values))
 
-        lib.movavg_process_block(movavg, sptk.float_array(values), out,
+        lib.movavg_process_block(movavg, ffitt.float_array(values), out,
                                  len(values))
 
         return [out[index] for index in range(len(values))]

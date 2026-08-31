@@ -15,7 +15,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 ORDERS = st.integers(min_value=1, max_value=6)
@@ -62,7 +62,7 @@ def solve(lib, rows, want_vectors=True):
     matrix = make_matrix(lib, rows)
     vectors = lib.matrix_create_zero_matrix(order, order) if want_vectors \
         else None
-    values = sptk.real_buffer(order)
+    values = ffitt.real_buffer(order)
 
     handle = ctypes.byref(vectors) if want_vectors else None
     answered = lib.eigen_solve(ctypes.byref(matrix), values, handle)
@@ -254,7 +254,7 @@ def test_a_matrix_that_squashes_a_direction_flat_cannot_be_undone(lib, rows):
 def test_eigen_condition_is_the_largest_over_the_smallest(lib, sizes):
     """Taken by size, because how far from nothing a value stands is what
     matters here and not which way it leans."""
-    values = sptk.float_array(sizes)
+    values = ffitt.float_array(sizes)
 
     wanted = max(sizes) / min(sizes)
 
@@ -262,7 +262,7 @@ def test_eigen_condition_is_the_largest_over_the_smallest(lib, sizes):
                     relative=1e-4, absolute=1e-4)
 
     # A value that leans the other way counts by how far from nothing it is.
-    leaning = sptk.float_array([-value for value in sizes])
+    leaning = ffitt.float_array([-value for value in sizes])
 
     assert sp.close(lib.eigen_condition(leaning, len(sizes)), wanted,
                     relative=1e-4, absolute=1e-4)
@@ -274,7 +274,7 @@ def test_eigen_condition_is_the_largest_over_the_smallest(lib, sizes):
 def test_eigen_part_held_climbs_to_one_and_never_past_it(lib, sizes, first):
     """It reports a part of the whole spread, thus it cannot leave 0 to 1, and
     taking more directions can never hold less."""
-    values = sptk.float_array(sizes)
+    values = ffitt.float_array(sizes)
     count = len(sizes)
 
     held = lib.eigen_part_held(values, count, first)
@@ -321,7 +321,7 @@ def test_eigen_refuses_a_matrix_that_is_not_symmetric(lib, rows, nudge):
 
     assert not lib.eigen_is_valid_matrix(ctypes.byref(matrix))
 
-    values = sptk.real_buffer(order)
+    values = ffitt.real_buffer(order)
 
     assert not lib.eigen_solve(ctypes.byref(matrix), values, None)
 

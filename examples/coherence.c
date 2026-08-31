@@ -28,9 +28,9 @@
 
 #if (RUN_EXAMPLE == RUN_COHERENCE_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/transform/csd.h>
-#include <sptk/transform/window.h>
+#include <ffitt/core/real.h>
+#include <ffitt/transform/csd.h>
+#include <ffitt/transform/window.h>
 #include <math.h>
 #include <stdio.h>
 

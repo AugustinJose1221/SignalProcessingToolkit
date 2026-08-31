@@ -15,7 +15,7 @@
 // These macros stand for the pair that fits the build, thus one test serves
 // both widths and each one measures what that width really gives.
 
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
 
 #define TEST_ASSERT_REAL_WITHIN(delta, expected, actual) \
     TEST_ASSERT_DOUBLE_WITHIN(delta, expected, actual)
@@ -31,6 +31,6 @@
 #define TEST_ASSERT_EQUAL_REAL(expected, actual) \
     TEST_ASSERT_EQUAL_FLOAT(expected, actual)
 
-#endif//SPTK_REAL_64
+#endif//FFITT_REAL_64
 
 #endif//REAL_ASSERT_H

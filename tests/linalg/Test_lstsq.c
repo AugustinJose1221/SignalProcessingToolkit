@@ -155,7 +155,7 @@ void test_lstsq_refuses_the_order_where_the_answer_stops_being_worth_having(void
     // The module does not cap the order and hope. It looks at the diagonal of
     // the factor and refuses where the answer would be made of rounding, and
     // that place is one order past the last one that follows the readings.
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     const uint32_t last_good = 11u;
 #else
     const uint32_t last_good = 5u;
@@ -179,7 +179,7 @@ void test_moving_x_to_minus_one_and_one_more_than_doubles_the_order(void)
 {
     // The other half of the table, and the point of the whole scaled family.
     // The same readings, the same width, only the place x sits is different.
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     const uint32_t last_good = 23u;
 #else
     const uint32_t last_good = 10u;
@@ -430,7 +430,7 @@ void test_lstsq_refuses_a_fit_that_the_scaling_would_do_better(void)
     TEST_ASSERT_TRUE(lstsq_fit_quality_scaled(x, y, size, coefficients, 4u,
                                               centre, width) > REAL_C(0.9));
 
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     // With digits to spare the plain fit is right, thus nothing is refused.
     TEST_ASSERT_EQUAL(true, lstsq_polyfit(x, y, size, 4u, coefficients));
     TEST_ASSERT_TRUE(lstsq_fit_quality(x, y, size, coefficients, 4u)

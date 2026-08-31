@@ -27,9 +27,9 @@
 
 #if (RUN_EXAMPLE == RUN_FILTER_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/filter/fir.h>
-#include <sptk/filter/iir.h>
+#include <ffitt/core/real.h>
+#include <ffitt/filter/fir.h>
+#include <ffitt/filter/iir.h>
 #include <math.h>
 #include <stdio.h>
 

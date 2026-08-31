@@ -13,12 +13,12 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
 
-SCALINGS = st.sampled_from(sptk.CORRELATE_SCALINGS)
+SCALINGS = st.sampled_from(ffitt.CORRELATE_SCALINGS)
 
 SIZES = st.integers(min_value=8, max_value=96)
 
@@ -32,10 +32,10 @@ def signal(draw, least=8, most=96, size=None):
 
 
 def correlated(lib, first, second, largest_lag, scaling):
-    out = sptk.real_buffer(largest_lag + 1)
+    out = ffitt.real_buffer(largest_lag + 1)
 
-    assert lib.correlate_cross(sptk.float_array(first),
-                               sptk.float_array(second), len(first), out,
+    assert lib.correlate_cross(ffitt.float_array(first),
+                               ffitt.float_array(second), len(first), out,
                                largest_lag, scaling)
 
     return [out[index] for index in range(largest_lag + 1)]
@@ -59,7 +59,7 @@ def test_the_raw_sum_is_the_sum_of_the_products(lib, first, second, scaling):
 
     largest_lag = size // 2
 
-    found = correlated(lib, first, second, largest_lag, sptk.CORRELATE_RAW)
+    found = correlated(lib, first, second, largest_lag, ffitt.CORRELATE_RAW)
 
     for lag in range(largest_lag + 1):
         wanted = by_hand(first, second, lag)
@@ -80,7 +80,7 @@ def test_a_signal_correlated_with_itself_is_largest_at_no_lag(lib, values):
 
     largest_lag = len(values) // 2
 
-    found = correlated(lib, values, values, largest_lag, sptk.CORRELATE_RAW)
+    found = correlated(lib, values, values, largest_lag, ffitt.CORRELATE_RAW)
 
     for lag in range(1, largest_lag + 1):
         assert found[0] >= found[lag] - 1e-4 * (1.0 + abs(found[0]))
@@ -93,12 +93,12 @@ def test_correlating_a_signal_with_itself_is_the_auto_correlation(lib, values):
     two must never part company."""
     largest_lag = len(values) // 2
 
-    out = sptk.real_buffer(largest_lag + 1)
+    out = ffitt.real_buffer(largest_lag + 1)
 
-    assert lib.correlate_auto(sptk.float_array(values), len(values), out,
-                              largest_lag, sptk.CORRELATE_RAW)
+    assert lib.correlate_auto(ffitt.float_array(values), len(values), out,
+                              largest_lag, ffitt.CORRELATE_RAW)
 
-    cross = correlated(lib, values, values, largest_lag, sptk.CORRELATE_RAW)
+    cross = correlated(lib, values, values, largest_lag, ffitt.CORRELATE_RAW)
 
     for lag in range(largest_lag + 1):
         assert out[lag] == cross[lag]
@@ -142,10 +142,10 @@ def test_the_coefficient_does_not_move_when_a_signal_is_scaled(lib, first,
     largest_lag = size // 2
 
     plain = correlated(lib, first, second, largest_lag,
-                       sptk.CORRELATE_COEFFICIENT)
+                       ffitt.CORRELATE_COEFFICIENT)
     scaled = correlated(lib, first,
                         [sp.to_float32(value * louder) for value in second],
-                        largest_lag, sptk.CORRELATE_COEFFICIENT)
+                        largest_lag, ffitt.CORRELATE_COEFFICIENT)
 
     for lag in range(largest_lag + 1):
         assert abs(plain[lag] - scaled[lag]) <= 1e-3
@@ -162,7 +162,7 @@ def test_the_coefficient_never_leaves_the_range_of_one(lib, values):
     largest_lag = len(values) // 2
 
     found = correlated(lib, values, values, largest_lag,
-                       sptk.CORRELATE_COEFFICIENT)
+                       ffitt.CORRELATE_COEFFICIENT)
 
     for value in found:
         assert math.isfinite(value)
@@ -183,9 +183,9 @@ def test_the_biased_and_unbiased_scalings_differ_by_the_overlap(lib, values):
     largest_lag = size // 2
 
     biased = correlated(lib, values, values, largest_lag,
-                        sptk.CORRELATE_BIASED)
+                        ffitt.CORRELATE_BIASED)
     unbiased = correlated(lib, values, values, largest_lag,
-                          sptk.CORRELATE_UNBIASED)
+                          ffitt.CORRELATE_UNBIASED)
 
     for lag in range(largest_lag + 1):
         # size samples against size - lag of them.
@@ -217,10 +217,10 @@ def test_a_signal_that_repeats_is_found_to_repeat(lib, values, period):
     # means nothing for it.
     assume(max(made) - min(made) > 0.25)
 
-    repeating = sptk.float_array(made)
+    repeating = ffitt.float_array(made)
 
-    out = sptk.real_buffer(len(values))
-    strength = sptk.real_buffer(1)
+    out = ffitt.real_buffer(len(values))
+    strength = ffitt.real_buffer(1)
 
     found = lib.correlate_best_lag(repeating, len(values), out, 1,
                                    len(values) // 2, strength)
@@ -244,10 +244,10 @@ def test_a_signal_that_does_not_repeat_says_so(lib, values):
     thing that says whether the answer means anything."""
     assume(sum(value * value for value in values) > 0.25)
 
-    out = sptk.real_buffer(len(values))
-    strength = sptk.real_buffer(1)
+    out = ffitt.real_buffer(len(values))
+    strength = ffitt.real_buffer(1)
 
-    lib.correlate_best_lag(sptk.float_array(values), len(values), out, 1,
+    lib.correlate_best_lag(ffitt.float_array(values), len(values), out, 1,
                            len(values) // 2, strength)
 
     # Whatever it found, the strength is a coefficient and can be judged.
@@ -265,8 +265,8 @@ def test_a_lag_as_long_as_the_signal_is_refused(lib, values, scaling):
     """At a lag of the whole size the two signals do not overlap at all, thus
     there is nothing to add up and no answer to give."""
     size = len(values)
-    out = sptk.real_buffer(size + 1)
-    given_values = sptk.float_array(values)
+    out = ffitt.real_buffer(size + 1)
+    given_values = ffitt.float_array(values)
 
     assert not lib.correlate_cross(given_values, given_values, size, out,
                                    size, scaling)
@@ -287,21 +287,21 @@ def test_the_fast_method_agrees_with_the_plain_one(lib, values):
 
     largest_lag = size // 2
 
-    plain = sptk.real_buffer(largest_lag + 1)
-    fast = sptk.real_buffer(largest_lag + 1)
-    given_values = sptk.float_array(values)
+    plain = ffitt.real_buffer(largest_lag + 1)
+    fast = ffitt.real_buffer(largest_lag + 1)
+    given_values = ffitt.float_array(values)
 
     assert lib.correlate_auto(given_values, size, plain, largest_lag,
-                              sptk.CORRELATE_RAW)
+                              ffitt.CORRELATE_RAW)
 
     fft = lib.fft_alloc(across)
-    work = (sptk.Cnum * across)()
-    window = sptk.real_buffer(across)
+    work = (ffitt.Cnum * across)()
+    window = ffitt.real_buffer(across)
 
     try:
         assert lib.correlate_auto_by_transform(given_values, size, fast,
                                                largest_lag,
-                                               sptk.CORRELATE_RAW, fft, work,
+                                               ffitt.CORRELATE_RAW, fft, work,
                                                window)
     finally:
         lib.fft_free(fft)

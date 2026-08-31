@@ -29,8 +29,8 @@
 
 #if (RUN_EXAMPLE == RUN_ADAPTIVE_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/filter/adaptive.h>
+#include <ffitt/core/real.h>
+#include <ffitt/filter/adaptive.h>
 #include <math.h>
 #include <stdio.h>
 

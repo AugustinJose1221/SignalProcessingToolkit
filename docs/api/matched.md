@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Looking for a known shape. Declared in `sptk/detect/matched.h`.
+Looking for a known shape. Declared in `ffitt/detect/matched.h`.
 
-[Back to the index](../API.md) | [How the detect modules work](../../sptk/detect/README.md)
+[Back to the index](../API.md) | [How the detect modules work](../../ffitt/detect/README.md)
 
 ## Macros
 

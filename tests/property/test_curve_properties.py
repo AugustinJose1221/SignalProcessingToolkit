@@ -15,13 +15,13 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
 
-SHAPES = st.sampled_from(sptk.CURVE_SHAPES)
-EVEN_SHAPES = st.sampled_from(sptk.CURVE_EVEN_SHAPES)
+SHAPES = st.sampled_from(ffitt.CURVE_SHAPES)
+EVEN_SHAPES = st.sampled_from(ffitt.CURVE_EVEN_SHAPES)
 
 # Values a float of 32 bits holds exactly.
 MIDDLES = st.sampled_from([-64.0, -1.5, 0.0, 0.25, 7.0, 1024.0])
@@ -50,7 +50,7 @@ def room_at(middle, width, base=1e-5):
     their top across one width. Measured, the case that found this: a middle of
     1024 and a width of 1 gave two sides differing by 2.6e-5 where the room was
     1e-5."""
-    spacing = abs(middle) * (2.0 ** -24 if not sptk.REAL_64 else 2.0 ** -53)
+    spacing = abs(middle) * (2.0 ** -24 if not ffitt.REAL_64 else 2.0 ** -53)
 
     return base + (2.0 * spacing / width)
 
@@ -68,7 +68,7 @@ def test_every_shape_falls_to_the_same_share_at_one_width(lib, shape, middle,
         at = middle + (side * width)
 
         assert abs(value(lib, shape, at, middle, width)
-                   - sptk.CURVE_AT_ONE_WIDTH) <= room_at(middle, width, 1e-4)
+                   - ffitt.CURVE_AT_ONE_WIDTH) <= room_at(middle, width, 1e-4)
 
 
 @given(EVEN_SHAPES, MIDDLES, WIDTHS, sp.elements(8.0))
@@ -107,7 +107,7 @@ def test_every_shape_really_reaches_one_at_its_top(lib, shape, middle, width,
     and the shapes could not be set beside each other."""
     top = middle
 
-    if shape == sptk.CURVE_SKEWED_GAUSSIAN:
+    if shape == ffitt.CURVE_SKEWED_GAUSSIAN:
         top = lib.curve_skewed_gaussian_top(sp.to_float32(middle),
                                             sp.to_float32(width),
                                             sp.to_float32(skew))
@@ -125,8 +125,8 @@ def test_the_lorentzian_holds_more_in_its_tails_than_the_gaussian(
     baseline near the peak reads that tail AS baseline."""
     at = middle + (away * width)
 
-    gaussian = value(lib, sptk.CURVE_GAUSSIAN, at, middle, width)
-    lorentzian = value(lib, sptk.CURVE_LORENTZIAN, at, middle, width)
+    gaussian = value(lib, ffitt.CURVE_GAUSSIAN, at, middle, width)
+    lorentzian = value(lib, ffitt.CURVE_LORENTZIAN, at, middle, width)
 
     assert lorentzian > gaussian
 
@@ -138,8 +138,8 @@ def test_a_skew_of_nothing_is_the_plain_gaussian(lib, middle, width, away):
     parameter that can be turned off."""
     at = middle + (away * width)
 
-    plain = value(lib, sptk.CURVE_GAUSSIAN, at, middle, width)
-    skewed = value(lib, sptk.CURVE_SKEWED_GAUSSIAN, at, middle, width, 0.0)
+    plain = value(lib, ffitt.CURVE_GAUSSIAN, at, middle, width)
+    skewed = value(lib, ffitt.CURVE_SKEWED_GAUSSIAN, at, middle, width, 0.0)
 
     assert abs(plain - skewed) <= room_at(middle, width, 1e-4)
 
@@ -150,9 +150,9 @@ def test_turning_the_skew_round_mirrors_the_shape(lib, middle, width, skew):
     """A tail on the high side turned round is a tail on the low side, and
     nothing else about the shape may change."""
     for away in (0.5, 1.5, 3.0):
-        one = value(lib, sptk.CURVE_SKEWED_GAUSSIAN, middle + (away * width),
+        one = value(lib, ffitt.CURVE_SKEWED_GAUSSIAN, middle + (away * width),
                     middle, width, skew)
-        other = value(lib, sptk.CURVE_SKEWED_GAUSSIAN, middle - (away * width),
+        other = value(lib, ffitt.CURVE_SKEWED_GAUSSIAN, middle - (away * width),
                       middle, width, -skew)
 
         assert abs(one - other) <= room_at(middle, width, 1e-4)
@@ -176,12 +176,12 @@ def test_the_top_that_is_given_is_really_the_top(lib, middle, width, skew):
     top = lib.curve_skewed_gaussian_top(sp.to_float32(middle),
                                         sp.to_float32(width),
                                         sp.to_float32(skew))
-    tallest = value(lib, sptk.CURVE_SKEWED_GAUSSIAN, top, middle, width, skew)
+    tallest = value(lib, ffitt.CURVE_SKEWED_GAUSSIAN, top, middle, width, skew)
 
     for step in range(-40, 41):
         at = top + ((step / 10.0) * width)
 
-        assert value(lib, sptk.CURVE_SKEWED_GAUSSIAN, at, middle, width,
+        assert value(lib, ffitt.CURVE_SKEWED_GAUSSIAN, at, middle, width,
                      skew) <= tallest + room_at(middle, width)
 
 
@@ -196,9 +196,9 @@ def test_a_skewed_peak_carries_more_on_its_long_side(lib, middle, width, skew):
     for step in range(1, 200):
         away = (step / 25.0) * width
 
-        above += value(lib, sptk.CURVE_SKEWED_GAUSSIAN, middle + away, middle,
+        above += value(lib, ffitt.CURVE_SKEWED_GAUSSIAN, middle + away, middle,
                        width, skew)
-        below += value(lib, sptk.CURVE_SKEWED_GAUSSIAN, middle - away, middle,
+        below += value(lib, ffitt.CURVE_SKEWED_GAUSSIAN, middle - away, middle,
                        width, skew)
 
     assert above > below
@@ -212,7 +212,7 @@ def test_a_block_is_the_places_read_one_at_a_time(lib, shape, middle, width,
     """The block is there for speed and must be there for nothing else. It also
     looks for the top of a skewed shape once rather than at every place, thus
     it could easily part company with reading them one at a time."""
-    written = sptk.real_buffer(count)
+    written = ffitt.real_buffer(count)
     low = middle - (4.0 * width)
     high = middle + (4.0 * width)
 
@@ -278,14 +278,14 @@ def test_a_curve_fitted_through_three_points_leans_by_the_shape(lib, middle,
     nearest = round((top - middle) / step)
 
     places = [middle + ((nearest + offset) * step) for offset in (-1, 0, 1)]
-    values = [value(lib, sptk.CURVE_SKEWED_GAUSSIAN, at, middle, width, skew)
+    values = [value(lib, ffitt.CURVE_SKEWED_GAUSSIAN, at, middle, width, skew)
               for at in places]
 
     # The refinement wants the middle of the three to be the largest, which is
     # what taking the nearest sample to the top gives.
     assume(values[1] > values[0] and values[1] > values[2])
 
-    within = lib.delay_refine_peak(sptk.float_array(values), 3, 1)
+    within = lib.delay_refine_peak(ffitt.float_array(values), 3, 1)
 
     refined = places[1] + (within * step)
 
@@ -326,7 +326,7 @@ def test_refining_a_peak_beats_rounding_it_to_the_nearest_sample(lib, shape,
 
         top = shifted
 
-        if shape == sptk.CURVE_SKEWED_GAUSSIAN:
+        if shape == ffitt.CURVE_SKEWED_GAUSSIAN:
             top = lib.curve_skewed_gaussian_top(sp.to_float32(shifted),
                                                 sp.to_float32(width),
                                                 sp.to_float32(skew))
@@ -339,7 +339,7 @@ def test_refining_a_peak_beats_rounding_it_to_the_nearest_sample(lib, shape,
         # The top must be inside the run, with a sample either side of it.
         assume(0 < best < count - 1)
 
-        given_values = sptk.float_array(values)
+        given_values = ffitt.float_array(values)
 
         refined = places[best] + (lib.peakdetect_refine(given_values, count,
                                                         best) * step)
@@ -358,7 +358,7 @@ def test_refining_a_peak_beats_rounding_it_to_the_nearest_sample(lib, shape,
     assert worst_refined < worst_rounded
 
     # On a shape that does not lean, by a long way.
-    if shape != sptk.CURVE_SKEWED_GAUSSIAN or skew == 0.0:
+    if shape != ffitt.CURVE_SKEWED_GAUSSIAN or skew == 0.0:
         assert worst_refined < (0.05 * worst_rounded)
 
     # THE HEIGHT IS A DIFFERENT STORY AND THE BOUND SAYS SO. The largest sample
@@ -386,7 +386,7 @@ def test_a_refined_height_is_never_below_the_sample_it_was_found_at(lib,
                 and values[peak] > values[peak + 1]):
             continue
 
-        given_values = sptk.float_array(values)
+        given_values = ffitt.float_array(values)
         height = lib.peakdetect_refine_height(given_values, count, peak)
 
         scale = 1e-4 * (1.0 + abs(values[peak]))
@@ -399,7 +399,7 @@ def test_the_two_names_for_refining_a_peak_give_one_answer(lib, values):
     """delay_refine_peak is peakdetect_refine under another name. Two copies of
     one question would be two things to keep right."""
     count = len(values)
-    given_values = sptk.float_array(values)
+    given_values = ffitt.float_array(values)
 
     for peak in range(count):
         assert (lib.delay_refine_peak(given_values, count, peak)

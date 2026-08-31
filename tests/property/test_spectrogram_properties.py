@@ -19,7 +19,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=25, deadline=None)
@@ -28,7 +28,7 @@ TWO_PI = 2.0 * math.pi
 RATE = 1024.0
 
 BLOCKS = st.sampled_from([64, 128, 256])
-WINDOWS = st.sampled_from(sptk.WINDOWS_WITHOUT_A_PARAMETER)
+WINDOWS = st.sampled_from(ffitt.WINDOWS_WITHOUT_A_PARAMETER)
 
 
 def measured(lib, values, block, window, kind, hop=None):
@@ -48,15 +48,15 @@ def measured(lib, values, block, window, kind, hop=None):
         bins = (block // 2) + 1
         room = frames * bins
 
-        spectrum = (sptk.Cnum * room)()
+        spectrum = (ffitt.Cnum * room)()
 
         # The last argument is the room in the OUTPUT and not the count of
         # frames: the output holds one complex number for each bin of each
         # frame.
-        assert lib.stft_forward(stft, sptk.float_array(values), size,
+        assert lib.stft_forward(stft, ffitt.float_array(values), size,
                                 spectrum, room)
 
-        out = sptk.real_buffer(room)
+        out = ffitt.real_buffer(room)
 
         assert lib.spectrogram_build(stft, spectrum, frames, kind,
                                      sp.to_float32(RATE), out, room)
@@ -96,7 +96,7 @@ def test_a_tone_reads_its_own_height_whatever_the_block_and_window(
     values = tone(block * 8, frequency, height)
 
     rows, bins = measured(lib, values, block, window,
-                          sptk.SPECTROGRAM_AMPLITUDE)
+                          ffitt.SPECTROGRAM_AMPLITUDE)
 
     # The middle frame, where the block is full of the tone rather than of the
     # start of the signal.
@@ -120,8 +120,8 @@ def test_the_power_is_the_amplitude_squared_and_halved(lib, block, window,
     values = tone(block * 8, bin_index * RATE / block, height)
 
     amplitude, _ = measured(lib, values, block, window,
-                            sptk.SPECTROGRAM_AMPLITUDE)
-    power, _ = measured(lib, values, block, window, sptk.SPECTROGRAM_POWER)
+                            ffitt.SPECTROGRAM_AMPLITUDE)
+    power, _ = measured(lib, values, block, window, ffitt.SPECTROGRAM_POWER)
 
     for row_a, row_p in zip(amplitude, power):
         for one, other in zip(row_a, row_p):
@@ -158,11 +158,11 @@ def test_the_density_is_the_one_unit_that_does_not_move_with_the_block(
         inside = row[1:-1]
         return sum(inside) / len(inside)
 
-    small_density = middle_mean(64, sptk.SPECTROGRAM_DENSITY)
-    large_density = middle_mean(256, sptk.SPECTROGRAM_DENSITY)
+    small_density = middle_mean(64, ffitt.SPECTROGRAM_DENSITY)
+    large_density = middle_mean(256, ffitt.SPECTROGRAM_DENSITY)
 
-    small_power = middle_mean(64, sptk.SPECTROGRAM_POWER)
-    large_power = middle_mean(256, sptk.SPECTROGRAM_POWER)
+    small_power = middle_mean(64, ffitt.SPECTROGRAM_POWER)
+    large_power = middle_mean(256, ffitt.SPECTROGRAM_POWER)
 
     assume(small_density > 0.0 and small_power > 0.0)
 
@@ -185,22 +185,22 @@ def test_the_decibel_unit_is_the_logarithm_of_the_power(lib, block, window,
 
     values = tone(block * 8, bin_index * RATE / block)
 
-    power, _ = measured(lib, values, block, window, sptk.SPECTROGRAM_POWER)
+    power, _ = measured(lib, values, block, window, ffitt.SPECTROGRAM_POWER)
     decibel, _ = measured(lib, values, block, window,
-                          sptk.SPECTROGRAM_DECIBEL)
+                          ffitt.SPECTROGRAM_DECIBEL)
 
     for row_p, row_d in zip(power, decibel):
         for one, other in zip(row_p, row_d):
             if one <= 0.0:
                 # A bin holding nothing has no logarithm, and the module holds
                 # it at the floor rather than at minus infinity.
-                assert other <= sptk.SPECTROGRAM_FLOOR_DECIBEL + 1e-3
+                assert other <= ffitt.SPECTROGRAM_FLOOR_DECIBEL + 1e-3
                 continue
 
             wanted = 10.0 * math.log10(one)
 
-            if wanted < sptk.SPECTROGRAM_FLOOR_DECIBEL:
-                assert other <= sptk.SPECTROGRAM_FLOOR_DECIBEL + 1e-3
+            if wanted < ffitt.SPECTROGRAM_FLOOR_DECIBEL:
+                assert other <= ffitt.SPECTROGRAM_FLOOR_DECIBEL + 1e-3
             else:
                 assert abs(other - wanted) <= 1e-2 * (1.0 + abs(wanted))
 
@@ -219,7 +219,7 @@ def test_a_tone_puts_its_reading_at_its_own_frequency(lib, block, window,
     values = tone(block * 8, bin_index * RATE / block, height)
 
     rows, bins = measured(lib, values, block, window,
-                          sptk.SPECTROGRAM_AMPLITUDE)
+                          ffitt.SPECTROGRAM_AMPLITUDE)
 
     row = rows[len(rows) // 2]
     loudest = max(range(bins), key=lambda index: row[index])
@@ -241,9 +241,9 @@ def test_turning_the_signal_up_turns_the_amplitude_up_by_as_much(
     loud = [sp.to_float32(value * louder) for value in quiet]
 
     quiet_rows, _ = measured(lib, quiet, block, window,
-                             sptk.SPECTROGRAM_AMPLITUDE)
+                             ffitt.SPECTROGRAM_AMPLITUDE)
     loud_rows, _ = measured(lib, loud, block, window,
-                            sptk.SPECTROGRAM_AMPLITUDE)
+                            ffitt.SPECTROGRAM_AMPLITUDE)
 
     for row_q, row_l in zip(quiet_rows, loud_rows):
         for one, other in zip(row_q, row_l):
@@ -262,13 +262,13 @@ def test_reading_against_the_largest_puts_the_largest_at_nothing(lib, block,
 
     values = tone(block * 8, bin_index * RATE / block)
 
-    rows, bins = measured(lib, values, block, window, sptk.SPECTROGRAM_POWER)
+    rows, bins = measured(lib, values, block, window, ffitt.SPECTROGRAM_POWER)
 
     flat = [value for row in rows for value in row]
     count = len(flat)
 
-    given_values = sptk.float_array(flat)
-    out = sptk.real_buffer(count)
+    given_values = ffitt.float_array(flat)
+    out = ffitt.real_buffer(count)
 
     largest = lib.spectrogram_largest(given_values, count)
 
@@ -293,8 +293,8 @@ def test_the_amplitude_and_the_power_are_never_below_nothing(lib, block,
     arranged."""
     values = tone(block * 8, frequency)
 
-    for kind in (sptk.SPECTROGRAM_AMPLITUDE, sptk.SPECTROGRAM_POWER,
-                 sptk.SPECTROGRAM_DENSITY):
+    for kind in (ffitt.SPECTROGRAM_AMPLITUDE, ffitt.SPECTROGRAM_POWER,
+                 ffitt.SPECTROGRAM_DENSITY):
         rows, _ = measured(lib, values, block, window, kind)
 
         for row in rows:

@@ -13,13 +13,13 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
 
-WAYS = st.sampled_from([sptk.QUANTISE_PLAIN, sptk.QUANTISE_DITHER,
-                        sptk.QUANTISE_SHAPED])
+WAYS = st.sampled_from([ffitt.QUANTISE_PLAIN, ffitt.QUANTISE_DITHER,
+                        ffitt.QUANTISE_SHAPED])
 
 BITS = st.integers(min_value=2, max_value=16)
 
@@ -35,8 +35,8 @@ def designed(lib, way, bits, reach, seed=1):
 
 
 def through(lib, quantiser, values):
-    given_values = sptk.float_array(values)
-    out = sptk.real_buffer(len(values))
+    given_values = ffitt.float_array(values)
+    out = ffitt.real_buffer(len(values))
     assert lib.quantise_block(quantiser, given_values, out, len(values))
     return [out[index] for index in range(len(values))]
 
@@ -80,7 +80,7 @@ def test_plain_rounding_never_moves_a_sample_by_half_a_step(lib, bits, reach,
 
     Only samples inside the reach are examined, because a sample outside it is
     held at the reach on purpose and moves as far as it must."""
-    quantiser = designed(lib, sptk.QUANTISE_PLAIN, bits, reach)
+    quantiser = designed(lib, ffitt.QUANTISE_PLAIN, bits, reach)
     step = lib.quantise_step_of(quantiser)
 
     inside = [value for value in values if abs(value) < reach]
@@ -145,9 +145,9 @@ def test_one_more_bit_halves_the_step(lib, bits, reach):
     says."""
     assume(bits < 16)
 
-    coarse = lib.quantise_step_of(designed(lib, sptk.QUANTISE_PLAIN, bits,
+    coarse = lib.quantise_step_of(designed(lib, ffitt.QUANTISE_PLAIN, bits,
                                            reach))
-    fine = lib.quantise_step_of(designed(lib, sptk.QUANTISE_PLAIN, bits + 1,
+    fine = lib.quantise_step_of(designed(lib, ffitt.QUANTISE_PLAIN, bits + 1,
                                          reach))
 
     assert abs((coarse / 2.0) - fine) <= 1e-6 * coarse
@@ -158,9 +158,9 @@ def test_a_wider_reach_makes_a_larger_step_in_proportion(lib, bits, reach):
     """The bits say how many steps there are and the reach says how far they
     spread. Twice the reach over the same count of steps is twice the step,
     which is why more bits are needed to hold a louder signal as well."""
-    narrow = lib.quantise_step_of(designed(lib, sptk.QUANTISE_PLAIN, bits,
+    narrow = lib.quantise_step_of(designed(lib, ffitt.QUANTISE_PLAIN, bits,
                                            reach))
-    wide = lib.quantise_step_of(designed(lib, sptk.QUANTISE_PLAIN, bits,
+    wide = lib.quantise_step_of(designed(lib, ffitt.QUANTISE_PLAIN, bits,
                                          reach * 2.0))
 
     assert abs((narrow * 2.0) - wide) <= 1e-6 * wide
@@ -194,9 +194,9 @@ def test_dither_takes_the_error_off_the_signal(lib, bits, reach):
               for index in range(count)]
     assume(all(abs(value) < reach for value in values))
 
-    plain = through(lib, designed(lib, sptk.QUANTISE_PLAIN, bits, reach),
+    plain = through(lib, designed(lib, ffitt.QUANTISE_PLAIN, bits, reach),
                     values)
-    dithered = through(lib, designed(lib, sptk.QUANTISE_DITHER, bits, reach,
+    dithered = through(lib, designed(lib, ffitt.QUANTISE_DITHER, bits, reach,
                                      seed=7), values)
 
     def lean(answers):

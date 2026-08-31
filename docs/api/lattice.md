@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-A filter built as a ladder of stages. Declared in `sptk/filter/lattice.h`.
+A filter built as a ladder of stages. Declared in `ffitt/filter/lattice.h`.
 
-[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+[Back to the index](../API.md) | [How the filter modules work](../../ffitt/filter/README.md)
 
 ## Macros
 

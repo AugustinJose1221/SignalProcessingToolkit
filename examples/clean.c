@@ -30,12 +30,12 @@
 
 #if (RUN_EXAMPLE == RUN_CLEAN_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/filter/dcblock.h>
-#include <sptk/filter/hampel.h>
-#include <sptk/filter/medfilt.h>
-#include <sptk/filter/movavg.h>
-#include <sptk/util/stats.h>
+#include <ffitt/core/real.h>
+#include <ffitt/filter/dcblock.h>
+#include <ffitt/filter/hampel.h>
+#include <ffitt/filter/medfilt.h>
+#include <ffitt/filter/movavg.h>
+#include <ffitt/util/stats.h>
 #include <math.h>
 #include <stdio.h>
 

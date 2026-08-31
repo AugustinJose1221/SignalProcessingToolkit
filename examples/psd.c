@@ -32,9 +32,9 @@
 
 #if (RUN_EXAMPLE == RUN_PSD_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/transform/psd.h>
-#include <sptk/transform/window.h>
+#include <ffitt/core/real.h>
+#include <ffitt/transform/psd.h>
+#include <ffitt/transform/window.h>
 #include <math.h>
 #include <stdio.h>
 

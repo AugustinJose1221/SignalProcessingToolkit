@@ -16,7 +16,7 @@ void tearDown(void)
 
 void test_real_holds_the_width_that_the_build_asked_for(void)
 {
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     TEST_ASSERT_EQUAL(8, (int)sizeof(real_t));
     TEST_ASSERT_EQUAL(DBL_DIG, REAL_DIGITS);
 #else
@@ -28,7 +28,7 @@ void test_real_holds_the_width_that_the_build_asked_for(void)
 void test_real_holds_more_digits_at_64_bits_than_at_32(void)
 {
     // The whole reason a caller would choose 64 bits.
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     TEST_ASSERT_TRUE(REAL_DIGITS >= 15);
     TEST_ASSERT_TRUE(REAL_EPSILON < 1.0e-15);
 #else
@@ -44,7 +44,7 @@ void test_a_number_written_with_real_c_keeps_every_digit_of_the_build(void)
     // way would hold seven digits and say it held sixteen.
     real_t tenth = REAL_C(0.1);
 
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     // The nearest double to a tenth is nearer than the nearest float is.
     TEST_ASSERT_TRUE(fabs((double)tenth - 0.1) < 1.0e-16);
 #else
@@ -113,7 +113,7 @@ void test_a_sum_shows_the_width_of_the_build(void)
     real_t large = REAL_C(8000000.0);
     real_t total = large + REAL_C(0.5);
 
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     TEST_ASSERT_TRUE((total - large) > REAL_C(0.4));
 #else
     // At 32 bits one step beside eight million is 0.5, thus a half is at the

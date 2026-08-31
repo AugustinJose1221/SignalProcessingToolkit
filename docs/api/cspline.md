@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Cubic splines. Declared in `sptk/interpolate/cspline.h`.
+Cubic splines. Declared in `ffitt/interpolate/cspline.h`.
 
-[Back to the index](../API.md) | [How the interpolate modules work](../../sptk/interpolate/README.md)
+[Back to the index](../API.md) | [How the interpolate modules work](../../ffitt/interpolate/README.md)
 
 ## Types
 

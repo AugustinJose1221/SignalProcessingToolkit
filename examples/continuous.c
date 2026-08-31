@@ -31,10 +31,10 @@
 
 #if (RUN_EXAMPLE == RUN_CONTINUOUS_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/estimate/propagate.h>
-#include <sptk/estimate/ukf.h>
-#include <sptk/linalg/matrix.h>
+#include <ffitt/core/real.h>
+#include <ffitt/estimate/propagate.h>
+#include <ffitt/estimate/ukf.h>
+#include <ffitt/linalg/matrix.h>
 #include <math.h>
 #include <stdio.h>
 

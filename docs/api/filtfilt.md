@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Filtering with no delay. Declared in `sptk/filter/filtfilt.h`.
+Filtering with no delay. Declared in `ffitt/filter/filtfilt.h`.
 
-[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+[Back to the index](../API.md) | [How the filter modules work](../../ffitt/filter/README.md)
 
 ## Functions
 

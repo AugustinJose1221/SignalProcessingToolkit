@@ -1,6 +1,6 @@
 #define _POSIX_C_SOURCE 199309L
 
-#include <sptk/core/real.h>
+#include <ffitt/core/real.h>
 #include <perf/benchmark/benchmark.h>
 
 #include <stdio.h>

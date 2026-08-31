@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The unscented Kalman filter. Declared in `sptk/estimate/ukf.h`.
+The unscented Kalman filter. Declared in `ffitt/estimate/ukf.h`.
 
-[Back to the index](../API.md) | [How the estimate modules work](../../sptk/estimate/README.md)
+[Back to the index](../API.md) | [How the estimate modules work](../../ffitt/estimate/README.md)
 
 ## Macros
 
