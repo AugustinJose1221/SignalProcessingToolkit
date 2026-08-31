@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Valley detection. Declared in `sptk/util/valleydetect.h`.
+Valley detection. Declared in `ffitt/util/valleydetect.h`.
 
-[Back to the index](../API.md) | [How the util modules work](../../sptk/util/README.md)
+[Back to the index](../API.md) | [How the util modules work](../../ffitt/util/README.md)
 
 ## Functions
 

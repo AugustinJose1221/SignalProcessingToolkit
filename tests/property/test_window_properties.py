@@ -13,16 +13,16 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 SIZES = st.integers(min_value=1, max_value=64)
-KINDS = st.sampled_from(sptk.WINDOWS_WITHOUT_A_PARAMETER)
+KINDS = st.sampled_from(ffitt.WINDOWS_WITHOUT_A_PARAMETER)
 
 
 def built(lib, size, kind, parameter=0.0):
     """Give the values of a window as a list."""
-    window = sptk.real_buffer(size)
+    window = ffitt.real_buffer(size)
     lib.window_build_with(window, size, kind, parameter)
     return list(window)
 
@@ -79,7 +79,7 @@ def test_a_tapered_window_of_two_values_is_nothing_at_all(lib, kind):
     """
     values = built(lib, 2, kind)
 
-    if kind == sptk.WINDOW_RECTANGULAR:
+    if kind == ffitt.WINDOW_RECTANGULAR:
         assert values == [1.0, 1.0]
         # It takes nothing away, thus it has no ends to fall at.
         assert lib.window_is_valid_size(2, kind)
@@ -116,11 +116,11 @@ def test_a_tukey_window_at_the_two_ends_is_two_other_windows(lib, size):
     At a parameter of 0 nothing falls, thus the window is rectangular. At 1
     everything falls, thus it is a Hann window.
     """
-    flat = built(lib, size, sptk.WINDOW_RECTANGULAR)
-    hann = built(lib, size, sptk.WINDOW_HANN)
+    flat = built(lib, size, ffitt.WINDOW_RECTANGULAR)
+    hann = built(lib, size, ffitt.WINDOW_HANN)
 
-    at_zero = built(lib, size, sptk.WINDOW_TUKEY, 0.0)
-    at_one = built(lib, size, sptk.WINDOW_TUKEY, 1.0)
+    at_zero = built(lib, size, ffitt.WINDOW_TUKEY, 0.0)
+    at_one = built(lib, size, ffitt.WINDOW_TUKEY, 1.0)
 
     for index in range(size):
         assert sp.close(at_zero[index], flat[index], relative=1e-4,
@@ -132,8 +132,8 @@ def test_a_tukey_window_at_the_two_ends_is_two_other_windows(lib, size):
 @given(st.integers(min_value=2, max_value=64))
 def test_a_kaiser_window_at_a_beta_of_nothing_is_rectangular(lib, size):
     """A beta of 0 asks for no shape at all, thus nothing is taken away."""
-    flat = built(lib, size, sptk.WINDOW_RECTANGULAR)
-    kaiser = built(lib, size, sptk.WINDOW_KAISER, 0.0)
+    flat = built(lib, size, ffitt.WINDOW_RECTANGULAR)
+    kaiser = built(lib, size, ffitt.WINDOW_KAISER, 0.0)
 
     for index in range(size):
         assert sp.close(kaiser[index], flat[index], relative=1e-4,
@@ -151,7 +151,7 @@ def test_the_three_gains_agree_with_one_another(lib, size, kind):
 
     From a size of 3, because at 2 a tapered window has no gain to divide by.
     """
-    window = sptk.real_buffer(size)
+    window = ffitt.real_buffer(size)
     lib.window_build(window, size, kind)
 
     coherent = lib.window_coherent_gain(window, size)
@@ -167,8 +167,8 @@ def test_the_three_gains_agree_with_one_another(lib, size, kind):
 @given(st.integers(min_value=2, max_value=64))
 def test_a_rectangular_window_gains_nothing_and_loses_nothing(lib, size):
     """It takes nothing away, thus all three gains are 1."""
-    window = sptk.real_buffer(size)
-    lib.window_build(window, size, sptk.WINDOW_RECTANGULAR)
+    window = ffitt.real_buffer(size)
+    lib.window_build(window, size, ffitt.WINDOW_RECTANGULAR)
 
     assert sp.close(lib.window_coherent_gain(window, size), 1.0)
     assert sp.close(lib.window_noise_gain(window, size), 1.0)
@@ -180,11 +180,11 @@ def test_laying_a_window_on_a_block_multiplies_it_value_by_value(lib, size,
                                                                  kind, block):
     """window_apply must be a multiplication and nothing else."""
     size = min(size, len(block))
-    window = sptk.real_buffer(size)
+    window = ffitt.real_buffer(size)
     lib.window_build(window, size, kind)
 
-    output = sptk.real_buffer(size)
-    lib.window_apply(window, sptk.float_array(block[:size]), output, size)
+    output = ffitt.real_buffer(size)
+    lib.window_apply(window, ffitt.float_array(block[:size]), output, size)
 
     for index in range(size):
         assert sp.close(output[index],
@@ -196,13 +196,13 @@ def test_laying_a_window_on_a_block_multiplies_it_value_by_value(lib, size,
 def test_a_window_can_be_laid_on_a_block_in_place(lib, size, kind, block):
     """The header says the input and the output may be the same list."""
     size = min(size, len(block))
-    window = sptk.real_buffer(size)
+    window = ffitt.real_buffer(size)
     lib.window_build(window, size, kind)
 
-    apart = sptk.real_buffer(size)
-    lib.window_apply(window, sptk.float_array(block[:size]), apart, size)
+    apart = ffitt.real_buffer(size)
+    lib.window_apply(window, ffitt.float_array(block[:size]), apart, size)
 
-    together = sptk.float_array(block[:size])
+    together = ffitt.float_array(block[:size])
     lib.window_apply(window, together, together, size)
 
     for index in range(size):
@@ -219,7 +219,7 @@ def test_a_size_the_module_accepts_has_a_gain_worth_dividing_by(lib, size,
     """
     assume(lib.window_is_valid_size(size, kind))
 
-    window = sptk.real_buffer(size)
+    window = ffitt.real_buffer(size)
     lib.window_build(window, size, kind)
 
     assert lib.window_coherent_gain(window, size) > 0.01
@@ -228,15 +228,15 @@ def test_a_size_the_module_accepts_has_a_gain_worth_dividing_by(lib, size,
 @given(st.integers(min_value=-4, max_value=10))
 def test_only_the_kinds_that_exist_are_taken(lib, kind):
     """A kind outside the list must be refused, whatever number it carries."""
-    assert lib.window_is_valid_kind(kind) == (0 <= kind <= sptk.WINDOW_KAISER)
+    assert lib.window_is_valid_kind(kind) == (0 <= kind <= ffitt.WINDOW_KAISER)
 
 
-@given(st.sampled_from([sptk.WINDOW_RECTANGULAR, sptk.WINDOW_HANN,
-                        sptk.WINDOW_HAMMING, sptk.WINDOW_BLACKMAN,
-                        sptk.WINDOW_BLACKMAN_HARRIS, sptk.WINDOW_TUKEY,
-                        sptk.WINDOW_KAISER]))
+@given(st.sampled_from([ffitt.WINDOW_RECTANGULAR, ffitt.WINDOW_HANN,
+                        ffitt.WINDOW_HAMMING, ffitt.WINDOW_BLACKMAN,
+                        ffitt.WINDOW_BLACKMAN_HARRIS, ffitt.WINDOW_TUKEY,
+                        ffitt.WINDOW_KAISER]))
 def test_the_windows_that_take_a_parameter_are_the_two_that_have_a_shape(lib,
                                                                         kind):
     """Only Tukey and Kaiser follow a parameter; the rest have a fixed shape."""
-    expected = kind in (sptk.WINDOW_TUKEY, sptk.WINDOW_KAISER)
+    expected = kind in (ffitt.WINDOW_TUKEY, ffitt.WINDOW_KAISER)
     assert lib.window_takes_a_parameter(kind) == expected

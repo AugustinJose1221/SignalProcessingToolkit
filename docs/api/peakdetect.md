@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Peak detection. Declared in `sptk/util/peakdetect.h`.
+Peak detection. Declared in `ffitt/util/peakdetect.h`.
 
-[Back to the index](../API.md) | [How the util modules work](../../sptk/util/README.md)
+[Back to the index](../API.md) | [How the util modules work](../../ffitt/util/README.md)
 
 ## Types
 

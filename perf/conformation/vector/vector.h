@@ -1,7 +1,7 @@
 #ifndef __CONFORMATION_VECTOR_H__
 #define __CONFORMATION_VECTOR_H__
 
-#include <sptk/linalg/vector.h>
+#include <ffitt/linalg/vector.h>
 #include <perf/conformation/support.h>
 
 #define VECTOR_INIT(vec, size, arr)  do\

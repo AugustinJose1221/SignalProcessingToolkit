@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Measures of a list of samples. Declared in `sptk/util/stats.h`.
+Measures of a list of samples. Declared in `ffitt/util/stats.h`.
 
-[Back to the index](../API.md) | [How the util modules work](../../sptk/util/README.md)
+[Back to the index](../API.md) | [How the util modules work](../../ffitt/util/README.md)
 
 ## Macros
 

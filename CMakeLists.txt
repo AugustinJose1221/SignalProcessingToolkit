@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(SignalProcessing VERSION 0.17.2 LANGUAGES C)
+project(Ffitt VERSION 0.17.2 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -11,66 +11,66 @@ include_directories(${PROJECT_SOURCE_DIR})
 
 # The library sources. These sources use only the C standard library.
 set(SIGNALPROC_SOURCES
-    sptk/core/real.c
-    sptk/core/ringbuf.c
-    sptk/linalg/cmatrix.c
-    sptk/linalg/cnum.c
-    sptk/linalg/matrix.c
-    sptk/linalg/eigen.c
-    sptk/linalg/lstsq.c
-    sptk/linalg/pmatrix.c
-    sptk/linalg/poly.c
-    sptk/linalg/quaternion.c
-    sptk/linalg/vector.c
-    sptk/linalg/vector2d.c
-    sptk/interpolate/cspline.c
-    sptk/interpolate/interp.c
-    sptk/transform/bluestein.c
-    sptk/transform/cepstrum.c
-    sptk/transform/dct.c
-    sptk/transform/dwt.c
-    sptk/transform/fft.c
-    sptk/transform/goertzel.c
-    sptk/transform/hht.c
-    sptk/transform/hilbert.c
-    sptk/transform/window.c
-    sptk/transform/correlate.c
-    sptk/transform/convolve.c
-    sptk/transform/csd.c
-    sptk/transform/psd.c
-    sptk/transform/spectrogram.c
-    sptk/transform/stft.c
-    sptk/filter/fir.c
-    sptk/filter/iir.c
-    sptk/filter/savgol.c
-    sptk/filter/movavg.c
-    sptk/filter/medfilt.c
-    sptk/filter/dcblock.c
-    sptk/filter/detrend.c
-    sptk/filter/hampel.c
-    sptk/filter/adaptive.c
-    sptk/filter/resample.c
-    sptk/filter/lattice.c
-    sptk/filter/rls.c
-    sptk/filter/filtfilt.c
-    sptk/filter/farrow.c
-    sptk/estimate/ekf.c
-    sptk/estimate/kalman.c
-    sptk/estimate/propagate.c
-    sptk/estimate/pll.c
-    sptk/estimate/ukf.c
-    sptk/decompose/emd.c
-    sptk/decompose/imf.c
-    sptk/util/binarysearch.c
-    sptk/util/curve.c
-    sptk/util/generate.c
-    sptk/util/quantise.c
-    sptk/util/stats.c
-    sptk/util/peakdetect.c
-    sptk/util/valleydetect.c
-    sptk/detect/matched.c
-    sptk/detect/delay.c
-    sptk/detect/changepoint.c)
+    ffitt/core/real.c
+    ffitt/core/ringbuf.c
+    ffitt/linalg/cmatrix.c
+    ffitt/linalg/cnum.c
+    ffitt/linalg/matrix.c
+    ffitt/linalg/eigen.c
+    ffitt/linalg/lstsq.c
+    ffitt/linalg/pmatrix.c
+    ffitt/linalg/poly.c
+    ffitt/linalg/quaternion.c
+    ffitt/linalg/vector.c
+    ffitt/linalg/vector2d.c
+    ffitt/interpolate/cspline.c
+    ffitt/interpolate/interp.c
+    ffitt/transform/bluestein.c
+    ffitt/transform/cepstrum.c
+    ffitt/transform/dct.c
+    ffitt/transform/dwt.c
+    ffitt/transform/fft.c
+    ffitt/transform/goertzel.c
+    ffitt/transform/hht.c
+    ffitt/transform/hilbert.c
+    ffitt/transform/window.c
+    ffitt/transform/correlate.c
+    ffitt/transform/convolve.c
+    ffitt/transform/csd.c
+    ffitt/transform/psd.c
+    ffitt/transform/spectrogram.c
+    ffitt/transform/stft.c
+    ffitt/filter/fir.c
+    ffitt/filter/iir.c
+    ffitt/filter/savgol.c
+    ffitt/filter/movavg.c
+    ffitt/filter/medfilt.c
+    ffitt/filter/dcblock.c
+    ffitt/filter/detrend.c
+    ffitt/filter/hampel.c
+    ffitt/filter/adaptive.c
+    ffitt/filter/resample.c
+    ffitt/filter/lattice.c
+    ffitt/filter/rls.c
+    ffitt/filter/filtfilt.c
+    ffitt/filter/farrow.c
+    ffitt/estimate/ekf.c
+    ffitt/estimate/kalman.c
+    ffitt/estimate/propagate.c
+    ffitt/estimate/pll.c
+    ffitt/estimate/ukf.c
+    ffitt/decompose/emd.c
+    ffitt/decompose/imf.c
+    ffitt/util/binarysearch.c
+    ffitt/util/curve.c
+    ffitt/util/generate.c
+    ffitt/util/quantise.c
+    ffitt/util/stats.c
+    ffitt/util/peakdetect.c
+    ffitt/util/valleydetect.c
+    ffitt/detect/matched.c
+    ffitt/detect/delay.c
+    ffitt/detect/changepoint.c)
 
 # The repository gives a library, thus the first target is a library. A library
 # needs no main function, and it always builds.

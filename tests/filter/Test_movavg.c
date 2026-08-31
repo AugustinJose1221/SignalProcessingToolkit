@@ -125,7 +125,7 @@ void test_movavg_holds_its_accuracy_over_a_long_run(void)
     // In 32 bits it comes out at 8000000.5, which is half a count out and does
     // not grow with the length of the run. Without the refresh it would grow
     // without end.
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(8000001.0),
                             movavg_get_mean(&movavg));
 #else
@@ -167,7 +167,7 @@ void test_movavg_deviation_on_a_large_offset_shows_what_the_width_costs(void)
 
     // The samples are 8000000 to 8000004, whose deviation is the root of 2,
     // which is 1.4142.
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_SQRT(REAL_C(2.0)),
                             movavg_get_deviation(&movavg));
 #else

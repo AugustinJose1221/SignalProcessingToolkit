@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The extended Kalman filter. Declared in `sptk/estimate/ekf.h`.
+The extended Kalman filter. Declared in `ffitt/estimate/ekf.h`.
 
-[Back to the index](../API.md) | [How the estimate modules work](../../sptk/estimate/README.md)
+[Back to the index](../API.md) | [How the estimate modules work](../../ffitt/estimate/README.md)
 
 ## Macros
 

@@ -18,7 +18,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=25, deadline=None)
@@ -50,9 +50,9 @@ def transformed(lib, size, values, rate=RATE):
         imf.y[index] = sp.to_float32(values[index])
 
     fft = lib.fft_alloc(size)
-    work = (sptk.Cnum * size)()
-    amplitude = sptk.real_buffer(size)
-    frequency = sptk.real_buffer(size)
+    work = (ffitt.Cnum * size)()
+    amplitude = ffitt.real_buffer(size)
+    frequency = ffitt.real_buffer(size)
 
     try:
         lib.hht_transform_imf(fft, imf, work, amplitude, frequency,
@@ -113,8 +113,8 @@ def test_the_mean_frequency_of_a_steady_tone_is_that_frequency(lib, size,
     amplitude, frequency = transformed(lib, size, tone(size, bin_index,
                                                        height))
 
-    got = lib.hht_mean_frequency(sptk.float_array(amplitude),
-                                 sptk.float_array(frequency), size)
+    got = lib.hht_mean_frequency(ffitt.float_array(amplitude),
+                                 ffitt.float_array(frequency), size)
 
     assert abs(got - wanted) <= 0.05 * wanted
 
@@ -218,8 +218,8 @@ def test_the_mean_weighs_every_point_by_the_square_of_its_amplitude(
     wanted = sum((a * a) * f for a, f
                  in zip(amplitudes[:count - 1], frequencies)) / weight
 
-    got = lib.hht_mean_frequency(sptk.float_array(amplitudes),
-                                 sptk.float_array(frequencies), count)
+    got = lib.hht_mean_frequency(ffitt.float_array(amplitudes),
+                                 ffitt.float_array(frequencies), count)
 
     assert abs(got - wanted) <= 1e-3 * (1.0 + abs(wanted))
 
@@ -235,15 +235,15 @@ def test_a_point_with_no_height_has_no_say_at_all(lib, count, wild):
     amplitudes = [1.0] * count
     frequencies = [64.0] * (count - 1)
 
-    before = lib.hht_mean_frequency(sptk.float_array(amplitudes),
-                                    sptk.float_array(frequencies), count)
+    before = lib.hht_mean_frequency(ffitt.float_array(amplitudes),
+                                    ffitt.float_array(frequencies), count)
 
     # One point silenced, and given a frequency from nowhere.
     amplitudes[count // 2] = 0.0
     frequencies[count // 2] = wild
 
-    after = lib.hht_mean_frequency(sptk.float_array(amplitudes),
-                                   sptk.float_array(frequencies), count)
+    after = lib.hht_mean_frequency(ffitt.float_array(amplitudes),
+                                   ffitt.float_array(frequencies), count)
 
     assert abs(after - before) <= 1e-4 * (1.0 + before)
 
@@ -280,7 +280,7 @@ def test_transforming_several_functions_is_transforming_each_of_them(
     one = tone(size, first)
     other = tone(size, second)
 
-    imfs = (sptk.Imf * 2)()
+    imfs = (ffitt.Imf * 2)()
 
     for which, values in enumerate((one, other)):
         imfs[which] = lib.imf_alloc(size)
@@ -290,9 +290,9 @@ def test_transforming_several_functions_is_transforming_each_of_them(
             imfs[which].y[index] = sp.to_float32(values[index])
 
     fft = lib.fft_alloc(size)
-    work = (sptk.Cnum * size)()
-    amplitude = sptk.real_buffer(2 * size)
-    frequency = sptk.real_buffer(2 * (size - 1))
+    work = (ffitt.Cnum * size)()
+    amplitude = ffitt.real_buffer(2 * size)
+    frequency = ffitt.real_buffer(2 * (size - 1))
 
     try:
         lib.hht_transform(fft, imfs, 2, work, amplitude, frequency,

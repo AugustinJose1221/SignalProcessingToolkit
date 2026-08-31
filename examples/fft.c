@@ -18,9 +18,9 @@
 
 #if (RUN_EXAMPLE == RUN_FFT_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/transform/fft.h>
-#include <sptk/linalg/cnum.h>
+#include <ffitt/core/real.h>
+#include <ffitt/transform/fft.h>
+#include <ffitt/linalg/cnum.h>
 #include <math.h>
 #include <stdio.h>
 

@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Fitting a curve through readings. Declared in `sptk/linalg/lstsq.h`.
+Fitting a curve through readings. Declared in `ffitt/linalg/lstsq.h`.
 
-[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../ffitt/linalg/README.md)
 
 ## Macros
 

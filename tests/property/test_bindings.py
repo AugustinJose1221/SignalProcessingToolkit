@@ -15,30 +15,30 @@ import sys
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 
 PROBE = r"""
 #include <stddef.h>
 #include <stdio.h>
-#include <sptk/linalg/matrix.h>
-#include <sptk/linalg/vector.h>
-#include <sptk/interpolate/cspline.h>
-#include <sptk/estimate/kalman.h>
-#include <sptk/linalg/cnum.h>
-#include <sptk/linalg/quaternion.h>
-#include <sptk/transform/fft.h>
-#include <sptk/transform/bluestein.h>
-#include <sptk/transform/stft.h>
-#include <sptk/filter/iir.h>
-#include <sptk/filter/fir.h>
-#include <sptk/filter/rls.h>
-#include <sptk/filter/lattice.h>
-#include <sptk/transform/csd.h>
-#include <sptk/detect/matched.h>
-#include <sptk/detect/changepoint.h>
-#include <sptk/util/generate.h>
-#include <sptk/util/quantise.h>
-#include <sptk/util/peakdetect.h>
+#include <ffitt/linalg/matrix.h>
+#include <ffitt/linalg/vector.h>
+#include <ffitt/interpolate/cspline.h>
+#include <ffitt/estimate/kalman.h>
+#include <ffitt/linalg/cnum.h>
+#include <ffitt/linalg/quaternion.h>
+#include <ffitt/transform/fft.h>
+#include <ffitt/transform/bluestein.h>
+#include <ffitt/transform/stft.h>
+#include <ffitt/filter/iir.h>
+#include <ffitt/filter/fir.h>
+#include <ffitt/filter/rls.h>
+#include <ffitt/filter/lattice.h>
+#include <ffitt/transform/csd.h>
+#include <ffitt/detect/matched.h>
+#include <ffitt/detect/changepoint.h>
+#include <ffitt/util/generate.h>
+#include <ffitt/util/quantise.h>
+#include <ffitt/util/peakdetect.h>
 
 int main(void)
 {
@@ -111,9 +111,9 @@ def probe_output(tmp_path_factory):
     # A probe built at 32 bits and compared against Python types made at 64
     # would report a fault where there is none, and worse, would report
     # agreement for the structures that happen to match.
-    command = ["gcc", "-std=c99", "-I", sptk.REPOSITORY]
-    if sptk.REAL_64:
-        command.append("-DSPTK_REAL_64")
+    command = ["gcc", "-std=c99", "-I", ffitt.REPOSITORY]
+    if ffitt.REAL_64:
+        command.append("-DFFITT_REAL_64")
     command += [str(source), "-o", str(binary)]
 
     build = subprocess.run(command, capture_output=True, text=True)
@@ -131,152 +131,152 @@ def probe_output(tmp_path_factory):
 
 def test_matrix_layout(probe_output):
     size, offset_n, offset_elem, offset_flag = probe_output["Matrix"]
-    assert ctypes.sizeof(sptk.Matrix) == size
-    assert sptk.Matrix.n.offset == offset_n
-    assert sptk.Matrix.elem.offset == offset_elem
-    assert sptk.Matrix.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Matrix) == size
+    assert ffitt.Matrix.n.offset == offset_n
+    assert ffitt.Matrix.elem.offset == offset_elem
+    assert ffitt.Matrix.dynamic_alloc.offset == offset_flag
 
 
 def test_vector_layout(probe_output):
     size, offset_data, offset_flag = probe_output["Vector"]
-    assert ctypes.sizeof(sptk.Vector) == size
-    assert sptk.Vector.data.offset == offset_data
-    assert sptk.Vector.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Vector) == size
+    assert ffitt.Vector.data.offset == offset_data
+    assert ffitt.Vector.dynamic_alloc.offset == offset_flag
 
 
 def test_cspline_layout(probe_output):
     size, offset_d, offset_flag = probe_output["CSpline"]
-    assert ctypes.sizeof(sptk.CSpline) == size
-    assert sptk.CSpline.d.offset == offset_d
-    assert sptk.CSpline.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.CSpline) == size
+    assert ffitt.CSpline.d.offset == offset_d
+    assert ffitt.CSpline.dynamic_alloc.offset == offset_flag
 
 
 def test_cspline_mempool_layout(probe_output):
     size, offset_flag = probe_output["CSplineMempool"]
-    assert ctypes.sizeof(sptk.CSplineMempool) == size
-    assert sptk.CSplineMempool.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.CSplineMempool) == size
+    assert ffitt.CSplineMempool.dynamic_alloc.offset == offset_flag
 
 
 def test_kalman_layout(probe_output):
     size, offset_prev, offset_gain, offset_scratch, offset_flag = probe_output["Kalman"]
-    assert ctypes.sizeof(sptk.Kalman) == size
-    assert getattr(sptk.Kalman, "_x").offset == offset_prev
-    assert sptk.Kalman.k.offset == offset_gain
-    assert sptk.Kalman.scratch.offset == offset_scratch
-    assert sptk.Kalman.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Kalman) == size
+    assert getattr(ffitt.Kalman, "_x").offset == offset_prev
+    assert ffitt.Kalman.k.offset == offset_gain
+    assert ffitt.Kalman.scratch.offset == offset_scratch
+    assert ffitt.Kalman.dynamic_alloc.offset == offset_flag
 
 
 def test_cnum_layout(probe_output):
     size, offset_imaginary = probe_output["Cnum"]
-    assert ctypes.sizeof(sptk.Cnum) == size
-    assert sptk.Cnum.im.offset == offset_imaginary
+    assert ctypes.sizeof(ffitt.Cnum) == size
+    assert ffitt.Cnum.im.offset == offset_imaginary
 
 
 def test_fft_layout(probe_output):
     size, offset_twiddle, offset_reverse, offset_flag = probe_output["Fft"]
-    assert ctypes.sizeof(sptk.Fft) == size
-    assert sptk.Fft.twiddle.offset == offset_twiddle
-    assert sptk.Fft.reverse.offset == offset_reverse
-    assert sptk.Fft.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Fft) == size
+    assert ffitt.Fft.twiddle.offset == offset_twiddle
+    assert ffitt.Fft.reverse.offset == offset_reverse
+    assert ffitt.Fft.dynamic_alloc.offset == offset_flag
 
 
 def test_bluestein_layout(probe_output):
     size, offset_fft, offset_chirp, offset_flag = probe_output["Bluestein"]
-    assert ctypes.sizeof(sptk.Bluestein) == size
-    assert sptk.Bluestein.fft.offset == offset_fft
-    assert sptk.Bluestein.chirp.offset == offset_chirp
-    assert sptk.Bluestein.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Bluestein) == size
+    assert ffitt.Bluestein.fft.offset == offset_fft
+    assert ffitt.Bluestein.chirp.offset == offset_chirp
+    assert ffitt.Bluestein.dynamic_alloc.offset == offset_flag
 
 
 def test_stft_layout(probe_output):
     size, offset_window, offset_fft, offset_flag = probe_output["Stft"]
-    assert ctypes.sizeof(sptk.Stft) == size
-    assert sptk.Stft.window.offset == offset_window
-    assert sptk.Stft.fft.offset == offset_fft
-    assert sptk.Stft.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Stft) == size
+    assert ffitt.Stft.window.offset == offset_window
+    assert ffitt.Stft.fft.offset == offset_fft
+    assert ffitt.Stft.dynamic_alloc.offset == offset_flag
 
 
 def test_iir_layout(probe_output):
     size, offset_coefficient, offset_flag = probe_output["Iir"]
-    assert ctypes.sizeof(sptk.Iir) == size
-    assert sptk.Iir.coefficient.offset == offset_coefficient
-    assert sptk.Iir.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Iir) == size
+    assert ffitt.Iir.coefficient.offset == offset_coefficient
+    assert ffitt.Iir.dynamic_alloc.offset == offset_flag
 
 
 def test_fir_layout(probe_output):
     size, offset_coefficient, offset_flag = probe_output["Fir"]
-    assert ctypes.sizeof(sptk.Fir) == size
-    assert sptk.Fir.coefficient.offset == offset_coefficient
-    assert sptk.Fir.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Fir) == size
+    assert ffitt.Fir.coefficient.offset == offset_coefficient
+    assert ffitt.Fir.dynamic_alloc.offset == offset_flag
 
 
 def test_rls_layout(probe_output):
     size, offset_coefficient, offset_length, offset_flag = probe_output["Rls"]
-    assert ctypes.sizeof(sptk.Rls) == size
-    assert sptk.Rls.coefficient.offset == offset_coefficient
-    assert sptk.Rls.length.offset == offset_length
-    assert sptk.Rls.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Rls) == size
+    assert ffitt.Rls.coefficient.offset == offset_coefficient
+    assert ffitt.Rls.length.offset == offset_length
+    assert ffitt.Rls.dynamic_alloc.offset == offset_flag
 
 
 def test_lattice_layout(probe_output):
     size, offset_weight, offset_stages, offset_flag = probe_output["Lattice"]
-    assert ctypes.sizeof(sptk.Lattice) == size
-    assert sptk.Lattice.weight.offset == offset_weight
-    assert sptk.Lattice.stages.offset == offset_stages
-    assert sptk.Lattice.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Lattice) == size
+    assert ffitt.Lattice.weight.offset == offset_weight
+    assert ffitt.Lattice.stages.offset == offset_stages
+    assert ffitt.Lattice.dynamic_alloc.offset == offset_flag
 
 
 def test_generate_layout(probe_output):
     size, offset_seed, offset_pink, offset_flag = probe_output["Generate"]
-    assert ctypes.sizeof(sptk.Generate) == size
-    assert sptk.Generate.seed.offset == offset_seed
-    assert sptk.Generate.pink.offset == offset_pink
-    assert sptk.Generate.designed.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Generate) == size
+    assert ffitt.Generate.seed.offset == offset_seed
+    assert ffitt.Generate.pink.offset == offset_pink
+    assert ffitt.Generate.designed.offset == offset_flag
 
 
 def test_csd_layout(probe_output):
     size, offset_window, offset_fft, offset_flag = probe_output["Csd"]
-    assert ctypes.sizeof(sptk.Csd) == size
-    assert sptk.Csd.window.offset == offset_window
-    assert sptk.Csd.fft.offset == offset_fft
-    assert sptk.Csd.dynamic_alloc.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Csd) == size
+    assert ffitt.Csd.window.offset == offset_window
+    assert ffitt.Csd.fft.offset == offset_fft
+    assert ffitt.Csd.dynamic_alloc.offset == offset_flag
 
 
 def test_matched_layout(probe_output):
     size, offset_length, offset_energy, offset_flag = probe_output["Matched"]
-    assert ctypes.sizeof(sptk.Matched) == size
-    assert sptk.Matched.length.offset == offset_length
-    assert sptk.Matched.root_energy.offset == offset_energy
-    assert sptk.Matched.designed.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Matched) == size
+    assert ffitt.Matched.length.offset == offset_length
+    assert ffitt.Matched.root_energy.offset == offset_energy
+    assert ffitt.Matched.designed.offset == offset_flag
 
 
 def test_changepoint_layout(probe_output):
     size, offset_high, offset_since, offset_flag = probe_output["Changepoint"]
-    assert ctypes.sizeof(sptk.Changepoint) == size
-    assert sptk.Changepoint.high.offset == offset_high
-    assert sptk.Changepoint.since_high.offset == offset_since
-    assert sptk.Changepoint.designed.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Changepoint) == size
+    assert ffitt.Changepoint.high.offset == offset_high
+    assert ffitt.Changepoint.since_high.offset == offset_since
+    assert ffitt.Changepoint.designed.offset == offset_flag
 
 
 def test_quantise_layout(probe_output):
     size, offset_seed, offset_flag = probe_output["Quantise"]
-    assert ctypes.sizeof(sptk.Quantise) == size
-    assert sptk.Quantise.seed.offset == offset_seed
-    assert sptk.Quantise.designed.offset == offset_flag
+    assert ctypes.sizeof(ffitt.Quantise) == size
+    assert ffitt.Quantise.seed.offset == offset_seed
+    assert ffitt.Quantise.designed.offset == offset_flag
 
 
 def test_quaternion_layout(probe_output):
     size, offset_x, offset_z = probe_output["Quaternion"]
-    assert ctypes.sizeof(sptk.Quaternion) == size
-    assert sptk.Quaternion.x.offset == offset_x
-    assert sptk.Quaternion.z.offset == offset_z
+    assert ctypes.sizeof(ffitt.Quaternion) == size
+    assert ffitt.Quaternion.x.offset == offset_x
+    assert ffitt.Quaternion.z.offset == offset_z
 
 
 def test_peakdetect_options_layout(probe_output):
     size, offset_width, offset_distance = probe_output["PeakdetectOptions"]
-    assert ctypes.sizeof(sptk.PeakdetectOptions) == size
-    assert sptk.PeakdetectOptions.minimum_width.offset == offset_width
-    assert sptk.PeakdetectOptions.minimum_distance.offset == offset_distance
+    assert ctypes.sizeof(ffitt.PeakdetectOptions) == size
+    assert ffitt.PeakdetectOptions.minimum_width.offset == offset_width
+    assert ffitt.PeakdetectOptions.minimum_distance.offset == offset_distance
 
 
 def test_the_library_answers(lib):

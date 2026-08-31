@@ -7,7 +7,7 @@ import sys
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 
 
 def to_float32(value):
@@ -19,7 +19,7 @@ def to_float32(value):
     the Python value to the width that the library holds, or the comparison
     measures the difference between the two languages and not the library.
     """
-    return sptk.REAL_T(value).value
+    return ffitt.REAL_T(value).value
 
 # The library holds every value in a float. A float keeps about 7 digits. Very
 # large values and very small values lose all the digits after the point, and

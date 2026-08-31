@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-What two signals have in common. Declared in `sptk/transform/csd.h`.
+What two signals have in common. Declared in `ffitt/transform/csd.h`.
 
-[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
+[Back to the index](../API.md) | [How the transform modules work](../../ffitt/transform/README.md)
 
 ## Macros
 

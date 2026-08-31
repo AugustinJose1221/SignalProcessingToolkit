@@ -9,7 +9,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 REFERENCE = ctypes.byref
@@ -36,7 +36,7 @@ def rising_data_and_value(draw):
 @given(pair=rising_data_and_value())
 def test_the_binary_search_gives_the_first_value_that_is_not_less(lib, pair):
     data, value = pair
-    array = sptk.float_array(data)
+    array = ffitt.float_array(data)
 
     index = lib.binarysearch_get_index(array, value, len(data))
 
@@ -49,7 +49,7 @@ def test_the_binary_search_gives_the_first_value_that_is_not_less(lib, pair):
 @given(pair=rising_data_and_value())
 def test_the_binary_search_finds_a_value_that_is_in_the_list(lib, pair):
     data, _ = pair
-    array = sptk.float_array(data)
+    array = ffitt.float_array(data)
 
     for position, value in enumerate(data):
         index = lib.binarysearch_get_index(array, value, len(data))
@@ -59,9 +59,9 @@ def test_the_binary_search_finds_a_value_that_is_in_the_list(lib, pair):
 
 @given(data=signals)
 def test_every_peak_is_larger_than_the_value_on_each_side(lib, data):
-    array = sptk.float_array(data)
-    index_buffer = sptk.real_buffer(len(data) + 2)
-    peak_buffer = sptk.real_buffer(len(data) + 2)
+    array = ffitt.float_array(data)
+    index_buffer = ffitt.real_buffer(len(data) + 2)
+    peak_buffer = ffitt.real_buffer(len(data) + 2)
 
     count = lib.peakdetect_get_peaks(array, index_buffer, peak_buffer, len(data))
 
@@ -75,9 +75,9 @@ def test_every_peak_is_larger_than_the_value_on_each_side(lib, data):
 
 @given(data=signals)
 def test_every_valley_is_smaller_than_the_value_on_each_side(lib, data):
-    array = sptk.float_array(data)
-    index_buffer = sptk.real_buffer(len(data) + 2)
-    valley_buffer = sptk.real_buffer(len(data) + 2)
+    array = ffitt.float_array(data)
+    index_buffer = ffitt.real_buffer(len(data) + 2)
+    valley_buffer = ffitt.real_buffer(len(data) + 2)
 
     count = lib.valleydetect_get_valley(array, index_buffer, valley_buffer, len(data))
 
@@ -91,9 +91,9 @@ def test_every_valley_is_smaller_than_the_value_on_each_side(lib, data):
 
 @given(data=signals)
 def test_the_peaks_come_in_the_order_of_the_signal(lib, data):
-    array = sptk.float_array(data)
-    index_buffer = sptk.real_buffer(len(data) + 2)
-    peak_buffer = sptk.real_buffer(len(data) + 2)
+    array = ffitt.float_array(data)
+    index_buffer = ffitt.real_buffer(len(data) + 2)
+    peak_buffer = ffitt.real_buffer(len(data) + 2)
 
     count = lib.peakdetect_get_peaks(array, index_buffer, peak_buffer, len(data))
 
@@ -104,11 +104,11 @@ def test_the_peaks_come_in_the_order_of_the_signal(lib, data):
 
 @given(data=signals)
 def test_a_point_is_never_a_peak_and_a_valley_at_the_same_time(lib, data):
-    array = sptk.float_array(data)
-    peak_index = sptk.real_buffer(len(data) + 2)
-    peak_value = sptk.real_buffer(len(data) + 2)
-    valley_index = sptk.real_buffer(len(data) + 2)
-    valley_value = sptk.real_buffer(len(data) + 2)
+    array = ffitt.float_array(data)
+    peak_index = ffitt.real_buffer(len(data) + 2)
+    peak_value = ffitt.real_buffer(len(data) + 2)
+    valley_index = ffitt.real_buffer(len(data) + 2)
+    valley_value = ffitt.real_buffer(len(data) + 2)
 
     peaks = lib.peakdetect_get_peaks(array, peak_index, peak_value, len(data))
     valleys = lib.valleydetect_get_valley(array, valley_index, valley_value, len(data))
@@ -123,9 +123,9 @@ def test_a_point_is_never_a_peak_and_a_valley_at_the_same_time(lib, data):
 def test_a_short_signal_has_no_peak_and_no_valley(lib, data):
     # A peak needs a value on each side, thus a signal with one or two values
     # can hold no peak.
-    array = sptk.float_array(data)
-    index_buffer = sptk.real_buffer(4)
-    value_buffer = sptk.real_buffer(4)
+    array = ffitt.float_array(data)
+    index_buffer = ffitt.real_buffer(4)
+    value_buffer = ffitt.real_buffer(4)
 
     assert lib.peakdetect_get_peaks(array, index_buffer, value_buffer,
                                     len(data)) == 0
@@ -141,7 +141,7 @@ def test_the_binary_search_gives_an_index_inside_the_list_for_any_value(lib, pai
     # index must stay inside the list, even for a value that lies outside the
     # range of the list.
     data, _ = pair
-    array = sptk.float_array(data)
+    array = ffitt.float_array(data)
 
     for value in (data[0] - distance, data[-1] + distance, data[0], data[-1]):
         index = lib.binarysearch_get_index(array, sp.to_float32(value), len(data))

@@ -15,11 +15,11 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 BLOCKS = st.sampled_from([8, 16, 32])
-KINDS = st.sampled_from(sptk.WINDOWS_WITHOUT_A_PARAMETER)
+KINDS = st.sampled_from(ffitt.WINDOWS_WITHOUT_A_PARAMETER)
 
 TRANSFORM = settings(max_examples=40)
 
@@ -59,8 +59,8 @@ def designed(lib, block, hop, kind):
 
 def forward(lib, stft, signal, block, hop):
     count = lib.stft_frame_count(len(signal), block, hop)
-    frames = (sptk.Cnum * (count * bins_of(block)))()
-    assert lib.stft_forward(ctypes.byref(stft), sptk.float_array(signal),
+    frames = (ffitt.Cnum * (count * bins_of(block)))()
+    assert lib.stft_forward(ctypes.byref(stft), ffitt.float_array(signal),
                             len(signal), frames, count * bins_of(block))
     return frames, count
 
@@ -82,8 +82,8 @@ def test_a_signal_taken_apart_comes_back_inside_the_solid_stretch(lib,
     frames, count = forward(lib, stft, signal, block, hop)
     size = lib.stft_signal_size(count, block, hop)
 
-    output = sptk.real_buffer(size)
-    weight = sptk.real_buffer(size)
+    output = ffitt.real_buffer(size)
+    weight = ffitt.real_buffer(size)
 
     assert lib.stft_inverse(ctypes.byref(stft), frames, count, output, size,
                             weight)
@@ -118,8 +118,8 @@ def test_outside_the_solid_stretch_nothing_is_claimed(lib, setup):
     frames, count = forward(lib, stft, signal, block, hop)
     size = lib.stft_signal_size(count, block, hop)
 
-    output = sptk.real_buffer(size)
-    weight = sptk.real_buffer(size)
+    output = ffitt.real_buffer(size)
+    weight = ffitt.real_buffer(size)
     lib.stft_inverse(ctypes.byref(stft), frames, count, output, size, weight)
 
     first = ctypes.c_uint32()
@@ -167,7 +167,7 @@ def test_a_rectangular_window_can_always_be_put_back(lib, setup):
     refused, the guard would be refusing something it need not.
     """
     block, hop, _, _ = setup
-    stft = designed(lib, block, hop, sptk.WINDOW_RECTANGULAR)
+    stft = designed(lib, block, hop, ffitt.WINDOW_RECTANGULAR)
 
     assert lib.stft_can_rebuild(ctypes.byref(stft))
 
@@ -190,7 +190,7 @@ def test_which_windows_can_be_put_back_at_a_hop_of_the_whole_block(lib, block,
     stft = designed(lib, block, block, kind)
     can = lib.stft_can_rebuild(ctypes.byref(stft))
 
-    if kind in (sptk.WINDOW_RECTANGULAR, sptk.WINDOW_HAMMING):
+    if kind in (ffitt.WINDOW_RECTANGULAR, ffitt.WINDOW_HAMMING):
         assert can
     else:
         assert not can
@@ -210,7 +210,7 @@ def test_too_few_frames_to_cover_any_sample_are_refused(lib, block):
 
     assert fewest == -(-block // hop)
 
-    stft = designed(lib, block, hop, sptk.WINDOW_HANN)
+    stft = designed(lib, block, hop, ffitt.WINDOW_HANN)
     first = ctypes.c_uint32()
     solid = ctypes.c_uint32()
 
@@ -275,7 +275,7 @@ def test_the_time_of_a_frame_moves_by_one_hop_at_a_time(lib, block, frame,
                                                         rate):
     """Each frame starts one hop after the one before it."""
     hop = block // 2
-    stft = designed(lib, block, hop, sptk.WINDOW_HANN)
+    stft = designed(lib, block, hop, ffitt.WINDOW_HANN)
 
     first = lib.stft_frame_time(ctypes.byref(stft), frame, rate)
     second = lib.stft_frame_time(ctypes.byref(stft), frame + 1, rate)

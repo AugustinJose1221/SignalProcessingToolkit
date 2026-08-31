@@ -17,7 +17,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
@@ -30,9 +30,9 @@ CUTOFFS = st.sampled_from([0.00390625, 0.0078125, 0.015625, 0.03125])
 
 def through(lib, cutoff, values):
     dcblock = lib.dcblock_init(sp.to_float32(cutoff))
-    out = sptk.real_buffer(len(values))
+    out = ffitt.real_buffer(len(values))
 
-    lib.dcblock_process_block(dcblock, sptk.float_array(values), out,
+    lib.dcblock_process_block(dcblock, ffitt.float_array(values), out,
                               len(values))
 
     return [out[index] for index in range(len(values))], dcblock
@@ -241,7 +241,7 @@ def test_only_a_cutoff_the_width_can_hold_is_taken(lib, cutoff):
     a half is above what a sampled signal can hold. The floor is set by the
     width, because the tracker's pole comes from the cutoff and a cutoff too
     small rounds that pole to exactly one."""
-    smallest = 1e-6 if not sptk.REAL_64 else 1e-9
+    smallest = 1e-6 if not ffitt.REAL_64 else 1e-9
 
     assert lib.dcblock_is_valid_cutoff(sp.to_float32(cutoff)) == (
         smallest <= cutoff < 0.5)

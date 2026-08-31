@@ -345,7 +345,7 @@ void test_the_limit_of_the_cutoff_follows_the_width_of_the_build(void)
 {
     // The limit is not one number. It is what the digits of the build can
     // carry, and a wider build carries a lower cutoff.
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     // A thousand times lower. A high pass at 0.5 Hz against 32 kHz is a cutoff
     // of 0.000016, which is out of reach at 32 bits and easy here.
     TEST_ASSERT_EQUAL(true, iir_is_valid_cutoff(REAL_C(0.000016)));

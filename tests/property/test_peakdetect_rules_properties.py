@@ -13,7 +13,7 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 SIGNALS = st.lists(sp.elements(20.0), min_size=3, max_size=60)
@@ -34,7 +34,7 @@ def rules(lib, height=None, prominence=0.0, width=0.0, distance=0):
 def found(lib, signal, options):
     """Give the indices of the peaks that pass the rules."""
     indices = (ctypes.c_uint32 * ROOM)()
-    count = lib.peakdetect_find(sptk.float_array(signal), len(signal),
+    count = lib.peakdetect_find(ffitt.float_array(signal), len(signal),
                                 ctypes.byref(options), indices, ROOM)
     return [indices[index] for index in range(count)]
 
@@ -121,7 +121,7 @@ def test_no_peak_below_the_prominence_asked_for_is_kept(lib, signal,
     peaks = found(lib, signal, rules(lib, prominence=prominence))
 
     for peak in peaks:
-        measured = lib.peakdetect_prominence(sptk.float_array(signal),
+        measured = lib.peakdetect_prominence(ffitt.float_array(signal),
                                              len(signal), peak)
         assert measured >= prominence - 1e-3
 
@@ -132,7 +132,7 @@ def test_a_prominence_is_never_below_nothing(lib, signal):
     peaks = found(lib, signal, rules(lib))
 
     for peak in peaks:
-        assert lib.peakdetect_prominence(sptk.float_array(signal),
+        assert lib.peakdetect_prominence(ffitt.float_array(signal),
                                          len(signal), peak) >= -1e-4
 
 
@@ -144,7 +144,7 @@ def test_a_prominence_never_reaches_above_the_whole_range_of_the_signal(lib,
     span = max(signal) - min(signal)
 
     for peak in peaks:
-        measured = lib.peakdetect_prominence(sptk.float_array(signal),
+        measured = lib.peakdetect_prominence(ffitt.float_array(signal),
                                              len(signal), peak)
         assert measured <= span + 1e-3
 
@@ -156,7 +156,7 @@ def test_a_width_is_never_below_nothing_and_never_wider_than_the_signal(lib,
     peaks = found(lib, signal, rules(lib))
 
     for peak in peaks:
-        width = lib.peakdetect_width(sptk.float_array(signal), len(signal),
+        width = lib.peakdetect_width(ffitt.float_array(signal), len(signal),
                                      peak, part)
         assert -1e-4 <= width <= float(len(signal))
 

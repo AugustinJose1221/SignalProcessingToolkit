@@ -30,9 +30,9 @@
 
 #if (RUN_EXAMPLE == RUN_STREAM_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/core/ringbuf.h>
-#include <sptk/filter/movavg.h>
+#include <ffitt/core/real.h>
+#include <ffitt/core/ringbuf.h>
+#include <ffitt/filter/movavg.h>
 #include <math.h>
 #include <stdio.h>
 

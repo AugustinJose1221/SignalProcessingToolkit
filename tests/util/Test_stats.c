@@ -47,7 +47,7 @@ void test_stats_variance_on_a_large_offset_shows_what_the_width_costs(void)
     real_t data[5] = {REAL_C(8000000.0), REAL_C(8000001.0), REAL_C(8000002.0),
                       REAL_C(8000003.0), REAL_C(8000004.0)};
 
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     // Sixteen digits are enough, thus the answer is right.
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), REAL_C(2.0), stats_variance(data, 5u));
 #else

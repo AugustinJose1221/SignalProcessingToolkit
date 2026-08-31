@@ -22,13 +22,13 @@
 
 #if (RUN_EXAMPLE == RUN_HHT_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/transform/hht.h>
-#include <sptk/transform/hilbert.h>
-#include <sptk/transform/fft.h>
-#include <sptk/decompose/emd.h>
-#include <sptk/decompose/imf.h>
-#include <sptk/linalg/cnum.h>
+#include <ffitt/core/real.h>
+#include <ffitt/transform/hht.h>
+#include <ffitt/transform/hilbert.h>
+#include <ffitt/transform/fft.h>
+#include <ffitt/decompose/emd.h>
+#include <ffitt/decompose/imf.h>
+#include <ffitt/linalg/cnum.h>
 #include <math.h>
 #include <stdio.h>
 

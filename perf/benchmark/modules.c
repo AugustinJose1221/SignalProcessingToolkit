@@ -3,14 +3,14 @@
 
 #include <perf/benchmark/benchmark.h>
 
-#include <sptk/core/real.h>
-#include <sptk/linalg/vector.h>
-#include <sptk/interpolate/cspline.h>
-#include <sptk/estimate/kalman.h>
-#include <sptk/decompose/emd.h>
-#include <sptk/decompose/imf.h>
-#include <sptk/filter/movavg.h>
-#include <sptk/filter/fir.h>
+#include <ffitt/core/real.h>
+#include <ffitt/linalg/vector.h>
+#include <ffitt/interpolate/cspline.h>
+#include <ffitt/estimate/kalman.h>
+#include <ffitt/decompose/emd.h>
+#include <ffitt/decompose/imf.h>
+#include <ffitt/filter/movavg.h>
+#include <ffitt/filter/fir.h>
 
 #include <stdlib.h>
 

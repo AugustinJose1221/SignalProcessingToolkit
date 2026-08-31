@@ -123,8 +123,8 @@ def counts():
     """Give the count of public functions for every header, by module."""
     answer = {}
 
-    for area in sorted(os.listdir(os.path.join(REPOSITORY, 'sptk'))):
-        folder = os.path.join(REPOSITORY, 'sptk', area)
+    for area in sorted(os.listdir(os.path.join(REPOSITORY, 'ffitt'))):
+        folder = os.path.join(REPOSITORY, 'ffitt', area)
 
         if not os.path.isdir(folder):
             continue

@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The mean of the last samples. Declared in `sptk/filter/movavg.h`.
+The mean of the last samples. Declared in `ffitt/filter/movavg.h`.
 
-[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+[Back to the index](../API.md) | [How the filter modules work](../../ffitt/filter/README.md)
 
 ## Macros
 

@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-A filter that finds its own coefficients. Declared in `sptk/filter/adaptive.h`.
+A filter that finds its own coefficients. Declared in `ffitt/filter/adaptive.h`.
 
-[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+[Back to the index](../API.md) | [How the filter modules work](../../ffitt/filter/README.md)
 
 ## Macros
 

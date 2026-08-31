@@ -13,7 +13,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
@@ -85,7 +85,7 @@ def test_a_reading_exactly_where_it_should_be_moves_neither_sum(lib, change,
 
     for _ in range(500):
         assert (lib.changepoint_process_sample(watcher, sp.to_float32(level))
-                == sptk.CHANGEPOINT_NONE)
+                == ffitt.CHANGEPOINT_NONE)
 
     assert lib.changepoint_running_high(watcher) == 0.0
     assert lib.changepoint_running_low(watcher) == 0.0
@@ -109,13 +109,13 @@ def test_a_step_large_enough_is_always_found_and_in_the_time_promised(
     at = sp.to_float32(level + (spread * size))
 
     took = 0
-    said = sptk.CHANGEPOINT_NONE
+    said = ffitt.CHANGEPOINT_NONE
 
-    while (said == sptk.CHANGEPOINT_NONE) and (took < 10000):
+    while (said == ffitt.CHANGEPOINT_NONE) and (took < 10000):
         took += 1
         said = lib.changepoint_process_sample(watcher, at)
 
-    assert said == sptk.CHANGEPOINT_ROSE
+    assert said == ffitt.CHANGEPOINT_ROSE
 
     # The promise is how many samples of gain are needed. The alarm comes on
     # the first whole sample at or past that, thus the count is the promise
@@ -138,13 +138,13 @@ def test_a_step_downwards_is_told_from_one_upwards(lib, change, threshold,
     at = sp.to_float32(level - (spread * size))
 
     took = 0
-    said = sptk.CHANGEPOINT_NONE
+    said = ffitt.CHANGEPOINT_NONE
 
-    while (said == sptk.CHANGEPOINT_NONE) and (took < 10000):
+    while (said == ffitt.CHANGEPOINT_NONE) and (took < 10000):
         took += 1
         said = lib.changepoint_process_sample(watcher, at)
 
-    assert said == sptk.CHANGEPOINT_FELL
+    assert said == ffitt.CHANGEPOINT_FELL
     assert took == math.ceil(lib.changepoint_delay_for(watcher,
                                                        sp.to_float32(size))
                              - 1e-6)
@@ -171,7 +171,7 @@ def test_the_same_reading_in_other_units_behaves_the_same_way(lib, change,
     threshold on. That is the same loss clean.c is built around, and it belongs
     to the caller and not to this module. The bound below keeps the two far
     enough apart for the width to carry both."""
-    room = 1000.0 if not sptk.REAL_64 else 1.0e9
+    room = 1000.0 if not ffitt.REAL_64 else 1.0e9
     assume(abs(level) <= (room * spread))
 
     plain = watching(lib, 0.0, 1.0, change, threshold)
@@ -230,7 +230,7 @@ def test_a_change_too_small_to_find_is_said_to_be_too_small(lib, change,
 
     for _ in range(2000):
         assert (lib.changepoint_process_sample(watcher, at)
-                == sptk.CHANGEPOINT_NONE)
+                == ffitt.CHANGEPOINT_NONE)
 
 
 @given(CHANGES, THRESHOLDS, st.sampled_from([1.0, 2.0, 4.0]))
@@ -295,7 +295,7 @@ def test_a_change_still_running_is_reported_again_after_the_same_wait(
     alarms = 0
 
     for _ in range(run):
-        if lib.changepoint_process_sample(watcher, at) != sptk.CHANGEPOINT_NONE:
+        if lib.changepoint_process_sample(watcher, at) != ffitt.CHANGEPOINT_NONE:
             alarms += 1
 
     assert alarms == 7
@@ -309,7 +309,7 @@ def test_only_a_reading_that_wanders_can_be_watched(lib, spread):
     The bound is the smallest number the width holds and not nothing, because
     every sample is DIVIDED by the spread: a spread smaller than that turns an
     ordinary sample into a number the width cannot hold."""
-    smallest = sys.float_info.min if sptk.REAL_64 else 1.1754943508222875e-38
+    smallest = sys.float_info.min if ffitt.REAL_64 else 1.1754943508222875e-38
 
     assert (lib.changepoint_is_valid_deviation(sp.to_float32(spread))
             == (spread > smallest))
@@ -332,4 +332,4 @@ def test_a_watcher_that_was_never_designed_says_nothing(lib, value):
 
     for _ in range(50):
         assert (lib.changepoint_process_sample(watcher, value)
-                == sptk.CHANGEPOINT_NONE)
+                == ffitt.CHANGEPOINT_NONE)

@@ -13,7 +13,7 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 # The order is kept low and the places are kept near zero on purpose. The
@@ -40,8 +40,8 @@ def readings(draw, min_size=6, max_size=24):
 
 def fit(lib, x, y, order):
     """Fit and give the coefficients, or None where the module refuses."""
-    coefficients = sptk.real_buffer(order + 1)
-    if not lib.lstsq_polyfit(sptk.float_array(x), sptk.float_array(y), len(x),
+    coefficients = ffitt.real_buffer(order + 1)
+    if not lib.lstsq_polyfit(ffitt.float_array(x), ffitt.float_array(y), len(x),
                              order, coefficients):
         return None
     return coefficients
@@ -105,7 +105,7 @@ def test_the_quality_of_a_fit_lies_between_nothing_and_everything(lib, points,
     coefficients = fit(lib, x, y, order)
     assume(coefficients is not None)
 
-    quality = lib.lstsq_fit_quality(sptk.float_array(x), sptk.float_array(y),
+    quality = lib.lstsq_fit_quality(ffitt.float_array(x), ffitt.float_array(y),
                                     len(x), coefficients, order)
 
     assert -1e-4 <= quality <= 1.0 + 1e-4
@@ -113,15 +113,15 @@ def test_the_quality_of_a_fit_lies_between_nothing_and_everything(lib, points,
 
 def quality_scaled(lib, x, y, order):
     """Fit with the scaling and give the quality, or None where it refuses."""
-    coefficients = sptk.real_buffer(order + 1)
-    centre = sptk.real_buffer(1)
-    width = sptk.real_buffer(1)
-    if not lib.lstsq_polyfit_scaled(sptk.float_array(x), sptk.float_array(y),
+    coefficients = ffitt.real_buffer(order + 1)
+    centre = ffitt.real_buffer(1)
+    width = ffitt.real_buffer(1)
+    if not lib.lstsq_polyfit_scaled(ffitt.float_array(x), ffitt.float_array(y),
                                     len(x), order, coefficients, centre,
                                     width):
         return None
-    return lib.lstsq_fit_quality_scaled(sptk.float_array(x),
-                                        sptk.float_array(y), len(x),
+    return lib.lstsq_fit_quality_scaled(ffitt.float_array(x),
+                                        ffitt.float_array(y), len(x),
                                         coefficients, order, centre[0],
                                         width[0])
 
@@ -176,13 +176,13 @@ def test_the_plain_fit_refuses_where_it_would_have_answered_wrongly(lib):
 
     quartic = fit(lib, x, y, 4)
 
-    if sptk.REAL_64:
+    if ffitt.REAL_64:
         assert quartic is not None
-        plain_cubic = lib.lstsq_fit_quality(sptk.float_array(x),
-                                            sptk.float_array(y), len(x),
+        plain_cubic = lib.lstsq_fit_quality(ffitt.float_array(x),
+                                            ffitt.float_array(y), len(x),
                                             cubic, 3)
-        plain_quartic = lib.lstsq_fit_quality(sptk.float_array(x),
-                                              sptk.float_array(y), len(x),
+        plain_quartic = lib.lstsq_fit_quality(ffitt.float_array(x),
+                                              ffitt.float_array(y), len(x),
                                               quartic, 4)
         assert plain_quartic >= plain_cubic
     else:
@@ -206,7 +206,7 @@ def test_a_plain_fit_that_answers_is_never_worse_than_the_scaled_one(lib,
     coefficients = fit(lib, x, y, order)
     assume(coefficients is not None)
 
-    plain = lib.lstsq_fit_quality(sptk.float_array(x), sptk.float_array(y),
+    plain = lib.lstsq_fit_quality(ffitt.float_array(x), ffitt.float_array(y),
                                   len(x), coefficients, order)
     scaled = quality_scaled(lib, x, y, order)
     assume(scaled is not None)
@@ -235,11 +235,11 @@ def test_readings_that_lie_on_a_curve_give_that_curve_back(lib, points,
     y = [sp.to_float32(sum(true[power] * (place ** power)
                            for power in range(order + 1))) for place in x]
 
-    coefficients = sptk.real_buffer(order + 1)
-    centre = sptk.real_buffer(1)
-    width = sptk.real_buffer(1)
+    coefficients = ffitt.real_buffer(order + 1)
+    centre = ffitt.real_buffer(1)
+    width = ffitt.real_buffer(1)
 
-    assume(lib.lstsq_polyfit_scaled(sptk.float_array(x), sptk.float_array(y),
+    assume(lib.lstsq_polyfit_scaled(ffitt.float_array(x), ffitt.float_array(y),
                                     len(x), order, coefficients, centre,
                                     width))
 
@@ -324,10 +324,10 @@ def test_a_plain_fit_that_answers_leaves_no_more_error_than_the_scaled_one(
     plain = fit(lib, x, y, order)
     assume(plain is not None)
 
-    coefficients = sptk.real_buffer(order + 1)
-    centre = sptk.real_buffer(1)
-    width = sptk.real_buffer(1)
-    assume(lib.lstsq_polyfit_scaled(sptk.float_array(x), sptk.float_array(y),
+    coefficients = ffitt.real_buffer(order + 1)
+    centre = ffitt.real_buffer(1)
+    width = ffitt.real_buffer(1)
+    assume(lib.lstsq_polyfit_scaled(ffitt.float_array(x), ffitt.float_array(y),
                                     len(x), order, coefficients, centre,
                                     width))
 

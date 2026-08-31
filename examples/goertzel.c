@@ -23,8 +23,8 @@
 
 #if (RUN_EXAMPLE == RUN_GOERTZEL_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/transform/goertzel.h>
+#include <ffitt/core/real.h>
+#include <ffitt/transform/goertzel.h>
 #include <math.h>
 #include <stdio.h>
 

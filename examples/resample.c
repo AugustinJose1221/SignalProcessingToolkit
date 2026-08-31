@@ -24,10 +24,10 @@
 
 #if (RUN_EXAMPLE == RUN_RESAMPLE_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/filter/resample.h>
-#include <sptk/transform/psd.h>
-#include <sptk/transform/window.h>
+#include <ffitt/core/real.h>
+#include <ffitt/filter/resample.h>
+#include <ffitt/transform/psd.h>
+#include <ffitt/transform/window.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -136,7 +136,7 @@ int main(void)
     printf("must turn from passing to stopping inside one 64th of the band.\n");
     printf("Two stages of 8 would need about %u each, and the two together\n",
            resample_advised_length(8u));
-    printf("cost far less than this one. The guide of sptk/filter says so.\n");
+    printf("cost far less than this one. The guide of ffitt/filter says so.\n");
 
     resample_free(&resample);
 

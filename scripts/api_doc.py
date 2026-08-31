@@ -34,68 +34,68 @@ MODULE_DIRECTORY = os.path.join(REPOSITORY, "docs", "api")
 # The order of the modules in the documentation. A reader meets the simple
 # modules first and the modules that build on them later.
 MODULES = [
-    ("matrix", "sptk/linalg/matrix.h", "Matrices of float values"),
-    ("cnum", "sptk/linalg/cnum.h", "Complex numbers"),
-    ("cmatrix", "sptk/linalg/cmatrix.h", "Matrices of complex numbers"),
-    ("pmatrix", "sptk/linalg/pmatrix.h", "Matrices with a parameter"),
-    ("poly", "sptk/linalg/poly.h", "Polynomials, and where they cross nothing"),
-    ("eigen", "sptk/linalg/eigen.h", "The directions a matrix stretches"),
-    ("quaternion", "sptk/linalg/quaternion.h", "Which way something points"),
-    ("lstsq", "sptk/linalg/lstsq.h", "Fitting a curve through readings"),
-    ("fft", "sptk/transform/fft.h", "The fast Fourier transform"),
-    ("bluestein", "sptk/transform/bluestein.h", "A transform of any size"),
-    ("window", "sptk/transform/window.h", "Windows for a transform"),
-    ("correlate", "sptk/transform/correlate.h", "How alike two signals are"),
-    ("convolve", "sptk/transform/convolve.h", "Sliding one signal along another"),
-    ("psd", "sptk/transform/psd.h", "Power at each frequency"),
-    ("csd", "sptk/transform/csd.h", "What two signals have in common"),
-    ("stft", "sptk/transform/stft.h", "The transform in short pieces"),
-    ("spectrogram", "sptk/transform/spectrogram.h", "What the short pieces mean"),
-    ("hilbert", "sptk/transform/hilbert.h", "The Hilbert transform"),
-    ("hht", "sptk/transform/hht.h", "The Hilbert-Huang transform"),
-    ("fir", "sptk/filter/fir.h", "Filters with a finite impulse response"),
-    ("iir", "sptk/filter/iir.h", "Filters with an infinite impulse response"),
-    ("vector", "sptk/linalg/vector.h", "Vectors of float values"),
-    ("vector2d", "sptk/linalg/vector2d.h", "Vectors with two values"),
-    ("cspline", "sptk/interpolate/cspline.h", "Cubic splines"),
-    ("interp", "sptk/interpolate/interp.h", "Reading between the points of a table"),
-    ("imf", "sptk/decompose/imf.h", "Intrinsic mode functions"),
-    ("emd", "sptk/decompose/emd.h", "Empirical mode decomposition"),
-    ("pll", "sptk/estimate/pll.h", "Following a tone that will not stay still"),
-    ("propagate", "sptk/estimate/propagate.h", "Carrying a state forward through a rate of change"),
-    ("kalman", "sptk/estimate/kalman.h", "The Kalman filter"),
-    ("ekf", "sptk/estimate/ekf.h", "The extended Kalman filter"),
-    ("ukf", "sptk/estimate/ukf.h", "The unscented Kalman filter"),
-    ("goertzel", "sptk/transform/goertzel.h", "Detection of one frequency"),
-    ("cepstrum", "sptk/transform/cepstrum.h", "Finding what repeats in a spectrum"),
-    ("dct", "sptk/transform/dct.h", "Turning a signal into cosines"),
-    ("dwt", "sptk/transform/dwt.h", "The discrete wavelet transform"),
-    ("savgol", "sptk/filter/savgol.h", "The filter of Savitzky and Golay"),
-    ("movavg", "sptk/filter/movavg.h", "The mean of the last samples"),
-    ("medfilt", "sptk/filter/medfilt.h", "The median of the last samples"),
-    ("dcblock", "sptk/filter/dcblock.h", "Taking the level of a signal away"),
-    ("detrend", "sptk/filter/detrend.h", "Taking the level and the drift out of a block"),
-    ("hampel", "sptk/filter/hampel.h", "Replacing only the samples that are wrong"),
-    ("lattice", "sptk/filter/lattice.h", "A filter built as a ladder of stages"),
-    ("rls", "sptk/filter/rls.h", "A filter that solves least squares at every sample"),
-    ("adaptive", "sptk/filter/adaptive.h", "A filter that finds its own coefficients"),
-    ("resample", "sptk/filter/resample.h", "Changing the rate of a signal"),
-    ("filtfilt", "sptk/filter/filtfilt.h", "Filtering with no delay"),
-    ("farrow", "sptk/filter/farrow.h", "Delaying by a part of a sample"),
-    ("matched", "sptk/detect/matched.h", "Looking for a known shape"),
-    ("delay", "sptk/detect/delay.h", "How far one reading stands behind another"),
-    ("changepoint", "sptk/detect/changepoint.h", "Saying when a reading has changed"),
-    ("generate", "sptk/util/generate.h", "Making the signals to test with"),
-    ("curve", "sptk/util/curve.h", "The shapes a peak can have"),
-    ("quantise", "sptk/util/quantise.h", "Putting a signal into steps"),
-    ("stats", "sptk/util/stats.h", "Measures of a list of samples"),
-    ("binarysearch", "sptk/util/binarysearch.h", "Binary search"),
-    ("peakdetect", "sptk/util/peakdetect.h", "Peak detection"),
-    ("valleydetect", "sptk/util/valleydetect.h", "Valley detection"),
-    ("real", "sptk/core/real.h", "The one type that holds every number"),
-    ("ringbuf", "sptk/core/ringbuf.h", "A buffer of the last samples"),
-    ("point2d", "sptk/core/point2d.h", "A point on a plane"),
-    ("callback", "sptk/core/callback.h", "The print callback"),
+    ("matrix", "ffitt/linalg/matrix.h", "Matrices of float values"),
+    ("cnum", "ffitt/linalg/cnum.h", "Complex numbers"),
+    ("cmatrix", "ffitt/linalg/cmatrix.h", "Matrices of complex numbers"),
+    ("pmatrix", "ffitt/linalg/pmatrix.h", "Matrices with a parameter"),
+    ("poly", "ffitt/linalg/poly.h", "Polynomials, and where they cross nothing"),
+    ("eigen", "ffitt/linalg/eigen.h", "The directions a matrix stretches"),
+    ("quaternion", "ffitt/linalg/quaternion.h", "Which way something points"),
+    ("lstsq", "ffitt/linalg/lstsq.h", "Fitting a curve through readings"),
+    ("fft", "ffitt/transform/fft.h", "The fast Fourier transform"),
+    ("bluestein", "ffitt/transform/bluestein.h", "A transform of any size"),
+    ("window", "ffitt/transform/window.h", "Windows for a transform"),
+    ("correlate", "ffitt/transform/correlate.h", "How alike two signals are"),
+    ("convolve", "ffitt/transform/convolve.h", "Sliding one signal along another"),
+    ("psd", "ffitt/transform/psd.h", "Power at each frequency"),
+    ("csd", "ffitt/transform/csd.h", "What two signals have in common"),
+    ("stft", "ffitt/transform/stft.h", "The transform in short pieces"),
+    ("spectrogram", "ffitt/transform/spectrogram.h", "What the short pieces mean"),
+    ("hilbert", "ffitt/transform/hilbert.h", "The Hilbert transform"),
+    ("hht", "ffitt/transform/hht.h", "The Hilbert-Huang transform"),
+    ("fir", "ffitt/filter/fir.h", "Filters with a finite impulse response"),
+    ("iir", "ffitt/filter/iir.h", "Filters with an infinite impulse response"),
+    ("vector", "ffitt/linalg/vector.h", "Vectors of float values"),
+    ("vector2d", "ffitt/linalg/vector2d.h", "Vectors with two values"),
+    ("cspline", "ffitt/interpolate/cspline.h", "Cubic splines"),
+    ("interp", "ffitt/interpolate/interp.h", "Reading between the points of a table"),
+    ("imf", "ffitt/decompose/imf.h", "Intrinsic mode functions"),
+    ("emd", "ffitt/decompose/emd.h", "Empirical mode decomposition"),
+    ("pll", "ffitt/estimate/pll.h", "Following a tone that will not stay still"),
+    ("propagate", "ffitt/estimate/propagate.h", "Carrying a state forward through a rate of change"),
+    ("kalman", "ffitt/estimate/kalman.h", "The Kalman filter"),
+    ("ekf", "ffitt/estimate/ekf.h", "The extended Kalman filter"),
+    ("ukf", "ffitt/estimate/ukf.h", "The unscented Kalman filter"),
+    ("goertzel", "ffitt/transform/goertzel.h", "Detection of one frequency"),
+    ("cepstrum", "ffitt/transform/cepstrum.h", "Finding what repeats in a spectrum"),
+    ("dct", "ffitt/transform/dct.h", "Turning a signal into cosines"),
+    ("dwt", "ffitt/transform/dwt.h", "The discrete wavelet transform"),
+    ("savgol", "ffitt/filter/savgol.h", "The filter of Savitzky and Golay"),
+    ("movavg", "ffitt/filter/movavg.h", "The mean of the last samples"),
+    ("medfilt", "ffitt/filter/medfilt.h", "The median of the last samples"),
+    ("dcblock", "ffitt/filter/dcblock.h", "Taking the level of a signal away"),
+    ("detrend", "ffitt/filter/detrend.h", "Taking the level and the drift out of a block"),
+    ("hampel", "ffitt/filter/hampel.h", "Replacing only the samples that are wrong"),
+    ("lattice", "ffitt/filter/lattice.h", "A filter built as a ladder of stages"),
+    ("rls", "ffitt/filter/rls.h", "A filter that solves least squares at every sample"),
+    ("adaptive", "ffitt/filter/adaptive.h", "A filter that finds its own coefficients"),
+    ("resample", "ffitt/filter/resample.h", "Changing the rate of a signal"),
+    ("filtfilt", "ffitt/filter/filtfilt.h", "Filtering with no delay"),
+    ("farrow", "ffitt/filter/farrow.h", "Delaying by a part of a sample"),
+    ("matched", "ffitt/detect/matched.h", "Looking for a known shape"),
+    ("delay", "ffitt/detect/delay.h", "How far one reading stands behind another"),
+    ("changepoint", "ffitt/detect/changepoint.h", "Saying when a reading has changed"),
+    ("generate", "ffitt/util/generate.h", "Making the signals to test with"),
+    ("curve", "ffitt/util/curve.h", "The shapes a peak can have"),
+    ("quantise", "ffitt/util/quantise.h", "Putting a signal into steps"),
+    ("stats", "ffitt/util/stats.h", "Measures of a list of samples"),
+    ("binarysearch", "ffitt/util/binarysearch.h", "Binary search"),
+    ("peakdetect", "ffitt/util/peakdetect.h", "Peak detection"),
+    ("valleydetect", "ffitt/util/valleydetect.h", "Valley detection"),
+    ("real", "ffitt/core/real.h", "The one type that holds every number"),
+    ("ringbuf", "ffitt/core/ringbuf.h", "A buffer of the last samples"),
+    ("point2d", "ffitt/core/point2d.h", "A point on a plane"),
+    ("callback", "ffitt/core/callback.h", "The print callback"),
 ]
 
 COMMENT = re.compile(r"^\s*//\s?(.*)$")
@@ -180,7 +180,7 @@ def read_header(path):
     return types, macros, functions
 
 
-# The areas of the library. Each one is a directory under sptk/, and each one
+# The areas of the library. Each one is a directory under ffitt/, and each one
 # holds a README.md that says how its modules work.
 AREAS = [
     ("transform", "Transforms", ["fft", "bluestein", "window", "psd", "csd",
@@ -234,7 +234,7 @@ def build_index():
 
     for area, title, names in AREAS:
         parts.append("## %s\n" % title)
-        parts.append("[How the %s modules work](../sptk/%s/README.md)\n" % (area, area))
+        parts.append("[How the %s modules work](../ffitt/%s/README.md)\n" % (area, area))
         parts.append("| Module | What it holds |")
         parts.append("| --- | --- |")
         for name in names:
@@ -265,7 +265,7 @@ def build_module_document(name, path, title):
     area = area_of(name)
     if area:
         parts.append("[Back to the index](../API.md) | "
-                     "[How the %s modules work](../../sptk/%s/README.md)\n"
+                     "[How the %s modules work](../../ffitt/%s/README.md)\n"
                      % (area, area))
     else:
         parts.append("[Back to the index](../API.md)\n")
@@ -315,9 +315,9 @@ def find_areas_without_a_guide():
     missing = []
 
     for area, title, names in AREAS:
-        guide = os.path.join(REPOSITORY, "sptk", area, "README.md")
+        guide = os.path.join(REPOSITORY, "ffitt", area, "README.md")
         if not os.path.exists(guide):
-            missing.append("sptk/%s/README.md is not there. Each area needs a "
+            missing.append("ffitt/%s/README.md is not there. Each area needs a "
                            "guide that says how its modules work." % area)
 
     return missing

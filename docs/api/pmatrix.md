@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Matrices with a parameter. Declared in `sptk/linalg/pmatrix.h`.
+Matrices with a parameter. Declared in `ffitt/linalg/pmatrix.h`.
 
-[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../ffitt/linalg/README.md)
 
 ## Types
 

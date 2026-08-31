@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Which way something points. Declared in `sptk/linalg/quaternion.h`.
+Which way something points. Declared in `ffitt/linalg/quaternion.h`.
 
-[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../ffitt/linalg/README.md)
 
 ## Macros
 

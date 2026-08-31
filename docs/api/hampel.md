@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Replacing only the samples that are wrong. Declared in `sptk/filter/hampel.h`.
+Replacing only the samples that are wrong. Declared in `ffitt/filter/hampel.h`.
 
-[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+[Back to the index](../API.md) | [How the filter modules work](../../ffitt/filter/README.md)
 
 ## Macros
 

@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Saying when a reading has changed. Declared in `sptk/detect/changepoint.h`.
+Saying when a reading has changed. Declared in `ffitt/detect/changepoint.h`.
 
-[Back to the index](../API.md) | [How the detect modules work](../../sptk/detect/README.md)
+[Back to the index](../API.md) | [How the detect modules work](../../ffitt/detect/README.md)
 
 ## Macros
 

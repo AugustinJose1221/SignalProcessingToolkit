@@ -41,9 +41,9 @@
 
 #if (RUN_EXAMPLE == RUN_KALMAN_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/estimate/kalman.h>
-#include <sptk/linalg/matrix.h>
+#include <ffitt/core/real.h>
+#include <ffitt/estimate/kalman.h>
+#include <ffitt/linalg/matrix.h>
 #include <math.h>
 #include <stdio.h>
 

@@ -15,7 +15,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
@@ -41,7 +41,7 @@ def designed(lib, values):
     THE ARRAY MUST BE KEPT. The module holds the pointer and does not copy the
     shape, thus an array that Python collects leaves the filter pointing at
     memory that is no longer there."""
-    kept = sptk.float_array(values)
+    kept = ffitt.float_array(values)
     filt = lib.matched_make()
 
     assert lib.matched_design(filt, kept, len(values))
@@ -73,10 +73,10 @@ def test_a_shape_standing_alone_in_the_reading_is_found_where_it_stands(
     for index, value in enumerate(values):
         reading[at + index] = value
 
-    signal = sptk.float_array(reading)
+    signal = ffitt.float_array(reading)
 
     where = ctypes.c_uint32(0)
-    best = sptk.real_buffer(1)
+    best = ffitt.real_buffer(1)
 
     assert lib.matched_best(filt, signal, READING, ctypes.byref(where), best)
     assert where.value == at
@@ -96,10 +96,10 @@ def test_the_score_does_not_depend_on_how_loud_the_shape_is(lib, values,
     big, kept_big = designed(lib, [sp.to_float32(value * louder)
                                    for value in values])
 
-    signal = sptk.float_array(noise(READING))
+    signal = ffitt.float_array(noise(READING))
 
-    one = sptk.real_buffer(READING)
-    other = sptk.real_buffer(READING)
+    one = ffitt.real_buffer(READING)
+    other = ffitt.real_buffer(READING)
 
     assert lib.matched_score_block(plain, signal, READING, one)
     assert lib.matched_score_block(big, signal, READING, other)
@@ -127,11 +127,11 @@ def test_making_the_reading_louder_makes_the_score_louder_by_as_much(lib,
     quiet = noise(READING)
     loud = [sp.to_float32(value * louder) for value in quiet]
 
-    one = sptk.real_buffer(READING)
-    other = sptk.real_buffer(READING)
+    one = ffitt.real_buffer(READING)
+    other = ffitt.real_buffer(READING)
 
-    assert lib.matched_score_block(filt, sptk.float_array(quiet), READING, one)
-    assert lib.matched_score_block(filt, sptk.float_array(loud), READING,
+    assert lib.matched_score_block(filt, ffitt.float_array(quiet), READING, one)
+    assert lib.matched_score_block(filt, ffitt.float_array(loud), READING,
                                    other)
 
     offsets = READING - len(values) + 1
@@ -155,7 +155,7 @@ def test_a_shape_scored_against_itself_gives_the_root_of_its_energy(lib,
 
     energy = sum(value * value for value in values)
 
-    score = lib.matched_score_at(filt, sptk.float_array(values))
+    score = lib.matched_score_at(filt, ffitt.float_array(values))
 
     assert abs(score - math.sqrt(energy)) <= 1e-3 * (1.0 + math.sqrt(energy))
 
@@ -169,9 +169,9 @@ def test_scoring_a_block_agrees_with_scoring_one_offset(lib, values):
     filt, kept = designed(lib, values)
 
     reading = noise(READING)
-    signal = sptk.float_array(reading)
+    signal = ffitt.float_array(reading)
 
-    block = sptk.real_buffer(READING)
+    block = ffitt.real_buffer(READING)
     assert lib.matched_score_block(filt, signal, READING, block)
 
     offsets = READING - len(values) + 1
@@ -182,8 +182,8 @@ def test_scoring_a_block_agrees_with_scoring_one_offset(lib, values):
                                          ctypes.byref(signal,
                                                       index
                                                       * ctypes.sizeof(
-                                                          sptk.REAL_T)),
-                                         ctypes.POINTER(sptk.REAL_T)))
+                                                          ffitt.REAL_T)),
+                                         ctypes.POINTER(ffitt.REAL_T)))
 
         assert abs(block[index] - apart) <= 1e-4 * (1.0 + abs(apart))
 
@@ -197,13 +197,13 @@ def test_the_best_is_the_largest_of_the_scores(lib, values):
     must never disagree about which offset that is."""
     filt, kept = designed(lib, values)
 
-    signal = sptk.float_array(noise(READING))
-    block = sptk.real_buffer(READING)
+    signal = ffitt.float_array(noise(READING))
+    block = ffitt.real_buffer(READING)
 
     assert lib.matched_score_block(filt, signal, READING, block)
 
     where = ctypes.c_uint32(0)
-    best = sptk.real_buffer(1)
+    best = ffitt.real_buffer(1)
 
     assert lib.matched_best(filt, signal, READING, ctypes.byref(where), best)
 
@@ -265,7 +265,7 @@ def test_a_shape_that_holds_no_energy_is_refused(lib, length):
     """It would be found at every offset with the same strength, thus finding
     it would say nothing."""
     filt = lib.matched_make()
-    empty = sptk.float_array([0.0] * length)
+    empty = ffitt.float_array([0.0] * length)
 
     assert not lib.matched_design(filt, empty, length)
     assert not filt.designed
@@ -281,11 +281,11 @@ def test_a_reading_shorter_than_the_shape_is_refused(lib, values, short):
     count = max(1, len(values) - short)
     assume(count < len(values))
 
-    signal = sptk.float_array(noise(len(values)))
-    block = sptk.real_buffer(len(values))
+    signal = ffitt.float_array(noise(len(values)))
+    block = ffitt.real_buffer(len(values))
 
     where = ctypes.c_uint32(7)
-    best = sptk.real_buffer(1)
+    best = ffitt.real_buffer(1)
 
     assert not lib.matched_score_block(filt, signal, count, block)
     assert not lib.matched_best(filt, signal, count, ctypes.byref(where), best)

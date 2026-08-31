@@ -19,7 +19,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
@@ -40,7 +40,7 @@ def read(lib, block, bin_index, values, rate=RATE):
     detector = lib.goertzel_init(sp.to_float32(frequency),
                                  sp.to_float32(rate), block)
 
-    lib.goertzel_process_block(detector, sptk.float_array(values), len(values))
+    lib.goertzel_process_block(detector, ffitt.float_array(values), len(values))
 
     return detector
 
@@ -335,9 +335,9 @@ def test_a_reset_detector_reads_as_a_new_one_does(lib, block, bin_index, seed):
     used = lib.goertzel_init(sp.to_float32(frequency), sp.to_float32(RATE),
                              block)
 
-    lib.goertzel_process_block(used, sptk.float_array(values), block)
+    lib.goertzel_process_block(used, ffitt.float_array(values), block)
     lib.goertzel_reset(used)
-    lib.goertzel_process_block(used, sptk.float_array(values), block)
+    lib.goertzel_process_block(used, ffitt.float_array(values), block)
 
     fresh = read(lib, block, bin_index, values)
 

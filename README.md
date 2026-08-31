@@ -1,4 +1,6 @@
-# SignalProcessingToolkit
+# ffitt
+
+**Something great ruined by it.**
 
 A C library for signal processing.
 
@@ -9,35 +11,44 @@ into simpler parts, and the estimators that follow a state behind a noisy
 measurement. Underneath them sit the vectors, the matrices and the
 interpolation that they need.
 
+It takes no other library with it, it needs nothing from the heap unless the
+caller asks for it, and it holds every number in one type that is built as a
+float or as a double.
+
+## The name
+
+Take the `it` out of the name and what is left is `fft`, a key tool of signal
+processing. The name is also symmetric about the `i`, the imaginary number.
+
 ## What the library gives
 
-The library lies under [sptk](sptk), and each area of work has its own
+The library lies under [ffitt](ffitt), and each area of work has its own
 directory there:
 
 | Area | Directory | Modules | What you do with them |
 | --- | --- | --- | --- |
-| Transforms | `sptk/transform` | `fft`, `bluestein`, `window`, `psd`, `csd`, `stft`, `spectrogram`, `correlate`, `convolve`, `goertzel`, `hilbert`, `hht`, `dwt`, `dct`, `cepstrum` | Find which frequencies a signal holds, and where |
-| Filters | `sptk/filter` | `fir`, `iir`, `savgol`, `movavg`, `medfilt`, `dcblock`, `detrend`, `hampel`, `adaptive`, `rls`, `lattice`, `resample`, `filtfilt`, `farrow` | Take a band of frequencies away, or smooth a signal |
-| Estimation | `sptk/estimate` | `kalman`, `ekf`, `ukf`, `propagate`, `pll` | Follow a state behind a noisy measurement |
-| Decomposition | `sptk/decompose` | `emd`, `imf` | Split a signal into simpler parts |
-| Detection | `sptk/detect` | `matched`, `delay`, `changepoint` | Say whether an event is in a reading, and when |
-| Interpolation | `sptk/interpolate` | `cspline`, `interp` | Give a smooth curve through a set of points |
-| Linear algebra | `sptk/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `quaternion`, `eigen`, `poly`, `lstsq`, `vector`, `vector2d` | The arithmetic that the areas above need |
-| Utilities | `sptk/util` | `generate`, `curve`, `quantise`, `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Make a signal to test with, and find a place, a peak or a valley in a list |
-| Core | `sptk/core` | `real`, `ringbuf`, `callback`, `defs`, `point2d` | The type that holds every number, a buffer of the last samples, and the types that every module shares |
+| Transforms | `ffitt/transform` | `fft`, `bluestein`, `window`, `psd`, `csd`, `stft`, `spectrogram`, `correlate`, `convolve`, `goertzel`, `hilbert`, `hht`, `dwt`, `dct`, `cepstrum` | Find which frequencies a signal holds, and where |
+| Filters | `ffitt/filter` | `fir`, `iir`, `savgol`, `movavg`, `medfilt`, `dcblock`, `detrend`, `hampel`, `adaptive`, `rls`, `lattice`, `resample`, `filtfilt`, `farrow` | Take a band of frequencies away, or smooth a signal |
+| Estimation | `ffitt/estimate` | `kalman`, `ekf`, `ukf`, `propagate`, `pll` | Follow a state behind a noisy measurement |
+| Decomposition | `ffitt/decompose` | `emd`, `imf` | Split a signal into simpler parts |
+| Detection | `ffitt/detect` | `matched`, `delay`, `changepoint` | Say whether an event is in a reading, and when |
+| Interpolation | `ffitt/interpolate` | `cspline`, `interp` | Give a smooth curve through a set of points |
+| Linear algebra | `ffitt/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `quaternion`, `eigen`, `poly`, `lstsq`, `vector`, `vector2d` | The arithmetic that the areas above need |
+| Utilities | `ffitt/util` | `generate`, `curve`, `quantise`, `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Make a signal to test with, and find a place, a peak or a valley in a list |
+| Core | `ffitt/core` | `real`, `ringbuf`, `callback`, `defs`, `point2d` | The type that holds every number, a buffer of the last samples, and the types that every module shares |
 
 Include a module by its area:
 
 ```c
-#include <sptk/transform/fft.h>
-#include <sptk/filter/fir.h>
+#include <ffitt/transform/fft.h>
+#include <ffitt/filter/fir.h>
 ```
 
 Each area holds a guide that says **how** its modules work and which one to
-reach for: [transform](sptk/transform), [filter](sptk/filter),
-[estimate](sptk/estimate), [decompose](sptk/decompose),
-[detect](sptk/detect), [interpolate](sptk/interpolate),
-[linalg](sptk/linalg), [util](sptk/util), [core](sptk/core).
+reach for: [transform](ffitt/transform), [filter](ffitt/filter),
+[estimate](ffitt/estimate), [decompose](ffitt/decompose),
+[detect](ffitt/detect), [interpolate](ffitt/interpolate),
+[linalg](ffitt/linalg), [util](ffitt/util), [core](ffitt/core).
 
 [docs/API.md](docs/API.md) gives the exact name and shape of every function.
 The directory [examples](examples) holds a small program for each area. The
@@ -62,19 +73,19 @@ build.** Every sample, every coefficient and every result is a `real_t`. No
 module anywhere spells `float` or `double`, thus no two modules can disagree
 about how wide a number is.
 
-The width is 32 bits by default and 64 bits with `-DSPTK_REAL_64=ON`. At 32
+The width is 32 bits by default and 64 bits with `-DFFITT_REAL_64=ON`. At 32
 bits a number keeps about 7 digits and at 64 bits about 16. Each module says in
 its header where that limit matters, and the tests hold both widths, so that
 what the narrower one costs is written down. The guide of
-[core](sptk/core) says how to choose.
+[core](ffitt/core) says how to choose.
 
 ## An example
 
 Take a noisy signal, filter it, and look at what frequencies are left:
 
 ```c
-#include <sptk/filter/fir.h>
-#include <sptk/transform/fft.h>
+#include <ffitt/filter/fir.h>
+#include <ffitt/transform/fft.h>
 
 fir_t fir = fir_alloc(31);
 fir_design_low_pass(&fir, 0.1f);
@@ -103,7 +114,7 @@ The library holds every number in `real_t`. One option decides whether that is
 32 bits or 64:
 
 ```bash
-cmake -S . -B build -DSPTK_REAL_64=ON && cmake --build build
+cmake -S . -B build -DFFITT_REAL_64=ON && cmake --build build
 ```
 
 Take 32 bits on a small processor: a number is half the memory, and a processor
@@ -115,7 +126,7 @@ The option is `PUBLIC`, thus a program that links against the library is built
 the same way. A program and a library that disagreed about the width would not
 fail to build, and would give nonsense.
 
-The guide of [core](sptk/core) gives the measured cost of each width.
+The guide of [core](ffitt/core) gives the measured cost of each width.
 
 To build an example program, first choose one in `examples/run_example.h`, and
 then give:
@@ -195,7 +206,7 @@ The names follow the scheme of the Linux kernel:
 - A name is in lower case, with an underscore between the words.
 - The name of a function starts with the name of its module, thus `matrix_add`
   and not `add_matrix`. The name of the file is the name of the module, thus
-  every function of `sptk/linalg/matrix.c` starts with `matrix_`.
+  every function of `ffitt/linalg/matrix.c` starts with `matrix_`.
 - The name of a type is in lower case and ends with `_t`.
 - The name of a macro is in upper case.
 - A function that only its own file uses is static.

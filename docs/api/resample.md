@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Changing the rate of a signal. Declared in `sptk/filter/resample.h`.
+Changing the rate of a signal. Declared in `ffitt/filter/resample.h`.
 
-[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+[Back to the index](../API.md) | [How the filter modules work](../../ffitt/filter/README.md)
 
 ## Types
 

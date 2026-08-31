@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The fast Fourier transform. Declared in `sptk/transform/fft.h`.
+The fast Fourier transform. Declared in `ffitt/transform/fft.h`.
 
-[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
+[Back to the index](../API.md) | [How the transform modules work](../../ffitt/transform/README.md)
 
 ## Macros
 

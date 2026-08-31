@@ -19,7 +19,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=25, deadline=None)
@@ -28,7 +28,7 @@ TWO_PI = 2.0 * math.pi
 RATE = 1024.0
 
 BLOCKS = st.sampled_from([64, 128, 256])
-WINDOWS = st.sampled_from(sptk.WINDOWS_WITHOUT_A_PARAMETER)
+WINDOWS = st.sampled_from(ffitt.WINDOWS_WITHOUT_A_PARAMETER)
 
 
 def designed(lib, block, window, overlap=None):
@@ -44,9 +44,9 @@ def designed(lib, block, window, overlap=None):
 
 def density_of(lib, psd, values, block):
     bins = lib.psd_bin_count(psd)
-    out = sptk.real_buffer(bins)
+    out = ffitt.real_buffer(bins)
 
-    assert lib.psd_estimate(psd, sptk.float_array(values), len(values),
+    assert lib.psd_estimate(psd, ffitt.float_array(values), len(values),
                             sp.to_float32(RATE), out)
 
     return [out[index] for index in range(bins)]
@@ -89,7 +89,7 @@ def test_the_density_added_across_the_band_is_the_power_of_the_signal(
     try:
         density = density_of(lib, psd, values, block)
 
-        gathered = lib.psd_band_power(psd, sptk.float_array(density),
+        gathered = lib.psd_band_power(psd, ffitt.float_array(density),
                                       sp.to_float32(RATE), sp.to_float32(0.0),
                                       sp.to_float32(RATE / 2.0))
     finally:
@@ -122,7 +122,7 @@ def test_a_tone_carries_half_the_square_of_its_height(lib, block, window,
     try:
         density = density_of(lib, psd, values, block)
 
-        gathered = lib.psd_band_power(psd, sptk.float_array(density),
+        gathered = lib.psd_band_power(psd, ffitt.float_array(density),
                                       sp.to_float32(RATE), sp.to_float32(0.0),
                                       sp.to_float32(RATE / 2.0))
     finally:
@@ -151,7 +151,7 @@ def test_a_tone_puts_its_power_where_the_tone_is(lib, block, window,
     psd = designed(lib, block, window)
 
     try:
-        density = sptk.float_array(density_of(lib, psd, values, block))
+        density = ffitt.float_array(density_of(lib, psd, values, block))
         width = lib.psd_bin_width(psd, sp.to_float32(RATE))
 
         near = lib.psd_band_power(psd, density, sp.to_float32(RATE),
@@ -320,8 +320,8 @@ def test_a_signal_shorter_than_one_block_is_refused(lib, block, window):
     psd = designed(lib, block, window)
 
     try:
-        out = sptk.real_buffer(lib.psd_bin_count(psd))
-        values = sptk.float_array(noise(block))
+        out = ffitt.real_buffer(lib.psd_bin_count(psd))
+        values = ffitt.float_array(noise(block))
 
         assert not lib.psd_estimate(psd, values, block - 1,
                                     sp.to_float32(RATE), out)

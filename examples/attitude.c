@@ -39,10 +39,10 @@
 
 #if (RUN_EXAMPLE == RUN_ATTITUDE_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/estimate/ukf.h>
-#include <sptk/linalg/quaternion.h>
-#include <sptk/linalg/matrix.h>
+#include <ffitt/core/real.h>
+#include <ffitt/estimate/ukf.h>
+#include <ffitt/linalg/quaternion.h>
+#include <ffitt/linalg/matrix.h>
 #include <math.h>
 #include <stdio.h>
 

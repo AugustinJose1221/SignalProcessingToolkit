@@ -21,12 +21,12 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
 
-WAVELETS = st.sampled_from(sptk.DWT_WAVELETS)
+WAVELETS = st.sampled_from(ffitt.DWT_WAVELETS)
 
 # Even sizes, which is what one level asks for.
 SIZES = st.sampled_from([8, 16, 32, 64, 128])
@@ -45,10 +45,10 @@ def forward(lib, wavelet, values):
     half = size // 2
 
     dwt = lib.dwt_init(wavelet)
-    approximation = sptk.real_buffer(half)
-    detail = sptk.real_buffer(half)
+    approximation = ffitt.real_buffer(half)
+    detail = ffitt.real_buffer(half)
 
-    lib.dwt_forward(dwt, sptk.float_array(values), size, approximation,
+    lib.dwt_forward(dwt, ffitt.float_array(values), size, approximation,
                     detail)
 
     return ([approximation[index] for index in range(half)],
@@ -58,10 +58,10 @@ def forward(lib, wavelet, values):
 def inverse(lib, wavelet, approximation, detail):
     size = len(approximation) * 2
     dwt = lib.dwt_init(wavelet)
-    out = sptk.real_buffer(size)
+    out = ffitt.real_buffer(size)
 
-    lib.dwt_inverse(dwt, sptk.float_array(approximation),
-                    sptk.float_array(detail), size, out)
+    lib.dwt_inverse(dwt, ffitt.float_array(approximation),
+                    ffitt.float_array(detail), size, out)
 
     return [out[index] for index in range(size)]
 
@@ -145,8 +145,8 @@ def test_daubechies_leaves_a_straight_slope_out_of_the_detail_as_well(
 
     values = [sp.to_float32(level + (slope * index)) for index in range(size)]
 
-    _, haar_detail = forward(lib, sptk.DWT_HAAR, values)
-    _, daub_detail = forward(lib, sptk.DWT_DAUBECHIES4, values)
+    _, haar_detail = forward(lib, ffitt.DWT_HAAR, values)
+    _, daub_detail = forward(lib, ffitt.DWT_DAUBECHIES4, values)
 
     # Away from the two ends, where the block wraps round on itself and a ramp
     # meets its own beginning as a step.
@@ -217,8 +217,8 @@ def test_several_levels_undo_as_cleanly_as_one(lib, wavelet, size, levels):
         state = ((state * 1103515245) + 12345) & 0xFFFFFFFF
         values.append(sp.to_float32((((state >> 16) % 20000) / 10000.0) - 1.0))
 
-    working = sptk.float_array(values)
-    room = sptk.real_buffer(size)
+    working = ffitt.float_array(values)
+    room = ffitt.real_buffer(size)
 
     lib.dwt_forward_multi(dwt, working, size, levels, room)
     lib.dwt_inverse_multi(dwt, working, size, levels, room)
@@ -240,7 +240,7 @@ def test_the_threshold_takes_away_the_small_and_keeps_the_large(lib, values,
     What must hold is that it takes away everything below the limit and leaves
     everything else exactly where it was. A threshold that moved the large
     values as well would round the edges the transform was chosen to keep."""
-    data = sptk.float_array(values)
+    data = ffitt.float_array(values)
     size = len(values)
 
     lib.dwt_threshold(data, size, sp.to_float32(limit))
