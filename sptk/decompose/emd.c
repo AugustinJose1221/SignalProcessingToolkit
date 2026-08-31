@@ -15,6 +15,8 @@
 static void emd_update_runtime_params(emd_t* emd, real_t* x, real_t* y);
 static real_t emd_get_largest(real_t* data, uint32_t size);
 static real_t emd_get_smallest(real_t* data, uint32_t size);
+static uint32_t emd_gather_peaks(emd_t* emd, real_t* signal, uint32_t* found);
+static uint32_t emd_gather_valleys(emd_t* emd, real_t* signal, uint32_t* found);
 
 emd_t emd_alloc(uint32_t size)
 {
@@ -72,6 +74,8 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
 
     uint32_t peakcount = 0;
     uint32_t valleycount = 0;
+    uint32_t real_peaks = 0;
+    uint32_t real_valleys = 0;
     uint32_t start_index;
     uint32_t shift;
     uint32_t iteration_count = 0;
@@ -100,33 +104,31 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
 
     memcpy(emd->working_buffer, emd->residue, sizeof(real_t)*emd->size);
 
-    peakcount = peakdetect_get_peaks(emd->working_buffer, &emd->peak_index_buffer[1], &emd->peak_buffer[1], emd->size);
-    valleycount = valleydetect_get_valley(emd->working_buffer, &emd->valley_index_buffer[1], &emd->valley_buffer[1], emd->size);
+    peakcount = emd_gather_peaks(emd, emd->working_buffer, &real_peaks);
+    valleycount = emd_gather_valleys(emd, emd->working_buffer, &real_valleys);
 
-    // A signal that only rises or only falls holds no peak and no valley. The
-    // detection then writes nothing, and the two buffers hold no value. Take
-    // the largest sample for the upper envelope and the smallest sample for
-    // the lower envelope, so that both envelopes hold a value.
-    if(peakcount == 0)
+    // A RESIDUE THAT ONLY RISES OR ONLY FALLS HOLDS NO MODE.
+    //
+    // A mode is an oscillation, and an oscillation must turn. A signal that
+    // never turns has nothing left in it to take out, thus the method is
+    // finished and says so with a status of 0. What is left belongs to the
+    // residue and to nothing else.
+    //
+    // The two counts above are what the DETECTION found, before the points at
+    // the two ends were added. Those end points are there so that the spline
+    // covers the whole signal; counting them as turns of the signal would say
+    // that every signal turns, and the method would then never finish. It
+    // would go on giving modes of zero until it had filled every place the
+    // caller offered.
+    if((real_peaks == 0u) && (real_valleys == 0u))
     {
-        emd->peak_buffer[1] = emd_get_largest(emd->working_buffer, emd->size);
+        for(uint32_t index = 0; index < emd->size; index++)
+        {
+            emd->imf[imf_index].x[index] = (real_t)index;
+            emd->imf[imf_index].y[index] = REAL_C(0.0);
+        }
+        return &emd->imf[imf_index];
     }
-    if(valleycount == 0)
-    {
-        emd->valley_buffer[1] = emd_get_smallest(emd->working_buffer, emd->size);
-    }
-
-    emd->peak_buffer[0] = emd->peak_buffer[1];
-    emd->peak_index_buffer[0] = 0;
-    peakcount++;
-    emd->peak_buffer[peakcount] = emd->peak_buffer[peakcount-1];
-    emd->peak_index_buffer[peakcount++] = emd->size-1;
-
-    emd->valley_buffer[0] = emd->valley_buffer[1];
-    emd->valley_index_buffer[0] = 0;
-    valleycount++;
-    emd->valley_buffer[valleycount] = emd->valley_buffer[valleycount-1];
-    emd->valley_index_buffer[valleycount++] = emd->size-1;
 
     while(peakcount > 1 && valleycount > 1 && iteration_count < stopping_threshold)
     {
@@ -156,19 +158,9 @@ imf_t* emd_get_imf(emd_t* emd, uint32_t imf_index, uint32_t stopping_threshold, 
             emd->working_buffer[index] = emd->imf[imf_index].y[index];
         }
 
-        peakcount = peakdetect_get_peaks(emd->working_buffer, &emd->peak_index_buffer[1], &emd->peak_buffer[1], emd->size);
-        valleycount = valleydetect_get_valley(emd->working_buffer, &emd->valley_index_buffer[1], &emd->valley_buffer[1], emd->size);
-        emd->peak_buffer[0] = emd->peak_buffer[1];
-        emd->peak_index_buffer[0] = 0;
-        peakcount++;
-        emd->peak_buffer[peakcount] = emd->peak_buffer[peakcount-1];
-        emd->peak_index_buffer[peakcount++] = emd->size-1;
-
-        emd->valley_buffer[0] = emd->valley_buffer[1];
-        emd->valley_index_buffer[0] = 0;
-        valleycount++;
-        emd->valley_buffer[valleycount] = emd->valley_buffer[valleycount-1];
-        emd->valley_index_buffer[valleycount++] = emd->size-1;
+        peakcount = emd_gather_peaks(emd, emd->working_buffer, &real_peaks);
+        valleycount = emd_gather_valleys(emd, emd->working_buffer,
+                                         &real_valleys);
 
         iteration_count++;
         *status = 1;
@@ -190,13 +182,23 @@ uint32_t emd_sift(emd_t* emd, uint32_t stopping_threshold)
 
     do{
         imf = emd_get_imf(emd, imf_count, stopping_threshold, &status);
+
+        // A status of 0 says the residue held no more mode. The function that
+        // came back is then all zeros, thus taking it away would change
+        // nothing and counting it would say that a mode was found where none
+        // was. Stop here and leave the rest in the residue.
+        if(status == 0u)
+        {
+            break;
+        }
+
         for(uint32_t index = 0; index < emd->size; index++)
         {
             emd->residue[index] = emd->residue[index] - imf->y[index];
-        }   
+        }
         emd_update_runtime_params(emd, emd->x, emd->residue);
         imf_count++;
-    }while(imf_count < emd->imf_count && status == 1);
+    }while(imf_count < emd->imf_count);
 
     return imf_count;
 }
@@ -210,6 +212,70 @@ void emd_free(emd_t emd)
         free(emd.peak_buffer);
         free(emd.valley_buffer);
     }
+}
+
+// Find the peaks of the signal and put a point at each end, so that a spline
+// through them covers the whole signal and not only the part between the first
+// peak and the last.
+//
+// A SIGNAL THAT ONLY RISES OR ONLY FALLS HOLDS NO PEAK AT ALL. The detection
+// then writes nothing into the buffer, and the buffer still holds whatever was
+// put there for an earlier signal. Taking the largest sample gives the
+// envelope a value that belongs to THIS signal.
+//
+// That must be done every time the peaks are found and not only the first
+// time. The sifting takes the mean of the two envelopes away from the signal
+// again and again, and an envelope left standing at the value of an earlier
+// round is a constant amount taken away at every step. The mode then grows
+// without bound instead of settling: measured, a signal whose largest sample
+// was 3 gave a residue of 1.5 million after six modes.
+//
+// Give how many points the spline is to be drawn through.
+static uint32_t emd_gather_peaks(emd_t* emd, real_t* signal, uint32_t* found)
+{
+    uint32_t count = peakdetect_get_peaks(signal, &emd->peak_index_buffer[1],
+                                          &emd->peak_buffer[1], emd->size);
+
+    *found = count;
+
+    if(count == 0)
+    {
+        emd->peak_buffer[1] = emd_get_largest(signal, emd->size);
+    }
+
+    emd->peak_buffer[0] = emd->peak_buffer[1];
+    emd->peak_index_buffer[0] = 0;
+    count++;
+    emd->peak_buffer[count] = emd->peak_buffer[count-1];
+    emd->peak_index_buffer[count++] = emd->size-1;
+
+    return count;
+}
+
+// The same for the valleys, with the smallest sample where the peaks take the
+// largest.
+static uint32_t emd_gather_valleys(emd_t* emd, real_t* signal,
+                                   uint32_t* found)
+{
+    uint32_t count = valleydetect_get_valley(signal,
+                                             &emd->valley_index_buffer[1],
+                                             &emd->valley_buffer[1],
+                                             emd->size);
+
+    *found = count;
+
+    if(count == 0)
+    {
+        emd->valley_buffer[1] = emd_get_smallest(signal, emd->size);
+    }
+
+    emd->valley_buffer[0] = emd->valley_buffer[1];
+    emd->valley_index_buffer[0] = 0;
+    count++;
+    emd->valley_buffer[count] = emd->valley_buffer[count-1];
+    emd->valley_index_buffer[count++] = emd->size-1;
+
+    return count;
 }
 
 static void emd_update_runtime_params(emd_t* emd, real_t* x, real_t* y)

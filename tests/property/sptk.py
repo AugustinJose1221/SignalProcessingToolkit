@@ -125,6 +125,18 @@ class Medfilt(ctypes.Structure):
     ]
 
 
+class Hampel(ctypes.Structure):
+    _fields_ = [
+        ("middle", Medfilt),
+        ("history", Ringbuf),
+        ("distance", ctypes.POINTER(REAL_T)),
+        ("threshold", REAL_T),
+        ("replaced", ctypes.c_uint32),
+        ("seen", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
 class Matrix(ctypes.Structure):
     _fields_ = [
         ("m", ctypes.c_uint32),
@@ -191,10 +203,91 @@ class Kalman(ctypes.Structure):
     ]
 
 
+STATE_FUNCTION = ctypes.CFUNCTYPE(None, ctypes.POINTER(Matrix),
+                                  ctypes.POINTER(Matrix),
+                                  ctypes.POINTER(Matrix))
+MEASUREMENT_FUNCTION = ctypes.CFUNCTYPE(None, ctypes.POINTER(Matrix),
+                                        ctypes.POINTER(Matrix))
+
+
+class EkfScratch(ctypes.Structure):
+    _fields_ = [(name, Matrix) for name in (
+        "nxnx_a", "nxnx_b", "nxnx_c", "nxny_a", "nxny_b", "nynx_a",
+        "nyny_a", "nyny_b", "nyny_c", "augmented",
+        "nx1_a", "nx1_b", "nx1_c", "nx1_d", "ny1_a", "ny1_b", "ny1_c")]
+
+
+class Ekf(ctypes.Structure):
+    _fields_ = [
+        ("ni", ctypes.c_uint32),
+        ("nx", ctypes.c_uint32),
+        ("ny", ctypes.c_uint32),
+        ("x", Matrix), ("y", Matrix), ("u", Matrix), ("p", Matrix),
+        ("q", Matrix), ("r", Matrix), ("a", Matrix), ("c", Matrix),
+        ("k", Matrix),
+        ("state_function", STATE_FUNCTION),
+        ("measurement_function", MEASUREMENT_FUNCTION),
+        ("derivative_step", REAL_T),
+        ("scratch", EkfScratch),
+        ("mempool", ctypes.POINTER(REAL_T)),
+        ("singular", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class UkfScratch(ctypes.Structure):
+    _fields_ = [(name, Matrix) for name in (
+        "points", "seen", "weight_mean", "weight_spread", "factor",
+        "nxnx_a", "nxnx_b", "moved", "nxny_a", "nxny_b", "nynx_a",
+        "nyny_a", "nyny_b", "measured", "augmented",
+        "nx1_a", "nx1_b", "nx1_c", "nx1_d",
+        "ny1_a", "ny1_b", "ny1_c", "ny1_d")]
+
+
+class Ukf(ctypes.Structure):
+    _fields_ = [
+        ("ni", ctypes.c_uint32),
+        ("nx", ctypes.c_uint32),
+        ("ny", ctypes.c_uint32),
+        ("x", Matrix), ("y", Matrix), ("u", Matrix), ("p", Matrix),
+        ("q", Matrix), ("r", Matrix), ("k", Matrix),
+        ("state_function", STATE_FUNCTION),
+        ("measurement_function", MEASUREMENT_FUNCTION),
+        ("alpha", REAL_T),
+        ("beta", REAL_T),
+        ("kappa", REAL_T),
+        ("scratch", UkfScratch),
+        ("mempool", ctypes.POINTER(REAL_T)),
+        ("singular", ctypes.c_bool),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
 class Cnum(ctypes.Structure):
     _fields_ = [
         ("re", REAL_T),
         ("im", REAL_T),
+    ]
+
+
+class Cmatrix(ctypes.Structure):
+    _fields_ = [
+        ("m", ctypes.c_uint32),
+        ("n", ctypes.c_uint32),
+        ("elem", ctypes.POINTER(Cnum)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+PMATRIX_FUNCTION = ctypes.CFUNCTYPE(REAL_T, REAL_T)
+
+
+class Pmatrix(ctypes.Structure):
+    _fields_ = [
+        ("m", ctypes.c_uint32),
+        ("n", ctypes.c_uint32),
+        ("elem", ctypes.POINTER(PMATRIX_FUNCTION)),
+        ("dynamic_alloc", ctypes.c_bool),
     ]
 
 
@@ -249,6 +342,16 @@ class Fir(ctypes.Structure):
         ("coefficient", ctypes.POINTER(REAL_T)),
         ("history", ctypes.POINTER(REAL_T)),
         ("position", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Resample(ctypes.Structure):
+    _fields_ = [
+        ("filter", Fir),
+        ("history", Ringbuf),
+        ("factor", ctypes.c_uint32),
+        ("phase", ctypes.c_uint32),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -343,6 +446,136 @@ class Farrow(ctypes.Structure):
         ("working", ctypes.POINTER(REAL_T)),
         ("order", ctypes.c_uint32),
         ("delay", REAL_T),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Movavg(ctypes.Structure):
+    _fields_ = [
+        ("window", Ringbuf),
+        ("total", REAL_T),
+        ("square_total", REAL_T),
+        ("since_refresh", ctypes.c_uint32),
+    ]
+
+
+class Dcblock(ctypes.Structure):
+    _fields_ = [
+        ("level", REAL_T),
+        ("pole", REAL_T),
+        ("started", ctypes.c_bool),
+    ]
+
+
+class Savgol(ctypes.Structure):
+    _fields_ = [
+        ("window", ctypes.c_uint32),
+        ("order", ctypes.c_uint32),
+        ("derivative", ctypes.c_uint32),
+        ("coefficient", ctypes.POINTER(REAL_T)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+ADAPTIVE_LMS = 0
+ADAPTIVE_NORMALISED = 1
+ADAPTIVE_SIGN = 2
+
+ADAPTIVE_RULES = (ADAPTIVE_LMS, ADAPTIVE_NORMALISED, ADAPTIVE_SIGN)
+
+
+class Adaptive(ctypes.Structure):
+    _fields_ = [
+        ("history", Ringbuf),
+        ("coefficient", ctypes.POINTER(REAL_T)),
+        ("length", ctypes.c_uint32),
+        ("rule", ctypes.c_int),
+        ("rate", REAL_T),
+        ("leak", REAL_T),
+        ("energy", REAL_T),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Imf(ctypes.Structure):
+    _fields_ = [
+        ("x", ctypes.POINTER(REAL_T)),
+        ("y", ctypes.POINTER(REAL_T)),
+        ("size", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Emd(ctypes.Structure):
+    _fields_ = [
+        ("x", ctypes.POINTER(REAL_T)),
+        ("y", ctypes.POINTER(REAL_T)),
+        ("size", ctypes.c_uint32),
+        ("cspline", CSpline),
+        ("cspline_mempool", CSplineMempool),
+        ("peak_buffer", ctypes.POINTER(REAL_T)),
+        ("peak_index_buffer", ctypes.POINTER(REAL_T)),
+        ("valley_buffer", ctypes.POINTER(REAL_T)),
+        ("valley_index_buffer", ctypes.POINTER(REAL_T)),
+        ("imf", ctypes.POINTER(Imf)),
+        ("imf_count", ctypes.c_uint32),
+        ("residue", ctypes.POINTER(REAL_T)),
+        ("working_buffer", ctypes.POINTER(REAL_T)),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+SPECTROGRAM_AMPLITUDE = 0
+SPECTROGRAM_POWER = 1
+SPECTROGRAM_DENSITY = 2
+SPECTROGRAM_DECIBEL = 3
+
+SPECTROGRAM_KINDS = (SPECTROGRAM_AMPLITUDE, SPECTROGRAM_POWER,
+                     SPECTROGRAM_DENSITY, SPECTROGRAM_DECIBEL)
+
+SPECTROGRAM_FLOOR_DECIBEL = -200.0
+
+
+DWT_HAAR = 0
+DWT_DAUBECHIES4 = 1
+
+DWT_WAVELETS = (DWT_HAAR, DWT_DAUBECHIES4)
+
+DWT_MAX_COEFFICIENT_COUNT = 4
+
+
+class Dwt(ctypes.Structure):
+    _fields_ = [
+        ("wavelet", ctypes.c_int),
+        ("length", ctypes.c_uint32),
+        ("low", REAL_T * DWT_MAX_COEFFICIENT_COUNT),
+        ("high", REAL_T * DWT_MAX_COEFFICIENT_COUNT),
+    ]
+
+
+class Goertzel(ctypes.Structure):
+    _fields_ = [
+        ("coefficient", REAL_T),
+        ("sine", REAL_T),
+        ("cosine", REAL_T),
+        ("first", REAL_T),
+        ("second", REAL_T),
+        ("block_size", ctypes.c_uint32),
+        ("count", ctypes.c_uint32),
+    ]
+
+
+class Psd(ctypes.Structure):
+    _fields_ = [
+        ("block", ctypes.c_uint32),
+        ("overlap", ctypes.c_uint32),
+        ("kind", ctypes.c_int),
+        ("parameter", REAL_T),
+        ("window", ctypes.POINTER(REAL_T)),
+        ("windowed", ctypes.POINTER(REAL_T)),
+        ("spectrum", ctypes.POINTER(Cnum)),
+        ("fft", Fft),
+        ("window_power", REAL_T),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -653,6 +886,94 @@ def load_library():
                              ctypes.c_uint32]
         function.restype = ctypes.c_uint32
 
+    # ringbuf
+    library.ringbuf_alloc.argtypes = [ctypes.c_uint32]
+    library.ringbuf_alloc.restype = Ringbuf
+    library.ringbuf_static_alloc.argtypes = [ctypes.c_uint32, FLOAT_POINTER]
+    library.ringbuf_static_alloc.restype = Ringbuf
+    library.ringbuf_reset.argtypes = [ctypes.POINTER(Ringbuf)]
+    library.ringbuf_reset.restype = None
+    library.ringbuf_put.argtypes = [ctypes.POINTER(Ringbuf), REAL_T]
+    library.ringbuf_put.restype = None
+    library.ringbuf_get.argtypes = [ctypes.POINTER(Ringbuf), ctypes.c_uint32]
+    library.ringbuf_get.restype = REAL_T
+    library.ringbuf_count.argtypes = [ctypes.POINTER(Ringbuf)]
+    library.ringbuf_count.restype = ctypes.c_uint32
+    library.ringbuf_is_full.argtypes = [ctypes.POINTER(Ringbuf)]
+    library.ringbuf_is_full.restype = ctypes.c_bool
+    library.ringbuf_copy.argtypes = [ctypes.POINTER(Ringbuf), FLOAT_POINTER]
+    library.ringbuf_copy.restype = ctypes.c_uint32
+    library.ringbuf_free.argtypes = [ctypes.POINTER(Ringbuf)]
+    library.ringbuf_free.restype = None
+
+    # hampel
+    library.hampel_is_valid_window.argtypes = [ctypes.c_uint32]
+    library.hampel_is_valid_window.restype = ctypes.c_bool
+    library.hampel_alloc.argtypes = [ctypes.c_uint32]
+    library.hampel_alloc.restype = Hampel
+    library.hampel_static_alloc.argtypes = [ctypes.c_uint32, FLOAT_POINTER,
+                                            FLOAT_POINTER, FLOAT_POINTER,
+                                            FLOAT_POINTER]
+    library.hampel_static_alloc.restype = Hampel
+    library.hampel_set_threshold.argtypes = [ctypes.POINTER(Hampel), REAL_T]
+    library.hampel_set_threshold.restype = ctypes.c_bool
+    library.hampel_reset.argtypes = [ctypes.POINTER(Hampel)]
+    library.hampel_reset.restype = None
+    library.hampel_delay.argtypes = [ctypes.POINTER(Hampel)]
+    library.hampel_delay.restype = ctypes.c_uint32
+    library.hampel_process_sample.argtypes = [ctypes.POINTER(Hampel), REAL_T,
+                                              ctypes.POINTER(ctypes.c_bool)]
+    library.hampel_process_sample.restype = REAL_T
+    library.hampel_process_block.argtypes = [ctypes.POINTER(Hampel),
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32]
+    library.hampel_process_block.restype = ctypes.c_uint32
+    library.hampel_replaced_count.argtypes = [ctypes.POINTER(Hampel)]
+    library.hampel_replaced_count.restype = ctypes.c_uint32
+    library.hampel_free.argtypes = [ctypes.POINTER(Hampel)]
+    library.hampel_free.restype = None
+
+    # resample
+    library.resample_advised_length.argtypes = [ctypes.c_uint32]
+    library.resample_advised_length.restype = ctypes.c_uint32
+    library.resample_is_valid_factor.argtypes = [ctypes.c_uint32]
+    library.resample_is_valid_factor.restype = ctypes.c_bool
+    for name in ("resample_alloc_decimator", "resample_alloc_interpolator"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+        function.restype = Resample
+    library.resample_reset.argtypes = [ctypes.POINTER(Resample)]
+    library.resample_reset.restype = None
+    library.resample_decimate.argtypes = [ctypes.POINTER(Resample), REAL_T,
+                                          FLOAT_POINTER]
+    library.resample_decimate.restype = ctypes.c_bool
+    library.resample_interpolate.argtypes = [ctypes.POINTER(Resample), REAL_T,
+                                             FLOAT_POINTER]
+    library.resample_interpolate.restype = ctypes.c_uint32
+    for name in ("resample_decimate_block", "resample_interpolate_block"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Resample), FLOAT_POINTER,
+                             FLOAT_POINTER, ctypes.c_uint32]
+        function.restype = ctypes.c_uint32
+    library.resample_delay.argtypes = [ctypes.POINTER(Resample)]
+    library.resample_delay.restype = ctypes.c_uint32
+    library.resample_free.argtypes = [ctypes.POINTER(Resample)]
+    library.resample_free.restype = None
+
+    # filtfilt
+    library.filtfilt_padding.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.filtfilt_padding.restype = ctypes.c_uint32
+    library.filtfilt_iir_gain.argtypes = [ctypes.POINTER(Iir), REAL_T]
+    library.filtfilt_iir_gain.restype = REAL_T
+    library.filtfilt_fir_gain.argtypes = [ctypes.POINTER(Fir), REAL_T]
+    library.filtfilt_fir_gain.restype = REAL_T
+    library.filtfilt_iir.argtypes = [ctypes.POINTER(Iir), FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32]
+    library.filtfilt_iir.restype = ctypes.c_bool
+    library.filtfilt_fir.argtypes = [ctypes.POINTER(Fir), FLOAT_POINTER,
+                                     FLOAT_POINTER, ctypes.c_uint32]
+    library.filtfilt_fir.restype = ctypes.c_bool
+
     # medfilt
     library.medfilt_alloc.argtypes = [ctypes.c_uint32]
     library.medfilt_alloc.restype = Medfilt
@@ -793,6 +1114,208 @@ def load_library():
     library.convolve_by_transform.restype = ctypes.c_bool
 
     # cnum
+    # ekf
+    library.ekf_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                  ctypes.c_uint32]
+    library.ekf_alloc.restype = Ekf
+    library.ekf_set_state_function.argtypes = [ctypes.POINTER(Ekf),
+                                               STATE_FUNCTION]
+    library.ekf_set_state_function.restype = None
+    library.ekf_set_measurement_function.argtypes = [ctypes.POINTER(Ekf),
+                                                     MEASUREMENT_FUNCTION]
+    library.ekf_set_measurement_function.restype = None
+    library.ekf_set_derivative_step.argtypes = [ctypes.POINTER(Ekf), REAL_T]
+    library.ekf_set_derivative_step.restype = None
+    for name in ("ekf_set_state_matrix", "ekf_set_covariance_matrix",
+                 "ekf_set_process_noise_covariance_matrix",
+                 "ekf_set_measurement_covariance_matrix",
+                 "ekf_set_input_matrix", "ekf_set_measurement_matrix",
+                 "ekf_state_jacobian_into", "ekf_measurement_jacobian_into"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ekf), ctypes.POINTER(Matrix)]
+        function.restype = None
+    library.ekf_predict.argtypes = [ctypes.POINTER(Ekf)]
+    library.ekf_predict.restype = None
+    library.ekf_update.argtypes = [ctypes.POINTER(Ekf)]
+    library.ekf_update.restype = ctypes.c_bool
+    library.ekf_step.argtypes = [ctypes.POINTER(Ekf), ctypes.POINTER(Matrix),
+                                 ctypes.POINTER(Matrix)]
+    library.ekf_step.restype = ctypes.c_bool
+    for name in ("ekf_get_state_matrix", "ekf_get_covariance_matrix",
+                 "ekf_get_gain_matrix"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ekf)]
+        function.restype = ctypes.POINTER(Matrix)
+    library.ekf_free.argtypes = [ctypes.POINTER(Ekf)]
+    library.ekf_free.restype = None
+
+    # ukf
+    library.ukf_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                  ctypes.c_uint32]
+    library.ukf_alloc.restype = Ukf
+    library.ukf_set_state_function.argtypes = [ctypes.POINTER(Ukf),
+                                               STATE_FUNCTION]
+    library.ukf_set_state_function.restype = None
+    library.ukf_set_measurement_function.argtypes = [ctypes.POINTER(Ukf),
+                                                     MEASUREMENT_FUNCTION]
+    library.ukf_set_measurement_function.restype = None
+    library.ukf_is_valid_spread.argtypes = [ctypes.c_uint32, REAL_T, REAL_T]
+    library.ukf_is_valid_spread.restype = ctypes.c_bool
+    library.ukf_set_spread.argtypes = [ctypes.POINTER(Ukf), REAL_T, REAL_T,
+                                       REAL_T]
+    library.ukf_set_spread.restype = ctypes.c_bool
+    for name in ("ukf_set_state_matrix", "ukf_set_covariance_matrix",
+                 "ukf_set_process_noise_covariance_matrix",
+                 "ukf_set_measurement_covariance_matrix",
+                 "ukf_set_input_matrix", "ukf_set_measurement_matrix"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ukf), ctypes.POINTER(Matrix)]
+        function.restype = None
+    library.ukf_place_points_into.argtypes = [ctypes.POINTER(Ukf),
+                                              ctypes.POINTER(Matrix)]
+    library.ukf_place_points_into.restype = ctypes.c_bool
+    for name in ("ukf_predict", "ukf_update"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ukf)]
+        function.restype = ctypes.c_bool
+    library.ukf_step.argtypes = [ctypes.POINTER(Ukf), ctypes.POINTER(Matrix),
+                                 ctypes.POINTER(Matrix)]
+    library.ukf_step.restype = ctypes.c_bool
+    for name in ("ukf_get_state_matrix", "ukf_get_covariance_matrix",
+                 "ukf_get_gain_matrix"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Ukf)]
+        function.restype = ctypes.POINTER(Matrix)
+    library.ukf_free.argtypes = [ctypes.POINTER(Ukf)]
+    library.ukf_free.restype = None
+
+    # cmatrix
+    library.cmatrix_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.cmatrix_alloc.restype = Cmatrix
+    library.cmatrix_add_element.argtypes = [ctypes.POINTER(Cmatrix),
+                                            ctypes.c_uint32, ctypes.c_uint32,
+                                            Cnum]
+    library.cmatrix_add_element.restype = None
+    library.cmatrix_get_element.argtypes = [ctypes.POINTER(Cmatrix),
+                                            ctypes.c_uint32, ctypes.c_uint32]
+    library.cmatrix_get_element.restype = Cnum
+    library.cmatrix_create_unit_matrix.argtypes = [ctypes.c_uint32]
+    library.cmatrix_create_unit_matrix.restype = Cmatrix
+    library.cmatrix_create_zero_matrix.argtypes = [ctypes.c_uint32,
+                                                   ctypes.c_uint32]
+    library.cmatrix_create_zero_matrix.restype = Cmatrix
+    for name in ("cmatrix_is_equal", "cmatrix_is_multipliable"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix), ctypes.POINTER(Cmatrix)]
+        function.restype = ctypes.c_bool
+    library.cmatrix_is_near.argtypes = [ctypes.POINTER(Cmatrix),
+                                        ctypes.POINTER(Cmatrix), REAL_T]
+    library.cmatrix_is_near.restype = ctypes.c_bool
+    for name in ("cmatrix_is_square", "cmatrix_is_zero", "cmatrix_is_unit",
+                 "cmatrix_is_hermitian"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix)]
+        function.restype = ctypes.c_bool
+    for name in ("cmatrix_add", "cmatrix_subtract", "cmatrix_multiply"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix), ctypes.POINTER(Cmatrix)]
+        function.restype = Cmatrix
+    library.cmatrix_multiply_scalar.argtypes = [ctypes.POINTER(Cmatrix), Cnum]
+    library.cmatrix_multiply_scalar.restype = Cmatrix
+    for name in ("cmatrix_transpose", "cmatrix_conjugate_transpose",
+                 "cmatrix_inverse"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix)]
+        function.restype = Cmatrix
+    for name in ("cmatrix_trace", "cmatrix_determinant"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix)]
+        function.restype = Cnum
+    library.cmatrix_copy.argtypes = [ctypes.POINTER(Cmatrix),
+                                     ctypes.POINTER(Cmatrix)]
+    library.cmatrix_copy.restype = None
+    for name in ("cmatrix_add_into", "cmatrix_subtract_into",
+                 "cmatrix_multiply_into"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix), ctypes.POINTER(Cmatrix),
+                             ctypes.POINTER(Cmatrix)]
+        function.restype = None
+    library.cmatrix_multiply_scalar_into.argtypes = [ctypes.POINTER(Cmatrix),
+                                                     Cnum,
+                                                     ctypes.POINTER(Cmatrix)]
+    library.cmatrix_multiply_scalar_into.restype = None
+    for name in ("cmatrix_transpose_into", "cmatrix_conjugate_transpose_into"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix), ctypes.POINTER(Cmatrix)]
+        function.restype = None
+    for name in ("cmatrix_set_unit", "cmatrix_set_zero", "cmatrix_free"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cmatrix)]
+        function.restype = None
+    library.cmatrix_determinant_into.argtypes = [ctypes.POINTER(Cmatrix),
+                                                 ctypes.POINTER(Cmatrix)]
+    library.cmatrix_determinant_into.restype = Cnum
+    library.cmatrix_inverse_into.argtypes = [ctypes.POINTER(Cmatrix),
+                                             ctypes.POINTER(Cmatrix),
+                                             ctypes.POINTER(Cmatrix)]
+    library.cmatrix_inverse_into.restype = ctypes.c_bool
+
+    # pmatrix
+    library.pmatrix_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.pmatrix_alloc.restype = Pmatrix
+    library.pmatrix_static_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                             ctypes.POINTER(PMATRIX_FUNCTION)]
+    library.pmatrix_static_alloc.restype = Pmatrix
+    library.pmatrix_add_element.argtypes = [ctypes.POINTER(Pmatrix),
+                                            ctypes.c_uint32, ctypes.c_uint32,
+                                            PMATRIX_FUNCTION]
+    library.pmatrix_add_element.restype = None
+    library.pmatrix_get_element.argtypes = [ctypes.POINTER(Pmatrix),
+                                            ctypes.c_uint32, ctypes.c_uint32]
+    library.pmatrix_get_element.restype = PMATRIX_FUNCTION
+    library.pmatrix_set_zero.argtypes = [ctypes.POINTER(Pmatrix)]
+    library.pmatrix_set_zero.restype = None
+    library.pmatrix_evaluate_element.argtypes = [ctypes.POINTER(Pmatrix),
+                                                 ctypes.c_uint32,
+                                                 ctypes.c_uint32, REAL_T]
+    library.pmatrix_evaluate_element.restype = REAL_T
+    library.pmatrix_evaluate.argtypes = [ctypes.POINTER(Pmatrix), REAL_T]
+    library.pmatrix_evaluate.restype = Matrix
+    library.pmatrix_evaluate_into.argtypes = [ctypes.POINTER(Pmatrix), REAL_T,
+                                              ctypes.POINTER(Matrix)]
+    library.pmatrix_evaluate_into.restype = None
+    for name in ("pmatrix_zero", "pmatrix_one"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T]
+        function.restype = REAL_T
+    library.pmatrix_free.argtypes = [ctypes.POINTER(Pmatrix)]
+    library.pmatrix_free.restype = None
+
+    # vector2d
+    library.vector2d_alloc.argtypes = []
+    library.vector2d_alloc.restype = Vector
+    library.vector2d_static_alloc.argtypes = [FLOAT_POINTER]
+    library.vector2d_static_alloc.restype = Vector
+    library.vector2d_add_point_at_index.argtypes = [ctypes.POINTER(Vector),
+                                                    ctypes.c_uint32, REAL_T]
+    library.vector2d_add_point_at_index.restype = None
+    library.vector2d_add_from_array.argtypes = [ctypes.POINTER(Vector),
+                                                FLOAT_POINTER]
+    library.vector2d_add_from_array.restype = None
+    library.vector2d_get.argtypes = [ctypes.POINTER(Vector), ctypes.c_uint32]
+    library.vector2d_get.restype = REAL_T
+    library.vector2d_dot_product.argtypes = [ctypes.POINTER(Vector),
+                                             ctypes.POINTER(Vector)]
+    library.vector2d_dot_product.restype = REAL_T
+    library.vector2d_norm.argtypes = [ctypes.POINTER(Vector)]
+    library.vector2d_norm.restype = REAL_T
+
+    # real, as elements of a parameter matrix
+    for name in ("real_sin", "real_cos", "real_sqrt", "real_abs"):
+        function = getattr(library, name)
+        function.argtypes = [REAL_T]
+        function.restype = REAL_T
+
     library.cnum_make.argtypes = [REAL_T, REAL_T]
     library.cnum_make.restype = Cnum
     library.cnum_magnitude.argtypes = [Cnum]
@@ -903,6 +1426,10 @@ def load_library():
         function = getattr(library, name)
         function.argtypes = [ctypes.POINTER(Iir), REAL_T]
         function.restype = REAL_T
+    library.iir_process_sample.argtypes = [ctypes.POINTER(Iir), REAL_T]
+    library.iir_process_sample.restype = REAL_T
+    library.iir_reset.argtypes = [ctypes.POINTER(Iir)]
+    library.iir_reset.restype = None
     library.iir_free.argtypes = [ctypes.POINTER(Iir)]
     library.iir_free.restype = None
 
@@ -928,6 +1455,10 @@ def load_library():
     library.fir_get_coefficient.argtypes = [ctypes.POINTER(Fir),
                                             ctypes.c_uint32]
     library.fir_get_coefficient.restype = REAL_T
+    library.fir_process_sample.argtypes = [ctypes.POINTER(Fir), REAL_T]
+    library.fir_process_sample.restype = REAL_T
+    library.fir_reset.argtypes = [ctypes.POINTER(Fir)]
+    library.fir_reset.restype = None
     library.fir_free.argtypes = [ctypes.POINTER(Fir)]
     library.fir_free.restype = None
 
@@ -1179,6 +1710,229 @@ def load_library():
     library.farrow_reset.restype = None
     library.farrow_free.argtypes = [ctypes.POINTER(Farrow)]
     library.farrow_free.restype = None
+
+    # movavg
+    library.movavg_alloc.argtypes = [ctypes.c_uint32]
+    library.movavg_alloc.restype = Movavg
+    library.movavg_reset.argtypes = [ctypes.POINTER(Movavg)]
+    library.movavg_reset.restype = None
+    library.movavg_process_sample.argtypes = [ctypes.POINTER(Movavg), REAL_T]
+    library.movavg_process_sample.restype = REAL_T
+    library.movavg_process_block.argtypes = [ctypes.POINTER(Movavg),
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32]
+    library.movavg_process_block.restype = None
+    for name in ("movavg_get_mean", "movavg_get_rms"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Movavg)]
+        function.restype = REAL_T
+    library.movavg_free.argtypes = [ctypes.POINTER(Movavg)]
+    library.movavg_free.restype = None
+
+    # dcblock
+    library.dcblock_is_valid_cutoff.argtypes = [REAL_T]
+    library.dcblock_is_valid_cutoff.restype = ctypes.c_bool
+    library.dcblock_init.argtypes = [REAL_T]
+    library.dcblock_init.restype = Dcblock
+    library.dcblock_process_sample.argtypes = [ctypes.POINTER(Dcblock),
+                                               REAL_T]
+    library.dcblock_process_sample.restype = REAL_T
+    library.dcblock_process_block.argtypes = [ctypes.POINTER(Dcblock),
+                                              FLOAT_POINTER, FLOAT_POINTER,
+                                              ctypes.c_uint32]
+    library.dcblock_process_block.restype = None
+    library.dcblock_get_level.argtypes = [ctypes.POINTER(Dcblock)]
+    library.dcblock_get_level.restype = REAL_T
+    library.dcblock_set_level.argtypes = [ctypes.POINTER(Dcblock), REAL_T]
+    library.dcblock_set_level.restype = None
+    library.dcblock_reset.argtypes = [ctypes.POINTER(Dcblock)]
+    library.dcblock_reset.restype = None
+
+    # savgol
+    library.savgol_alloc.argtypes = [ctypes.c_uint32]
+    library.savgol_alloc.restype = Savgol
+    library.savgol_is_valid.argtypes = [ctypes.c_uint32, ctypes.c_uint32,
+                                        ctypes.c_uint32]
+    library.savgol_is_valid.restype = ctypes.c_bool
+    library.savgol_design.argtypes = [ctypes.POINTER(Savgol), ctypes.c_uint32,
+                                      ctypes.c_uint32]
+    library.savgol_design.restype = ctypes.c_bool
+    library.savgol_get_coefficient.argtypes = [ctypes.POINTER(Savgol),
+                                               ctypes.c_uint32]
+    library.savgol_get_coefficient.restype = REAL_T
+    library.savgol_apply.argtypes = [ctypes.POINTER(Savgol), FLOAT_POINTER]
+    library.savgol_apply.restype = REAL_T
+    library.savgol_process_block.argtypes = [ctypes.POINTER(Savgol),
+                                             FLOAT_POINTER, FLOAT_POINTER,
+                                             ctypes.c_uint32]
+    library.savgol_process_block.restype = None
+    library.savgol_free.argtypes = [ctypes.POINTER(Savgol)]
+    library.savgol_free.restype = None
+
+    # adaptive
+    library.adaptive_is_valid_rule.argtypes = [ctypes.c_int]
+    library.adaptive_is_valid_rule.restype = ctypes.c_bool
+    library.adaptive_alloc.argtypes = [ctypes.c_uint32]
+    library.adaptive_alloc.restype = Adaptive
+    library.adaptive_design.argtypes = [ctypes.POINTER(Adaptive),
+                                        ctypes.c_int, REAL_T]
+    library.adaptive_design.restype = ctypes.c_bool
+    library.adaptive_set_leak.argtypes = [ctypes.POINTER(Adaptive), REAL_T]
+    library.adaptive_set_leak.restype = ctypes.c_bool
+    library.adaptive_reset.argtypes = [ctypes.POINTER(Adaptive)]
+    library.adaptive_reset.restype = None
+    for name in ("adaptive_process_sample", "adaptive_error"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Adaptive), REAL_T, REAL_T]
+        function.restype = REAL_T
+    library.adaptive_process_block.argtypes = [ctypes.POINTER(Adaptive),
+                                               FLOAT_POINTER, FLOAT_POINTER,
+                                               FLOAT_POINTER, FLOAT_POINTER,
+                                               ctypes.c_uint32]
+    library.adaptive_process_block.restype = ctypes.c_bool
+    library.adaptive_get_coefficient.argtypes = [ctypes.POINTER(Adaptive),
+                                                 ctypes.c_uint32]
+    library.adaptive_get_coefficient.restype = REAL_T
+    library.adaptive_free.argtypes = [ctypes.POINTER(Adaptive)]
+    library.adaptive_free.restype = None
+
+    # imf and hht
+    # emd
+    library.emd_alloc.argtypes = [ctypes.c_uint32]
+    library.emd_alloc.restype = Emd
+    library.emd_initialize.argtypes = [ctypes.POINTER(Emd), ctypes.c_uint32,
+                                       ctypes.POINTER(Imf), FLOAT_POINTER,
+                                       FLOAT_POINTER, FLOAT_POINTER,
+                                       FLOAT_POINTER, FLOAT_POINTER,
+                                       FLOAT_POINTER]
+    library.emd_initialize.restype = None
+    library.emd_get_imf.argtypes = [ctypes.POINTER(Emd), ctypes.c_uint32,
+                                    ctypes.c_uint32,
+                                    ctypes.POINTER(ctypes.c_uint32)]
+    library.emd_get_imf.restype = ctypes.POINTER(Imf)
+    library.emd_sift.argtypes = [ctypes.POINTER(Emd), ctypes.c_uint32]
+    library.emd_sift.restype = ctypes.c_uint32
+    library.emd_free.argtypes = [Emd]
+    library.emd_free.restype = None
+
+    library.imf_alloc.argtypes = [ctypes.c_uint32]
+    library.imf_alloc.restype = Imf
+    library.imf_free.argtypes = [Imf]
+    library.imf_free.restype = None
+    library.hht_transform_imf.argtypes = [ctypes.POINTER(Fft),
+                                          ctypes.POINTER(Imf),
+                                          ctypes.POINTER(Cnum),
+                                          FLOAT_POINTER, FLOAT_POINTER,
+                                          REAL_T]
+    library.hht_transform_imf.restype = None
+    library.hht_transform.argtypes = [ctypes.POINTER(Fft),
+                                      ctypes.POINTER(Imf), ctypes.c_uint32,
+                                      ctypes.POINTER(Cnum), FLOAT_POINTER,
+                                      FLOAT_POINTER, REAL_T]
+    library.hht_transform.restype = None
+    library.hht_mean_frequency.argtypes = [FLOAT_POINTER, FLOAT_POINTER,
+                                           ctypes.c_uint32]
+    library.hht_mean_frequency.restype = REAL_T
+
+    # spectrogram
+    library.spectrogram_is_valid_kind.argtypes = [ctypes.c_int]
+    library.spectrogram_is_valid_kind.restype = ctypes.c_bool
+    library.spectrogram_value_count.argtypes = [ctypes.POINTER(Stft),
+                                                ctypes.c_uint32]
+    library.spectrogram_value_count.restype = ctypes.c_uint32
+    library.spectrogram_build.argtypes = [ctypes.POINTER(Stft),
+                                          ctypes.POINTER(Cnum),
+                                          ctypes.c_uint32, ctypes.c_int,
+                                          REAL_T, FLOAT_POINTER,
+                                          ctypes.c_uint32]
+    library.spectrogram_build.restype = ctypes.c_bool
+    library.spectrogram_largest.argtypes = [FLOAT_POINTER, ctypes.c_uint32]
+    library.spectrogram_largest.restype = REAL_T
+    library.spectrogram_against_the_largest.argtypes = [FLOAT_POINTER,
+                                                        ctypes.c_uint32,
+                                                        FLOAT_POINTER]
+    library.spectrogram_against_the_largest.restype = ctypes.c_bool
+
+    # dwt
+    library.dwt_init.argtypes = [ctypes.c_int]
+    library.dwt_init.restype = Dwt
+    library.dwt_is_valid_size.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.dwt_is_valid_size.restype = ctypes.c_bool
+    library.dwt_forward.argtypes = [ctypes.POINTER(Dwt), FLOAT_POINTER,
+                                    ctypes.c_uint32, FLOAT_POINTER,
+                                    FLOAT_POINTER]
+    library.dwt_forward.restype = None
+    library.dwt_inverse.argtypes = [ctypes.POINTER(Dwt), FLOAT_POINTER,
+                                    FLOAT_POINTER, ctypes.c_uint32,
+                                    FLOAT_POINTER]
+    library.dwt_inverse.restype = None
+    for name in ("dwt_forward_multi", "dwt_inverse_multi"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Dwt), FLOAT_POINTER,
+                             ctypes.c_uint32, ctypes.c_uint32, FLOAT_POINTER]
+        function.restype = None
+    library.dwt_threshold.argtypes = [FLOAT_POINTER, ctypes.c_uint32, REAL_T]
+    library.dwt_threshold.restype = None
+
+    # goertzel
+    library.goertzel_init.argtypes = [REAL_T, REAL_T, ctypes.c_uint32]
+    library.goertzel_init.restype = Goertzel
+    library.goertzel_process_sample.argtypes = [ctypes.POINTER(Goertzel),
+                                                REAL_T]
+    library.goertzel_process_sample.restype = None
+    library.goertzel_process_block.argtypes = [ctypes.POINTER(Goertzel),
+                                               FLOAT_POINTER,
+                                               ctypes.c_uint32]
+    library.goertzel_process_block.restype = None
+    library.goertzel_is_block_complete.argtypes = [ctypes.POINTER(Goertzel)]
+    library.goertzel_is_block_complete.restype = ctypes.c_bool
+    for name in ("goertzel_magnitude_squared", "goertzel_magnitude",
+                 "goertzel_phase"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Goertzel)]
+        function.restype = REAL_T
+    library.goertzel_reset.argtypes = [ctypes.POINTER(Goertzel)]
+    library.goertzel_reset.restype = None
+
+    # hilbert
+    library.hilbert_analytic_signal.argtypes = [ctypes.POINTER(Fft),
+                                                FLOAT_POINTER,
+                                                ctypes.POINTER(Cnum)]
+    library.hilbert_analytic_signal.restype = None
+    for name in ("hilbert_amplitude", "hilbert_phase"):
+        function = getattr(library, name)
+        function.argtypes = [ctypes.POINTER(Cnum), FLOAT_POINTER,
+                             ctypes.c_uint32]
+        function.restype = None
+    library.hilbert_frequency.argtypes = [ctypes.POINTER(Cnum), FLOAT_POINTER,
+                                          ctypes.c_uint32, REAL_T]
+    library.hilbert_frequency.restype = None
+
+    # psd
+    library.psd_is_valid_block.argtypes = [ctypes.c_uint32]
+    library.psd_is_valid_block.restype = ctypes.c_bool
+    library.psd_alloc.argtypes = [ctypes.c_uint32]
+    library.psd_alloc.restype = Psd
+    library.psd_design.argtypes = [ctypes.POINTER(Psd), ctypes.c_uint32,
+                                   ctypes.c_int, REAL_T]
+    library.psd_design.restype = ctypes.c_bool
+    library.psd_bin_count.argtypes = [ctypes.POINTER(Psd)]
+    library.psd_bin_count.restype = ctypes.c_uint32
+    library.psd_block_count.argtypes = [ctypes.POINTER(Psd), ctypes.c_uint32]
+    library.psd_block_count.restype = ctypes.c_uint32
+    library.psd_bin_frequency.argtypes = [ctypes.POINTER(Psd),
+                                          ctypes.c_uint32, REAL_T]
+    library.psd_bin_frequency.restype = REAL_T
+    library.psd_bin_width.argtypes = [ctypes.POINTER(Psd), REAL_T]
+    library.psd_bin_width.restype = REAL_T
+    library.psd_estimate.argtypes = [ctypes.POINTER(Psd), FLOAT_POINTER,
+                                     ctypes.c_uint32, REAL_T, FLOAT_POINTER]
+    library.psd_estimate.restype = ctypes.c_bool
+    library.psd_band_power.argtypes = [ctypes.POINTER(Psd), FLOAT_POINTER,
+                                       REAL_T, REAL_T, REAL_T]
+    library.psd_band_power.restype = REAL_T
+    library.psd_free.argtypes = [ctypes.POINTER(Psd)]
+    library.psd_free.restype = None
 
     # cepstrum
     library.cepstrum_is_valid_size.argtypes = [ctypes.c_uint32]

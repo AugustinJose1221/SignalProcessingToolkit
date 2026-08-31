@@ -296,3 +296,52 @@ void test_cepstrum_static_alloc_takes_no_memory_from_the_heap(void)
     cepstrum_free(&cepstrum);
     fft_free(&fft);
 }
+
+void test_a_size_that_the_transform_cannot_take_gives_a_handle_that_cannot_be_used(void)
+{
+    cepstrum_t cepstrum = cepstrum_alloc(63u);
+
+    TEST_ASSERT_FALSE(cepstrum_is_valid_size(63u));
+
+    real_t input[63];
+    real_t output[63];
+    for(uint32_t index = 0; index < 63u; index++)
+    {
+        input[index] = REAL_C(1.0);
+    }
+
+    TEST_ASSERT_FALSE(cepstrum_real(&cepstrum, input, output));
+
+    cepstrum_free(&cepstrum);
+}
+
+void test_a_block_of_silence_gives_a_cepstrum_and_not_a_logarithm_of_nothing(void)
+{
+    // The cepstrum takes the logarithm of the size of every bin, and the
+    // logarithm of nothing has no value. The floor stands a fixed part below
+    // the LOUDEST bin, and in silence there is no loudest bin at all.
+    //
+    // The module must still answer with numbers a caller can use.
+    uint32_t size = 64u;
+    cepstrum_t cepstrum = cepstrum_alloc(size);
+    real_t input[64];
+    real_t output[64];
+
+    for(uint32_t index = 0; index < size; index++)
+    {
+        input[index] = REAL_C(0.0);
+    }
+
+    TEST_ASSERT_TRUE(cepstrum_real(&cepstrum, input, output));
+
+    for(uint32_t index = 0; index < size; index++)
+    {
+        // Every value is a real number: not infinite and not a value that is
+        // not a number. A comparison with itself finds the second.
+        TEST_ASSERT_TRUE(output[index] == output[index]);
+        TEST_ASSERT_TRUE(output[index] < REAL_C(1.0e30));
+        TEST_ASSERT_TRUE(output[index] > REAL_C(-1.0e30));
+    }
+
+    cepstrum_free(&cepstrum);
+}

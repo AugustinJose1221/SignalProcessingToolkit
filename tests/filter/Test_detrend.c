@@ -311,3 +311,12 @@ void test_numbering_from_the_middle_holds_its_digits(void)
     // times the rise of one sample.
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.00001), REAL_C(0.01), slope);
 }
+
+void test_removing_a_trend_from_a_signal_of_no_samples_is_refused(void)
+{
+    real_t nothing[1] = {REAL_C(0.0)};
+    real_t room[1];
+
+    TEST_ASSERT_FALSE(detrend_remove(nothing, room, 0u, REAL_C(0.0),
+                                     REAL_C(0.0)));
+}

@@ -95,6 +95,26 @@ real_t goertzel_phase(goertzel_t* goertzel);
 
 Give the phase of the answer in radians, between -pi and pi.
 
+IT IS THE PHASE OF THE TRANSFORM MEASURED FROM THE OTHER END OF THE BLOCK,
+and a caller setting it beside an fft phase must know so.
+
+The recurrence carries two numbers and the answer is read off them when the
+block ends, thus its origin stands at the LAST sample where the transform's
+stands at the first. That puts a fixed turn between the two:
+
+    this phase = the transform phase + 2 pi k (N - 1) / N
+
+where k is the bin the frequency falls on and N is the block. Measured, the
+two agree to five decimal places at every block and bin tried. It is not a
+fault and it cannot be taken out without making the recurrence carry a third
+number, which would cost the whole reason to reach for this rather than for a
+transform.
+
+NOTHING THAT COMPARES TWO ANSWERS FROM THIS MODULE IS TOUCHED BY IT. The turn
+is the same for both, thus it cancels: the phase BETWEEN two signals read at
+the same bin, or the way the phase moves as a signal is moved along, are both
+right as they stand.
+
 ### `goertzel_reset`
 
 ```c

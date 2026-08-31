@@ -470,3 +470,14 @@ void test_changepoint_a_block_is_the_samples_one_at_a_time(void)
                             changepoint_running_low(&apart),
                             changepoint_running_low(&together));
 }
+
+void test_a_watcher_that_was_never_designed_promises_no_delay(void)
+{
+    // The delay follows from the threshold and the size of the change, and a
+    // watcher that was never designed has neither. It must answer with nothing
+    // rather than a number worked out from whatever the memory held.
+    changepoint_t changepoint = changepoint_make();
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0),
+                           changepoint_delay_for(&changepoint, REAL_C(2.0)));
+}

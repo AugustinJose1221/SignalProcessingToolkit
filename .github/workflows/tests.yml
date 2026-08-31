@@ -89,6 +89,25 @@ jobs:
         # one whose name is missing is the one that compiles.
         run: python scripts/check_examples.py
 
+  freeze:
+    name: Freeze check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the sources
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check that the public surface has not grown
+        # The library is in a feature freeze from 0.17.0: it takes fixes, tests
+        # and documentation, and not new public functions. A freeze that is only
+        # written down is one that ends the first time somebody is in a hurry,
+        # thus the counts are recorded and this compares against them.
+        run: python scripts/check_freeze.py
+
   unit-tests:
     # The library holds every number in real_t, which is 32 bits or 64. Both
     # widths must be examined, because a fault can live in one and not in the

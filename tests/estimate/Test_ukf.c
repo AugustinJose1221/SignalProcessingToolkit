@@ -850,3 +850,65 @@ void test_ukf_putting_the_state_and_covariance_back_is_a_reset(void)
     ukf_free(&used);
     ukf_free(&fresh);
 }
+
+static void ukf_edge_model(const matrix_t* state, const matrix_t* input,
+                           matrix_t* result)
+{
+    (void)input;
+    matrix_add_element(result, 0, 0, matrix_get_element(state, 0, 0));
+    matrix_add_element(result, 1, 0, matrix_get_element(state, 1, 0));
+}
+
+static void ukf_edge_measurement(const matrix_t* state, matrix_t* result)
+{
+    matrix_add_element(result, 0, 0, matrix_get_element(state, 0, 0));
+}
+
+void test_a_covariance_that_is_not_a_real_spread_stops_the_filter(void)
+{
+    // The points are placed along a root of the covariance, and a covariance
+    // that is not a real spread has no root. A doubt below nothing means
+    // nothing: no direction can hold a negative amount of it.
+    //
+    // The filter must say so and change NOTHING, rather than place its points
+    // from a root that does not exist and carry the answer forward as though
+    // it did.
+    ukf_t ukf = ukf_alloc(1, 2, 1);
+
+    ukf_set_state_function(&ukf, ukf_edge_model);
+    ukf_set_measurement_function(&ukf, ukf_edge_measurement);
+
+    matrix_t state = matrix_create_zero_matrix(2, 1);
+    matrix_add_element(&state, 0, 0, REAL_C(1.0));
+
+    matrix_t covariance = matrix_create_zero_matrix(2, 2);
+    matrix_add_element(&covariance, 0, 0, REAL_C(-4.0));
+    matrix_add_element(&covariance, 1, 1, REAL_C(-2.0));
+
+    matrix_t noise = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&noise, 0, 0, REAL_C(1.0));
+
+    matrix_t measurement = matrix_create_zero_matrix(1, 1);
+    matrix_add_element(&measurement, 0, 0, REAL_C(2.0));
+
+    ukf_set_state_matrix(&ukf, &state);
+    ukf_set_covariance_matrix(&ukf, &covariance);
+    ukf_set_measurement_covariance_matrix(&ukf, &noise);
+
+    matrix_t points = matrix_alloc(2, UKF_POINT_COUNT(2));
+    TEST_ASSERT_EQUAL(false, ukf_place_points_into(&ukf, &points));
+    TEST_ASSERT_EQUAL(false, ukf_predict(&ukf));
+    TEST_ASSERT_EQUAL(false, ukf_step(&ukf, NULL, &measurement));
+
+    // The state is exactly where it was put.
+    TEST_ASSERT_EQUAL_REAL(REAL_C(1.0),
+                           matrix_get_element(ukf_get_state_matrix(&ukf), 0,
+                                              0));
+
+    matrix_free(&points);
+    matrix_free(&state);
+    matrix_free(&covariance);
+    matrix_free(&noise);
+    matrix_free(&measurement);
+    ukf_free(&ukf);
+}

@@ -295,6 +295,20 @@
     # - Xml
     # - XmlSummary
   :gcovr:
+    # THE FREEZE ASKS FOR A NUMBER, THUS THE BUILD MEASURES IT.
+    #
+    # A criterion that nothing checks is a wish. This one fails the build when
+    # the lines covered fall below it, in the same way the freeze check fails
+    # the build when a function is added.
+    #
+    # Why 98 and not 99: the lines that are left are guards against the heap
+    # giving nothing and against numbers the width cannot hold. Reaching them
+    # needs an allocator that fails on purpose, or calls that break what the
+    # headers say a caller may do. Even covering every line that a caller CAN
+    # reach leaves the whole below 99, thus 99 would be a number the code
+    # cannot meet while those guards stand, and taking the guards out to meet
+    # it would be the wrong trade.
+    :fail_under_line: 98
     :html_artifact_filename: SignalProcessingToolkit Test Report.html
     :html_title: Test Coverage Report
     :html_medium_threshold: 75

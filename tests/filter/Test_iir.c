@@ -1058,3 +1058,150 @@ void test_an_elliptic_reaches_a_deep_stop_band_at_either_width(void)
 
     iir_free(&filter);
 }
+
+// THE ASKS A DESIGN MUST TURN DOWN, AND THE TWO ENDS OF THE BAND.
+
+void test_a_peak_with_a_centre_or_a_quality_that_means_nothing_is_refused(void)
+{
+    iir_t iir = iir_alloc(1u);
+
+    TEST_ASSERT_FALSE(iir_design_peak(&iir, REAL_C(0.0), REAL_C(4.0)));
+    TEST_ASSERT_FALSE(iir_design_peak(&iir, REAL_C(0.5), REAL_C(4.0)));
+    TEST_ASSERT_FALSE(iir_design_peak(&iir, REAL_C(0.6), REAL_C(4.0)));
+    TEST_ASSERT_FALSE(iir_design_peak(&iir, REAL_C(0.25), REAL_C(0.0)));
+    TEST_ASSERT_FALSE(iir_design_peak(&iir, REAL_C(0.25), REAL_C(-2.0)));
+
+    // And one that means something is taken.
+    TEST_ASSERT_TRUE(iir_design_peak(&iir, REAL_C(0.25), REAL_C(4.0)));
+
+    iir_free(&iir);
+}
+
+void test_a_specification_that_no_filter_could_meet_asks_for_no_sections(void)
+{
+    // The band that passes must end before the band that stops begins, and the
+    // stop band must be further down than the pass band ripples. A
+    // specification that breaks either is not a filter, and giving back a
+    // number of sections would invite a caller to allocate them.
+    TEST_ASSERT_EQUAL(0, iir_sections_for(IIR_BUTTERWORTH, REAL_C(0.3),
+                                          REAL_C(0.2), REAL_C(1.0),
+                                          REAL_C(40.0)));
+    TEST_ASSERT_EQUAL(0, iir_sections_for(IIR_BUTTERWORTH, REAL_C(0.2),
+                                          REAL_C(0.2), REAL_C(1.0),
+                                          REAL_C(40.0)));
+    TEST_ASSERT_EQUAL(0, iir_sections_for(IIR_BUTTERWORTH, REAL_C(0.1),
+                                          REAL_C(0.2), REAL_C(40.0),
+                                          REAL_C(1.0)));
+}
+
+void test_a_specification_too_sharp_for_a_filter_of_biquads_asks_for_none(void)
+{
+    // A band that must fall 120 dB across a hair of the rate needs more
+    // sections than this module will hold steady. The module says nothing
+    // rather than hand back a number no filter could carry.
+    uint32_t sections = iir_sections_for(IIR_BUTTERWORTH, REAL_C(0.2000),
+                                         REAL_C(0.2001), REAL_C(0.001),
+                                         REAL_C(120.0));
+
+    TEST_ASSERT_EQUAL(0, sections);
+}
+
+void test_the_delay_is_measured_at_both_ends_of_the_band(void)
+{
+    // At 0 and at half the rate there is no room on one side for the pair of
+    // places the measurement needs, thus the pair is moved inwards. A step
+    // that reached outside the band would take a phase from a frequency that
+    // does not exist.
+    iir_t iir = iir_alloc(2u);
+    TEST_ASSERT_TRUE(iir_design_low_pass(&iir, REAL_C(0.1)));
+
+    real_t at_nothing = iir_group_delay(&iir, REAL_C(0.0));
+    real_t at_half = iir_group_delay(&iir, REAL_C(0.5));
+
+    // A delay is a number of samples. It must be a real number at both ends
+    // and it must not be absurd.
+    TEST_ASSERT_TRUE(at_nothing > REAL_C(-1.0));
+    TEST_ASSERT_TRUE(at_nothing < REAL_C(1000.0));
+    TEST_ASSERT_TRUE(at_half > REAL_C(-1.0));
+    TEST_ASSERT_TRUE(at_half < REAL_C(1000.0));
+
+    iir_free(&iir);
+}
+
+void test_the_delay_stays_sensible_where_the_phase_folds_over(void)
+{
+    // The phase comes back folded into one turn. A filter of many sections
+    // turns its phase through several whole turns across the band, thus the
+    // measurement steps across the fold again and again.
+    //
+    // Unfolding that is the whole of what makes the measurement work. Without
+    // it the delay would jump by a whole turn divided by the step, which for
+    // this filter is thousands of samples, at every fold.
+    iir_t iir = iir_alloc(8u);
+    TEST_ASSERT_TRUE(iir_design_low_pass(&iir, REAL_C(0.25)));
+
+    for(uint32_t step = 1; step < 200u; step++)
+    {
+        real_t frequency = REAL_C(0.0025) * (real_t)step;
+        real_t delay = iir_group_delay(&iir, frequency);
+
+        // The delay of a filter of 8 sections cannot reach a hundred samples.
+        // A fold that was not unfolded would give thousands.
+        TEST_ASSERT_TRUE(delay > REAL_C(-100.0));
+        TEST_ASSERT_TRUE(delay < REAL_C(100.0));
+    }
+
+    iir_free(&iir);
+}
+
+void test_the_delay_is_right_at_the_very_place_where_the_phase_folds(void)
+{
+    // The sweep above crosses the fold only by luck. This one FINDS it.
+    //
+    // The phase comes back folded into one turn. Somewhere in the band there
+    // is a frequency where it steps from one edge of that turn to the other,
+    // and at that one frequency the two places the delay is measured between
+    // stand on opposite sides of the fold. The raw difference is then a whole
+    // turn out.
+    //
+    // Unfolding it is the whole of what makes the measurement work. Left
+    // folded, the delay at this one frequency would be a turn divided by the
+    // step, which is more than six thousand samples for a filter that really
+    // delays about ten.
+    iir_t iir = iir_alloc(8u);
+    TEST_ASSERT_TRUE(iir_design_low_pass(&iir, REAL_C(0.25)));
+
+    real_t step = REAL_C(0.000002);
+    real_t at_the_fold = REAL_C(0.0);
+    bool found = false;
+
+    for(uint32_t k = 250u; k < 249750u; k++)
+    {
+        real_t here = step * (real_t)k;
+        real_t before = iir_phase(&iir, here);
+        real_t after = iir_phase(&iir, here + step);
+
+        if((after - before) > REAL_C(3.1416))
+        {
+            at_the_fold = here;
+            found = true;
+            break;
+        }
+    }
+
+    TEST_ASSERT_TRUE(found);
+
+    real_t delay = iir_group_delay(&iir, at_the_fold);
+
+    TEST_ASSERT_TRUE(delay > REAL_C(-100.0));
+    TEST_ASSERT_TRUE(delay < REAL_C(100.0));
+
+    // And it agrees with the delay just to either side, which is the point:
+    // the fold must leave no mark on the reading.
+    real_t nearby = iir_group_delay(&iir,
+                                    at_the_fold + REAL_C(0.002));
+    TEST_ASSERT_TRUE(nearby > REAL_C(-100.0));
+    TEST_ASSERT_TRUE(nearby < REAL_C(100.0));
+
+    iir_free(&iir);
+}

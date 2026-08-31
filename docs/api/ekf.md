@@ -24,11 +24,14 @@ The number of float elements that ekf_static_alloc needs in the memory pool.
 ### `EKF_DEFAULT_DERIVATIVE_STEP`
 
 ```c
-#define EKF_DEFAULT_DERIVATIVE_STEP     REAL_C(0.001)
+#define EKF_DEFAULT_DERIVATIVE_STEP     REAL_C(0.00001)
 ```
 
-The step of the central difference that the filter uses when the caller sets
-no other one.
+### `EKF_DEFAULT_DERIVATIVE_STEP`
+
+```c
+#define EKF_DEFAULT_DERIVATIVE_STEP     REAL_C(0.005)
+```
 
 ## Types
 

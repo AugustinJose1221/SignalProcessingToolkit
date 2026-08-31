@@ -443,3 +443,55 @@ void test_quaternion_normalise_puts_a_drifted_length_back(void)
                                                         quaternion_identity(),
                                                         TOLERANCE));
 }
+
+void test_a_turn_read_the_other_way_round_gives_the_same_axis_and_angle(void)
+{
+    // A quaternion and its negative are the SAME attitude. One of the two has
+    // a negative w, which reads as an angle past half a turn going the long
+    // way round. The module turns it over first, so that the angle always
+    // comes back between nothing and half a turn.
+    quaternion_t q = quaternion_make(REAL_C(0.7071), REAL_C(0.7071),
+                                     REAL_C(0.0), REAL_C(0.0));
+    quaternion_t same = quaternion_scale(q, REAL_C(-1.0));
+
+    real_t x1, y1, z1, angle1;
+    real_t x2, y2, z2, angle2;
+
+    quaternion_to_axis_angle(q, &x1, &y1, &z1, &angle1);
+    quaternion_to_axis_angle(same, &x2, &y2, &z2, &angle2);
+
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), angle1, angle2);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), x1, x2);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), y1, y2);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.001), z1, z2);
+
+    TEST_ASSERT_TRUE(angle2 >= REAL_C(0.0));
+    TEST_ASSERT_TRUE(angle2 <= REAL_C(3.1416));
+}
+
+void test_two_attitudes_almost_the_same_are_joined_by_a_straight_line(void)
+{
+    // Between two attitudes that stand very close together, the angle is near
+    // nothing and dividing by its sine would throw away every digit. A
+    // straight line between them is right to far more than the width can hold.
+    //
+    // The answer must still be a turn: a real quaternion of length one, and
+    // one that reaches both ends.
+    quaternion_t a = quaternion_make(REAL_C(1.0), REAL_C(0.0), REAL_C(0.0),
+                                     REAL_C(0.0));
+    quaternion_t b = quaternion_normalise(
+        quaternion_make(REAL_C(1.0), REAL_C(0.0000001), REAL_C(0.0),
+                        REAL_C(0.0)));
+
+    for(uint32_t step = 0; step <= 4u; step++)
+    {
+        real_t part = REAL_C(0.25) * (real_t)step;
+        quaternion_t between = quaternion_slerp(a, b, part);
+
+        TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(1.0),
+                                quaternion_magnitude(between));
+    }
+
+    quaternion_t at_start = quaternion_slerp(a, b, REAL_C(0.0));
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), a.w, at_start.w);
+}

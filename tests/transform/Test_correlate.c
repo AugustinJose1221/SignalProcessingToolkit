@@ -302,3 +302,74 @@ void test_the_transform_refuses_a_transform_of_the_wrong_size(void)
                           CORRELATE_RAW, &right, work, window));
     fft_free(&right);
 }
+
+void test_a_range_of_lags_that_does_not_fit_inside_the_signal_gives_nothing(void)
+{
+    // The lag of 0 must be left out: every signal matches itself perfectly
+    // there and that answer says nothing. A range that reaches as far as the
+    // signal is long has no samples left to overlap.
+    real_t data[16];
+    real_t room[32];
+    real_t strength = REAL_C(9.0);
+
+    for(uint32_t index = 0; index < 16u; index++)
+    {
+        data[index] = (real_t)sin(0.5 * (double)index);
+    }
+
+    TEST_ASSERT_EQUAL(0, correlate_best_lag(data, 16u, room, 0u, 8u,
+                                            &strength));
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), strength);
+
+    TEST_ASSERT_EQUAL(0, correlate_best_lag(data, 16u, room, 6u, 4u,
+                                            &strength));
+    TEST_ASSERT_EQUAL(0, correlate_best_lag(data, 16u, room, 2u, 16u,
+                                            &strength));
+    TEST_ASSERT_EQUAL(0, correlate_best_lag(data, 16u, room, 2u, 20u,
+                                            &strength));
+}
+
+void test_a_lag_that_leaves_fewer_than_two_samples_overlapping_says_nothing(void)
+{
+    // A correlation coefficient is worked out from how the two lists move
+    // about their own means. One pair of samples has no movement to speak of,
+    // thus there is no coefficient and the answer must be 0.
+    real_t data[8];
+    real_t room[8];
+
+    for(uint32_t index = 0; index < 8u; index++)
+    {
+        data[index] = (real_t)index;
+    }
+
+    TEST_ASSERT_TRUE(correlate_auto(data, 8u, room, 7u,
+                                    CORRELATE_COEFFICIENT));
+
+    // The last lag leaves one pair of samples overlapping.
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), room[7]);
+}
+
+void test_a_correlation_that_reaches_past_the_signal_is_refused(void)
+{
+    real_t data[8] = {REAL_C(1.0), REAL_C(2.0), REAL_C(3.0), REAL_C(4.0),
+                      REAL_C(5.0), REAL_C(6.0), REAL_C(7.0), REAL_C(8.0)};
+    real_t room[16];
+    uint32_t transform = correlate_transform_size(8u);
+    fft_t fft = fft_alloc(transform);
+    cnum_t* work = (cnum_t*)malloc(sizeof(cnum_t) * transform);
+    real_t* window = (real_t*)malloc(sizeof(real_t) * transform);
+
+    TEST_ASSERT_FALSE(correlate_auto_by_transform(data, 0u, room, 0u,
+                                                  CORRELATE_RAW, &fft, work,
+                                                  window));
+    TEST_ASSERT_FALSE(correlate_auto_by_transform(data, 8u, room, 8u,
+                                                  CORRELATE_RAW, &fft, work,
+                                                  window));
+    TEST_ASSERT_FALSE(correlate_auto_by_transform(data, 8u, room, 4u,
+                                                  CORRELATE_COEFFICIENT, &fft,
+                                                  work, window));
+
+    free(work);
+    free(window);
+    fft_free(&fft);
+}

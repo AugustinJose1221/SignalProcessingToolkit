@@ -33,6 +33,24 @@
 #define FILTFILT_SETTLE_PART    REAL_C(1.0e-6)
 #define FILTFILT_SETTLE_RUN     8u
 
+// WHY THE STILLNESS IS MEASURED AGAINST THE SIGNAL AND NOTHING ELSE.
+//
+// The question is whether the answer has stopped moving, and the only honest
+// measure of that is how far it moved COMPARED WITH HOW LARGE IT IS. A test
+// that added a fixed amount to the comparison would ask less of a small signal
+// than of a large one, and the module would then give a different shape for
+// the same measurement read in volts and in millivolts.
+//
+// That was measured and it was not small. A low pass at a cutoff of 0.02 whose
+// answer sat near a thousandth came back with a shape that differed by 2 parts
+// in 100 from the same signal at full size. The units a caller chose changed
+// the reading.
+//
+// The smallest number the width can hold is added so that a level of exactly
+// zero settles rather than waiting for ever. It is far below anything a signal
+// can be, thus it changes nothing else.
+#define FILTFILT_SETTLE_FLOOR   REAL_SMALLEST
+
 static void filtfilt_settle_iir(iir_t* iir, real_t level)
 {
     real_t previous = iir_process_sample(iir, level);
@@ -44,7 +62,7 @@ static void filtfilt_settle_iir(iir_t* iir, real_t level)
         real_t moved = REAL_ABS(now - previous);
         real_t size_of = REAL_ABS(now) + REAL_ABS(level);
 
-        if(moved <= (FILTFILT_SETTLE_PART * (size_of + REAL_C(1.0))))
+        if(moved <= (FILTFILT_SETTLE_PART * (size_of + FILTFILT_SETTLE_FLOOR)))
         {
             still++;
             if(still >= FILTFILT_SETTLE_RUN)

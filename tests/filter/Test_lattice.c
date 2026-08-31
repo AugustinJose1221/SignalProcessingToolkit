@@ -398,3 +398,54 @@ void test_lattice_a_block_of_an_undesigned_ladder_is_refused(void)
 
     lattice_free(&lattice);
 }
+
+void test_silence_leaves_the_reflections_where_they_were(void)
+{
+    // Each stage divides by how loud it is, and in silence that is nothing.
+    // The floor keeps the division honest. Without it the reflections would be
+    // set from a division by nothing and the filter would never recover.
+    lattice_t lattice = lattice_alloc(4u);
+    TEST_ASSERT_TRUE(lattice_design(&lattice, REAL_C(0.01), REAL_C(0.99)));
+
+    for(uint32_t index = 0; index < 500u; index++)
+    {
+        lattice_process_sample(&lattice, REAL_C(0.0), REAL_C(0.0));
+    }
+
+    for(uint32_t stage = 0; stage < 4u; stage++)
+    {
+        real_t reflection = lattice_get_reflection(&lattice, stage);
+        TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), reflection);
+    }
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), lattice_error_after(&lattice));
+
+    lattice_free(&lattice);
+}
+
+void test_a_reflection_is_held_inside_the_range_that_stays_steady(void)
+{
+    // A reflection of 1 or more is a stage that grows without bound. The
+    // module holds every one of them inside the range, at both ends, whatever
+    // the signal does.
+    lattice_t lattice = lattice_alloc(4u);
+    TEST_ASSERT_TRUE(lattice_design(&lattice, REAL_C(0.5), REAL_C(0.9)));
+
+    // A signal that changes sign at every sample, against one that does not,
+    // drives the reflections hard in both directions.
+    for(uint32_t index = 0; index < 2000u; index++)
+    {
+        real_t sign = ((index % 2u) == 0u) ? REAL_C(1.0) : REAL_C(-1.0);
+        lattice_process_sample(&lattice, sign * REAL_C(50.0),
+                               REAL_C(-50.0) * sign);
+    }
+
+    for(uint32_t stage = 0; stage < 4u; stage++)
+    {
+        real_t reflection = lattice_get_reflection(&lattice, stage);
+        TEST_ASSERT_TRUE(reflection <= LATTICE_LARGEST_REFLECTION);
+        TEST_ASSERT_TRUE(reflection >= -LATTICE_LARGEST_REFLECTION);
+    }
+
+    lattice_free(&lattice);
+}

@@ -6,6 +6,7 @@
 #include "fft.h"
 #include "window.h"
 #include <math.h>
+#include <stdlib.h>
 
 #define BLOCK       64u
 #define SIZE        256u
@@ -302,5 +303,60 @@ void test_spectrogram_refuses_what_it_cannot_answer(void)
                                                REAL_C(1000.0), values,
                                                count * BINS));
 
+    stft_free(&stft);
+}
+
+void test_a_transform_that_was_never_built_has_no_values_to_count(void)
+{
+    stft_t stft = stft_alloc(63u);
+
+    TEST_ASSERT_EQUAL(0, spectrogram_value_count(&stft, 4u));
+
+    stft_free(&stft);
+}
+
+void test_a_picture_of_no_values_is_refused(void)
+{
+    real_t nothing[1] = {REAL_C(0.0)};
+    real_t room[1];
+
+    TEST_ASSERT_EQUAL_REAL(REAL_C(0.0), spectrogram_largest(nothing, 0u));
+    TEST_ASSERT_FALSE(spectrogram_against_the_largest(nothing, 0u, room));
+}
+
+void test_silence_reads_at_the_floor_and_no_lower(void)
+{
+    // A bin that holds nothing has a level of minus infinity, which cannot be
+    // drawn and cannot be held in a float. The module stops at its floor.
+    //
+    // Every bin of a spectrogram of silence must sit exactly there: not below
+    // it, and not at some very large negative number that a plot would stretch
+    // itself around.
+    stft_t stft = stft_alloc(BLOCK);
+    TEST_ASSERT_TRUE(stft_design(&stft, BLOCK / 4u, WINDOW_HANN, REAL_C(0.0)));
+
+    uint32_t frames = 4u;
+    uint32_t bins = STFT_BIN_COUNT(BLOCK);
+    uint32_t count = spectrogram_value_count(&stft, frames);
+
+    cnum_t* spectrum = (cnum_t*)malloc(sizeof(cnum_t) * frames * bins);
+    real_t* values = (real_t*)malloc(sizeof(real_t) * count);
+
+    for(uint32_t index = 0; index < (frames * bins); index++)
+    {
+        spectrum[index] = cnum_zero();
+    }
+
+    TEST_ASSERT_TRUE(spectrogram_build(&stft, spectrum, frames,
+                                       SPECTROGRAM_DECIBEL, REAL_C(1000.0),
+                                       values, count));
+
+    for(uint32_t index = 0; index < count; index++)
+    {
+        TEST_ASSERT_EQUAL_REAL(SPECTROGRAM_FLOOR_DECIBEL, values[index]);
+    }
+
+    free(spectrum);
+    free(values);
     stft_free(&stft);
 }

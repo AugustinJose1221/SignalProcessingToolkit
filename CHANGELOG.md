@@ -1,3 +1,22 @@
+## 0.17.1 (2026-08-31)
+
+### Fix
+
+- **test**: Allow each road to the determinant what its own products cost
+- **filter**: Say what the resampler really stops at the edge of the band
+- **test**: Set the bound of the ekf rule from the corners, not a spread
+- **transform**: Say what the coefficient needs of a signal
+- **decompose**: Find the envelope of the signal in hand at every step
+- **estimate**: Choose the derivative step of ekf by the width
+- **filter**: Measure the settling of filtfilt against the signal alone
+
+### Note for callers
+
+emd_sift now gives the number of intrinsic mode functions it really found.
+Before, it filled every place the caller offered and counted the empty ones,
+thus a straight line came back as several modes of zero and now comes back as
+none. Read only as many functions as the number it gives.
+
 ## 0.17.0 (2026-08-28)
 
 The last release before the feature freeze. It closes what an audit of the whole

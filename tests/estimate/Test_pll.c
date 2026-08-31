@@ -370,3 +370,13 @@ void test_pll_a_block_of_an_undesigned_loop_is_refused(void)
 
     TEST_ASSERT_EQUAL(false, pll_process_block(&loop, given, answer, 4u));
 }
+
+void test_a_loop_that_was_never_designed_needs_no_time_to_settle(void)
+{
+    // The time to settle follows one divided by the bandwidth. A loop that was
+    // never given a bandwidth has none to divide by, thus the answer is 0 and
+    // not a number that came from a division by nothing.
+    pll_t pll = pll_make();
+
+    TEST_ASSERT_EQUAL(0, pll_settle_samples(&pll));
+}

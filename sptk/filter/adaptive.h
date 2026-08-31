@@ -67,7 +67,30 @@
 typedef enum{
     ADAPTIVE_PLAIN = 0,         // The rule of least mean squares
     ADAPTIVE_NORMALISED,        // The same, divided by the energy in the filter
-    ADAPTIVE_SIGN               // Only the sign of the error is used
+    // Only the sign of the error is used, thus the step needs no
+    // multiplication at all. IT NEVER ARRIVES, AND THAT IS THE TRADE.
+    //
+    // The other two move by an amount that follows the error, thus as the error
+    // falls so does the step and the filter settles. This one moves by a fixed
+    // amount whatever the error is: once it is near the answer it steps past
+    // it, turns round, and steps past it again. What is left is not an error
+    // that falls away but one that HUNTS, by an amount that follows the rate
+    // directly.
+    //
+    // Measured on a path of two taps over sixty thousand samples, the
+    // coefficient wandered by:
+    //
+    //     rate      0.002     0.008     0.031
+    //     wander   0.0066    0.0262    0.1059
+    //
+    // Four times the rate, four times the wander. The normalised rule at the
+    // middle rate wandered by 0.00005, five hundred times less, and what was
+    // left of the error was two thousand times smaller.
+    //
+    // Reach for this only where a multiplication for each coefficient for each
+    // sample is genuinely too much, and choose the rate by how close the answer
+    // has to be rather than by how quickly it must get there.
+    ADAPTIVE_SIGN
 }adaptive_rule_t;
 
 typedef struct{

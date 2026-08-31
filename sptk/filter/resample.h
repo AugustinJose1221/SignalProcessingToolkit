@@ -79,6 +79,21 @@
 // 60 dB down. It is a starting point and not a law: a caller who needs a
 // sharper edge gives a longer filter, and one who can accept a softer edge
 // saves work with a shorter one.
+//
+// THE 60 dB IS THE STOP BAND AND NOT THE EDGE OF IT. A frequency just above
+// half the new rate does not sit in the stop band at all: it sits on the turn,
+// where the filter is still on its way down. Measured, swept finely right up
+// to the edge:
+//
+//     factor      worst rejection near the edge
+//        2               52.7 dB
+//        3               53.2 dB
+//        4               53.0 dB
+//        5               53.7 dB
+//        8               53.9 dB
+//
+// About 53 dB for every factor, and better everywhere further in. A caller who
+// needs the full 60 dB right at the edge gives a longer filter.
 uint32_t resample_advised_length(uint32_t factor);
 
 typedef struct{
