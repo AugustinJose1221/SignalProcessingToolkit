@@ -1,3 +1,7 @@
+## 0.17.2 (2026-08-31)
+
+Nothing here changes what a caller sees. The work of this release went into the tests, the documentation or the build.
+
 ## 0.17.1 (2026-08-31)
 
 ### Fix
@@ -96,6 +100,8 @@
 
 ## 0.10.1 (2026-08-25)
 
+Nothing here changes what a caller sees. The work of this release went into the tests, the documentation or the build.
+
 ## 0.10.0 (2026-08-24)
 
 ### Feat
@@ -130,6 +136,8 @@
 - **ukf**: Give the turned gain a matrix of its own shape
 
 ## 0.7.1 (2026-08-23)
+
+Nothing here changes what a caller sees. The work of this release went into the tests, the documentation or the build.
 
 ## 0.7.0 (2026-08-23)
 

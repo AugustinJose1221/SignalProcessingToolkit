@@ -24,6 +24,11 @@ the one commitizen writes, so nothing downstream needs to know the difference.
 
     python3 scripts/make_changelog.py            write CHANGELOG.md
     python3 scripts/make_changelog.py --check    give 1 if it is out of date
+
+A release is written before it is tagged, thus the version being made has no
+tag yet. Name it and the commits since the last tag are gathered under it:
+
+    python3 scripts/make_changelog.py --unreleased-version 0.17.2
 """
 
 import re
@@ -47,18 +52,25 @@ def as_numbers(tag):
     return [int(part) for part in tag.split(".")]
 
 
-def build():
+def build(unreleased=None):
     tags = sorted(run("git", "tag").split(), key=as_numbers)
+
+    # The release being made has no tag yet. It stands at the end, and what
+    # belongs to it is everything since the last tag there is.
+    order = tags + ([unreleased] if unreleased else [])
     sections = []
 
-    for index, tag in enumerate(tags):
-        span = ("%s..%s" % (tags[index - 1], tag)) if index else tag
+    for index, tag in enumerate(order):
+        span = ("%s..%s" % (order[index - 1], tag)) if index else tag
+        if tag == unreleased:
+            span = "%s..HEAD" % tags[-1] if tags else "HEAD"
 
         # --no-merges keeps a commit from being counted once on the branch that
         # made it and again through the merge that brought it in.
         subjects = run("git", "log", "--no-merges", "--format=%s",
                        span).splitlines()
-        date = run("git", "log", "-1", "--format=%cs", tag).strip()
+        at = "HEAD" if tag == unreleased else tag
+        date = run("git", "log", "-1", "--format=%cs", at).strip()
 
         grouped = OrderedDict((kind, []) for kind in TYPES)
         seen = set()
@@ -78,13 +90,29 @@ def build():
         for kind, title in TYPES.items():
             if grouped[kind]:
                 block += ["", "### %s" % title, ""] + grouped[kind]
+
+        # A RELEASE THAT MOVES NOTHING UNDER A CALLER MUST SAY SO.
+        #
+        # Only the kinds above are listed, thus a release whose work went into
+        # the tests, the documentation or the build has nothing to show. A bare
+        # heading with nothing under it reads as an oversight. This says what
+        # is true instead.
+        if not any(grouped[kind] for kind in TYPES):
+            block += ["", "Nothing here changes what a caller sees. The work of"
+                          " this release went into the tests, the"
+                          " documentation or the build."]
+
         sections.append("\n".join(block))
 
     return "\n\n".join(reversed(sections)) + "\n"
 
 
 def main():
-    wanted = build()
+    unreleased = None
+    if "--unreleased-version" in sys.argv:
+        unreleased = sys.argv[sys.argv.index("--unreleased-version") + 1]
+
+    wanted = build(unreleased)
 
     if "--check" in sys.argv:
         try:
