@@ -242,6 +242,33 @@ covered and no function between nothing and sixty percent, but 21 modules that
 no generated test has ever exercised. Every catch-up round on that has found
 real faults. The freeze is the time to close it.
 
+**What the freeze has closed.** Every module that is not a handful of lines now
+has a file of rules that hold it to what it IS and not to what its interface
+looks like. Those rules found three faults in the library: a filter that gave a
+different shape for the same reading measured in volts and in millivolts, a
+step for a derivative that was five thousand times worse than the width could
+do, and a decomposition whose envelope stood still while it took the same
+amount away again and again, so that a signal of size 3 gave a residue of a
+million and a half.
+
+**How much is covered, and why the number is 98 and not 99.** The build fails
+below 98 percent of lines. What is left is not untested behaviour: it is the
+guards against the heap giving nothing and against numbers the width cannot
+hold. Reaching those needs an allocator that fails on purpose, or calls that
+break what the headers say a caller may do. Covering every line a caller CAN
+reach still leaves the whole below 99, thus 99 is a number the code cannot meet
+while those guards stand, and taking them out to meet it would be the wrong
+trade. Two of them were found to be unreachable because the caller's own check
+is stricter than the guard, and those are named where they stand.
+
+**Rules are run over and over, not once.** A rule that passes one run has been
+given a few hundred cases. The suite is run 25 times at each width before a
+release, and that has found five rules whose bound was too tight to be true.
+None of them was a fault in the library, and two of them corrected what the
+headers claimed: how far a resampler really stops a tone at the very edge of
+the band, and what a coefficient of correlation needs of a signal before it
+means anything.
+
 ### Making a release
 
 The bump command of commitizen is not in use, thus a release is made by hand.
