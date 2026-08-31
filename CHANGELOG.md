@@ -1,3 +1,62 @@
+## 0.17.1 (2026-08-31)
+
+The first release of the feature freeze. It adds no function and takes none
+away. What it adds is rules, and what it fixes is what those rules found.
+
+**Every module that is more than a handful of lines now has a file of rules.**
+Twenty-one had none. The rules hold each module to what it IS and not to what
+its interface looks like: the decomposition is held to putting the signal back
+together, the extended filter and the filter that carries points are held to
+giving what the plain filter of Kalman gives on a straight model, the filter
+that replaces bad samples is held to leaving a clean signal bit for bit, and
+the resampler is held against the plain thrown-away decimation that a caller
+writes when the module is not there.
+
+**Three faults in the library came out of them.**
+
+The filter that runs both ways settled itself against the size of the answer
+PLUS ONE. That added one is an absolute amount: it asked less of a small signal
+than of a large one, thus the module gave a different shape for the same
+measurement read in volts and in millivolts. At a cutoff of 0.02 an answer near
+a thousandth came back 2 parts in 100 different from the same signal at full
+size. Filtering is now exactly linear.
+
+The extended filter measured the slopes of its model with one step for both
+widths. The best step for a central difference stands near the cube root of the
+smallest step the width can hold, which is about 0.005 for a float and about
+0.000006 for a double. The step used was 0.001: five times worse than a float
+can do and five THOUSAND times worse than a double can do. It now follows the
+width.
+
+The decomposition found its envelope only on the first pass. Inside the sifting
+loop the detection was called again with no guard, thus whenever it found no
+peak the envelope kept the value it held for an EARLIER signal, and the sifting
+took that same fixed amount away at every step. A signal whose largest sample
+was 3 gave modes of 15, then 140, then 1400, and a residue of 1.5 million. The
+stopping was wrong for the same reason and the method never stopped early:
+emd_sift filled every place the caller offered with modes of zero. It now gives
+the number of functions it really found, which for a straight line is none.
+
+**Five things the headers claimed turned out not to be so, and now say what is
+true.** The blocker of drift passes 0.891 and not 1 at a cutoff of 0.031. The
+sign rule of the adaptive filter never settles and wanders four times as far
+for four times the rate. The phase of the Goertzel reading stands a turn away
+from the phase of a transform. A resampler stops a tone 53 dB down at the very
+edge of the band and not the 60 dB its rule of thumb promises. And a
+coefficient of correlation needs a signal with a shape above its own rounding:
+a reading that sits at 3.0 and wanders by a hundred-thousandth has all the
+energy anyone would ask for and no shape at all.
+
+**A sort that could never run** was taken out of the peak detector. The signal
+is walked one way, thus every peak that arrives stands further along than every
+peak already kept, and the condition the sort tested cannot happen.
+
+**What the numbers are now.** Lines covered rise from 96.6 to 98.3 percent, and
+the build fails below 98. Unit tests rise from 913 to 984 and rules from 541 to
+600. The whole suite is run 25 times at each width before a release rather than
+once, which found five rules whose bound was too tight to be true; none of them
+was a fault in the library, and two of them are the corrections above.
+
 ## 0.17.0 (2026-08-28)
 
 The last release before the feature freeze. It closes what an audit of the whole
