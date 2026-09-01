@@ -2,10 +2,10 @@
 
 #if (RUN_EXAMPLE == RUN_EMD_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/interpolate/cspline.h>
-#include <sptk/decompose/emd.h>
-#include <sptk/decompose/imf.h>
+#include <ffitt/core/real.h>
+#include <ffitt/interpolate/cspline.h>
+#include <ffitt/decompose/emd.h>
+#include <ffitt/decompose/imf.h>
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>

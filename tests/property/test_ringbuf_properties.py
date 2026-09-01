@@ -18,7 +18,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 
@@ -120,7 +120,7 @@ def test_a_copy_runs_the_other_way_round_from_an_age(lib, signal, size):
     """
     values = [sp.to_float32(value) for value in signal]
     ringbuf = lib.ringbuf_alloc(size)
-    room = sptk.real_buffer(size)
+    room = ffitt.real_buffer(size)
     try:
         for step, value in enumerate(values):
             lib.ringbuf_put(ctypes.byref(ringbuf), value)
@@ -199,7 +199,7 @@ def test_memory_of_the_caller_holds_what_memory_of_the_heap_holds(lib, signal,
     machines take.
     """
     values = [sp.to_float32(value) for value in signal]
-    room = sptk.real_buffer(size)
+    room = ffitt.real_buffer(size)
 
     heap = lib.ringbuf_alloc(size)
     given_room = lib.ringbuf_static_alloc(size, room)

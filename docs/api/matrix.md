@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Matrices of float values. Declared in `sptk/linalg/matrix.h`.
+Matrices of float values. Declared in `ffitt/linalg/matrix.h`.
 
-[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../ffitt/linalg/README.md)
 
 ## Types
 

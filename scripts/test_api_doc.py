@@ -124,7 +124,7 @@ def test_the_index_points_to_the_file_of_each_module():
 
 
 def test_the_file_of_a_module_holds_its_functions_and_no_others():
-    document = api_doc.build_module_document("goertzel", "sptk/transform/goertzel.h",
+    document = api_doc.build_module_document("goertzel", "ffitt/transform/goertzel.h",
                                              "Detection of one frequency")
 
     assert "### `goertzel_init`" in document
@@ -171,7 +171,7 @@ def test_the_check_finds_an_area_with_no_guide(tmp_path, monkeypatch):
     missing = api_doc.find_areas_without_a_guide()
 
     assert len(missing) == len(api_doc.AREAS)
-    assert "sptk/transform/README.md" in missing[0]
+    assert "ffitt/transform/README.md" in missing[0]
 
 
 def test_every_module_belongs_to_an_area():

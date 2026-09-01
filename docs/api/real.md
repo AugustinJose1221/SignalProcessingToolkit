@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The one type that holds every number. Declared in `sptk/core/real.h`.
+The one type that holds every number. Declared in `ffitt/core/real.h`.
 
-[Back to the index](../API.md) | [How the core modules work](../../sptk/core/README.md)
+[Back to the index](../API.md) | [How the core modules work](../../ffitt/core/README.md)
 
 ## Macros
 

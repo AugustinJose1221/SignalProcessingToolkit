@@ -14,20 +14,20 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
 
-METHODS = st.sampled_from([sptk.PROPAGATE_EULER, sptk.PROPAGATE_MIDPOINT,
-                           sptk.PROPAGATE_RUNGE])
+METHODS = st.sampled_from([ffitt.PROPAGATE_EULER, ffitt.PROPAGATE_MIDPOINT,
+                           ffitt.PROPAGATE_RUNGE])
 
 # What each method promises: halving the step divides the error by this much.
 # Euler is first order, midpoint second, Runge fourth.
 ORDER = {
-    sptk.PROPAGATE_EULER: 1,
-    sptk.PROPAGATE_MIDPOINT: 2,
-    sptk.PROPAGATE_RUNGE: 4,
+    ffitt.PROPAGATE_EULER: 1,
+    ffitt.PROPAGATE_MIDPOINT: 2,
+    ffitt.PROPAGATE_RUNGE: 4,
 }
 
 
@@ -39,7 +39,7 @@ def decay_rate(strength):
         for index in range(count):
             out[index] = -strength * state[index]
 
-    return sptk.RATE_FUNCTION(rate)
+    return ffitt.RATE_FUNCTION(rate)
 
 
 def turning_rate():
@@ -50,7 +50,7 @@ def turning_rate():
         out[0] = state[1]
         out[1] = -state[0]
 
-    return sptk.RATE_FUNCTION(rate)
+    return ffitt.RATE_FUNCTION(rate)
 
 
 def constant_rate(speed):
@@ -61,7 +61,7 @@ def constant_rate(speed):
         for index in range(count):
             out[index] = speed
 
-    return sptk.RATE_FUNCTION(rate)
+    return ffitt.RATE_FUNCTION(rate)
 
 
 @given(METHODS, sp.elements(4.0),
@@ -71,7 +71,7 @@ def test_a_state_moving_at_a_fixed_pace_is_followed_exactly(lib, method,
     """Every method takes the rate at one place or another and adds it up. With
     a rate that does not change there is nothing to be wrong about, thus a
     method that misses this one has its arithmetic wrong and not its order."""
-    state = sptk.float_array([start])
+    state = ffitt.float_array([start])
     step = sp.to_float32(0.125)
     steps = 20
 
@@ -93,7 +93,7 @@ def test_a_turning_pair_keeps_its_length(lib, method, first, second):
     lets it drift a little, and how much is what parts them."""
     assume(math.hypot(first, second) > 0.5)
 
-    state = sptk.float_array([first, second])
+    state = ffitt.float_array([first, second])
     began = math.hypot(first, second)
 
     step = sp.to_float32(0.03125)
@@ -107,7 +107,7 @@ def test_a_turning_pair_keeps_its_length(lib, method, first, second):
 
     # Euler always steps outwards along the line it is on, thus it spirals out
     # and is given room to. The other two hold far closer.
-    room = 0.30 if method == sptk.PROPAGATE_EULER else 0.02
+    room = 0.30 if method == ffitt.PROPAGATE_EULER else 0.02
 
     assert abs(now - began) <= room * began
 
@@ -126,7 +126,7 @@ def test_halving_the_step_makes_the_error_smaller_by_the_order(lib, method,
     rate = decay_rate(strength)
 
     def error(steps):
-        state = sptk.float_array([1.0])
+        state = ffitt.float_array([1.0])
         assert lib.propagate_state_over(method, rate, sp.to_float32(0.0),
                                         across, steps, state, None, 1)
         return abs(state[0] - truth)
@@ -161,14 +161,14 @@ def test_a_costlier_method_is_not_worse_at_the_same_step(lib, start,
     rate = decay_rate(strength)
 
     def error(method):
-        state = sptk.float_array([start])
+        state = ffitt.float_array([start])
         assert lib.propagate_state_over(method, rate, sp.to_float32(0.0),
                                         across, steps, state, None, 1)
         return abs(state[0] - truth)
 
-    euler = error(sptk.PROPAGATE_EULER)
-    midpoint = error(sptk.PROPAGATE_MIDPOINT)
-    runge = error(sptk.PROPAGATE_RUNGE)
+    euler = error(ffitt.PROPAGATE_EULER)
+    midpoint = error(ffitt.PROPAGATE_MIDPOINT)
+    runge = error(ffitt.PROPAGATE_RUNGE)
 
     room = 1e-6 * (1.0 + abs(truth))
 
@@ -188,11 +188,11 @@ def test_going_across_in_steps_is_the_same_as_stepping_across(lib, method,
     step = sp.to_float32(across / steps)
     rate = decay_rate(strength)
 
-    over = sptk.float_array([1.0])
+    over = ffitt.float_array([1.0])
     assert lib.propagate_state_over(method, rate, sp.to_float32(0.0), across,
                                     steps, over, None, 1)
 
-    apart = sptk.float_array([1.0])
+    apart = ffitt.float_array([1.0])
     for index in range(steps):
         assert lib.propagate_state(method, rate, sp.to_float32(index * step),
                                    step, apart, None, 1)
@@ -216,13 +216,13 @@ def test_every_part_of_the_state_is_carried_alike(lib, method, values):
     count = len(values)
     rate = decay_rate(sp.to_float32(1.0))
 
-    together = sptk.float_array(values)
+    together = ffitt.float_array(values)
     assert lib.propagate_state_over(method, rate, sp.to_float32(0.0),
                                     sp.to_float32(1.0), 20, together, None,
                                     count)
 
     for index, began in enumerate(values):
-        alone = sptk.float_array([began])
+        alone = ffitt.float_array([began])
         assert lib.propagate_state_over(method, rate, sp.to_float32(0.0),
                                         sp.to_float32(1.0), 20, alone, None, 1)
 
@@ -233,8 +233,8 @@ def test_every_part_of_the_state_is_carried_alike(lib, method, values):
 def test_each_method_says_how_many_rates_it_asks_for(lib, method):
     """The count is what the caller pays. It must agree with what the method
     really does, because a caller with a costly rate chooses on this number."""
-    asks = {sptk.PROPAGATE_EULER: 1, sptk.PROPAGATE_MIDPOINT: 2,
-            sptk.PROPAGATE_RUNGE: 4}
+    asks = {ffitt.PROPAGATE_EULER: 1, ffitt.PROPAGATE_MIDPOINT: 2,
+            ffitt.PROPAGATE_RUNGE: 4}
 
     assert lib.propagate_asks_for_each_step(method) == asks[method]
 
@@ -256,7 +256,7 @@ def test_a_state_the_room_cannot_hold_is_refused(lib, method, start):
     """Refused rather than cut short, because carrying part of a state forward
     and leaving the rest where it was gives an answer that looks like one."""
     count = 17
-    state = sptk.float_array([start] * count)
+    state = ffitt.float_array([start] * count)
 
     assert not lib.propagate_state(method, constant_rate(sp.to_float32(1.0)),
                                    sp.to_float32(0.0), sp.to_float32(0.1),
@@ -275,7 +275,7 @@ def test_a_step_of_no_time_or_of_time_running_backwards_is_refused(lib, method,
     to run backwards, which a model of a real thing is not written for. Both
     are refused rather than answered, and the state is left where it was so
     that a caller who ignored the answer still has what it began with."""
-    state = sptk.float_array([start])
+    state = ffitt.float_array([start])
 
     assert not lib.propagate_state(method, constant_rate(sp.to_float32(2.0)),
                                    sp.to_float32(0.0), sp.to_float32(step),
@@ -289,7 +289,7 @@ def test_going_across_no_time_or_in_no_steps_is_refused(lib, method, across,
                                                         start):
     """The same rule where the caller gives a whole span and a count of steps.
     A count of nothing would divide by nothing."""
-    state = sptk.float_array([start])
+    state = ffitt.float_array([start])
 
     assert not lib.propagate_state_over(method,
                                         constant_rate(sp.to_float32(2.0)),

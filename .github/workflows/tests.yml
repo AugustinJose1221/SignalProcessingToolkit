@@ -120,9 +120,9 @@ jobs:
       matrix:
         include:
           - width: 32
-            define: SPTK_REAL_32
+            define: FFITT_REAL_32
           - width: 64
-            define: SPTK_REAL_64
+            define: FFITT_REAL_64
     steps:
       - name: Get the sources
         uses: actions/checkout@v4
@@ -145,12 +145,12 @@ jobs:
       - name: Run the unit tests
         run: ceedling test:all
         env:
-          SPTK_DEFINE: ${{ matrix.define }}
+          FFITT_DEFINE: ${{ matrix.define }}
 
       - name: Measure the coverage
         run: ceedling gcov:all
         env:
-          SPTK_DEFINE: ${{ matrix.define }}
+          FFITT_DEFINE: ${{ matrix.define }}
 
       - name: Keep the test report
         if: always()
@@ -186,7 +186,7 @@ jobs:
         env:
           # The bindings build the library themselves, thus this one variable
           # chooses the width for the C build and for the Python that reads it.
-          SPTK_REAL_64: ${{ matrix.width == 64 && '1' || '' }}
+          FFITT_REAL_64: ${{ matrix.width == 64 && '1' || '' }}
 
   build:
     name: Build (${{ matrix.width }} bit)
@@ -204,7 +204,7 @@ jobs:
 
       - name: Build the library
         run: |
-          cmake -S . -B build/library -DSPTK_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
+          cmake -S . -B build/library -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/library
 
       - name: Build the example program
@@ -212,7 +212,7 @@ jobs:
         # Choose an example, or the program gets no main function.
         run: |
           sed -i 's/RUN_EXAMPLE     RUN_NONE/RUN_EXAMPLE     RUN_MATRIX_EXAMPLE/' examples/run_example.h
-          cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DSPTK_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
+          cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/example
           ./build/example/signalproc_example
 
@@ -229,7 +229,7 @@ jobs:
                          SURVEY DETECT; do
             echo "== $example"
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
-            cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DSPTK_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} > /dev/null
+            cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} > /dev/null
             cmake --build build/example > /dev/null
             ./build/example/signalproc_example > /dev/null
           done
@@ -241,7 +241,7 @@ jobs:
         # does not compare the times, because the speed of a runner changes
         # from one run to the next.
         run: |
-          cmake -S . -B build/benchmark -DBUILD_BENCHMARK=ON -DSPTK_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
+          cmake -S . -B build/benchmark -DBUILD_BENCHMARK=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/benchmark
           ./build/benchmark/benchmark
 
@@ -250,10 +250,10 @@ jobs:
         # reads the libraries that the shared object asks for. Only the C
         # library and the mathematics library may appear.
         run: |
-          gcc -shared -fPIC -std=c99 -I. ${{ matrix.width == 64 && '-DSPTK_REAL_64' || '' }} -o /tmp/libsptk.so sptk/*/*.c -lm
+          gcc -shared -fPIC -std=c99 -I. ${{ matrix.width == 64 && '-DFFITT_REAL_64' || '' }} -o /tmp/libffitt.so ffitt/*/*.c -lm
           echo "The shared object asks for:"
-          readelf -d /tmp/libsptk.so | grep NEEDED
-          if readelf -d /tmp/libsptk.so | grep NEEDED | grep -qvE 'libc\.so|libm\.so'; then
+          readelf -d /tmp/libffitt.so | grep NEEDED
+          if readelf -d /tmp/libffitt.so | grep NEEDED | grep -qvE 'libc\.so|libm\.so'; then
             echo "The library asks for a library that it must not need."
             exit 1
           fi
@@ -273,10 +273,10 @@ jobs:
         # The sources give no warning. A new warning stops the job, thus a
         # warning cannot come into the repository without a signal.
         env:
-          WIDTH: ${{ matrix.width == 64 && '-DSPTK_REAL_64' || '' }}
+          WIDTH: ${{ matrix.width == 64 && '-DFFITT_REAL_64' || '' }}
         run: |
           status=0
-          for source in sptk/*/*.c perf/benchmark/*.c; do
+          for source in ffitt/*/*.c perf/benchmark/*.c; do
             echo "== $source"
             gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
           done

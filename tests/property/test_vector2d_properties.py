@@ -25,7 +25,7 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 REFERENCE = ctypes.byref
@@ -94,7 +94,7 @@ def test_writing_from_a_list_is_the_same_as_writing_one_at_a_time(lib,
     one_at_a_time = make(lib, values)
     from_a_list = lib.vector2d_alloc()
     try:
-        room = sptk.float_array([sp.to_float32(value) for value in values])
+        room = ffitt.float_array([sp.to_float32(value) for value in values])
         lib.vector2d_add_from_array(REFERENCE(from_a_list), room)
 
         for index in range(2):
@@ -188,7 +188,7 @@ def test_making_a_vector_larger_makes_its_length_larger_by_as_much(lib,
 @given(values=pairs)
 def test_memory_of_the_caller_holds_what_memory_of_the_heap_holds(lib,
                                                                   values):
-    room = sptk.real_buffer(2)
+    room = ffitt.real_buffer(2)
     heap = make(lib, values)
     given_room = lib.vector2d_static_alloc(room)
     try:

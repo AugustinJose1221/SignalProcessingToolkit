@@ -15,7 +15,7 @@ name and shape of every function.
 
 ## Transforms
 
-[How the transform modules work](../sptk/transform/README.md)
+[How the transform modules work](../ffitt/transform/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -37,7 +37,7 @@ name and shape of every function.
 
 ## Filters
 
-[How the filter modules work](../sptk/filter/README.md)
+[How the filter modules work](../ffitt/filter/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -58,7 +58,7 @@ name and shape of every function.
 
 ## Estimation
 
-[How the estimate modules work](../sptk/estimate/README.md)
+[How the estimate modules work](../ffitt/estimate/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -70,7 +70,7 @@ name and shape of every function.
 
 ## Decomposition
 
-[How the decompose modules work](../sptk/decompose/README.md)
+[How the decompose modules work](../ffitt/decompose/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -79,7 +79,7 @@ name and shape of every function.
 
 ## Interpolation
 
-[How the interpolate modules work](../sptk/interpolate/README.md)
+[How the interpolate modules work](../ffitt/interpolate/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -88,7 +88,7 @@ name and shape of every function.
 
 ## Linear algebra
 
-[How the linalg modules work](../sptk/linalg/README.md)
+[How the linalg modules work](../ffitt/linalg/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -105,7 +105,7 @@ name and shape of every function.
 
 ## Detection
 
-[How the detect modules work](../sptk/detect/README.md)
+[How the detect modules work](../ffitt/detect/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -115,7 +115,7 @@ name and shape of every function.
 
 ## Utilities
 
-[How the util modules work](../sptk/util/README.md)
+[How the util modules work](../ffitt/util/README.md)
 
 | Module | What it holds |
 | --- | --- |
@@ -129,7 +129,7 @@ name and shape of every function.
 
 ## Core
 
-[How the core modules work](../sptk/core/README.md)
+[How the core modules work](../ffitt/core/README.md)
 
 | Module | What it holds |
 | --- | --- |

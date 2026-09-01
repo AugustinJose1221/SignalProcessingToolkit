@@ -32,14 +32,14 @@ Run the tests:
 .venv/bin/pytest tests/property/
 ```
 
-The tests build `build/property/libsptk.so` one time for each run. You need
+The tests build `build/property/libffitt.so` one time for each run. You need
 `gcc`. You do not need CMake, and you do not need Ceedling.
 
 ## The files
 
 | File | What it holds |
 | --- | --- |
-| `sptk.py` | The build of the shared object and the C types for `ctypes` |
+| `ffitt.py` | The build of the shared object and the C types for `ctypes` |
 | `strategies.py` | The strategies that make matrices, vectors and points |
 | `conftest.py` | The fixture that gives the loaded library |
 | `test_bindings.py` | Examines that the Python types agree with the C types |

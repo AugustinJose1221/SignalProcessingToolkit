@@ -1,0 +1,789 @@
+#ifndef TEST
+#include <ffitt/linalg/matrix.h>
+#include <ffitt/core/defs.h>
+#else
+#include "matrix.h"
+#include "defs.h"
+#endif
+
+#include <math.h>
+
+
+
+matrix_t matrix_alloc(uint32_t m, uint32_t n)
+{
+    ASSERT(m > 0);
+    ASSERT(n > 0);
+
+    matrix_t matrix;
+
+    matrix.m = m;
+    matrix.n = n;
+    matrix.elem = (real_t*)malloc(sizeof(real_t)*m*n);
+    matrix.dynamic_alloc = true;
+
+    return matrix;
+}
+
+matrix_t matrix_static_alloc(uint32_t m, uint32_t n, real_t* elem)
+{
+    ASSERT(m > 0);
+    ASSERT(n > 0);
+    ASSERT(elem != NULL);
+
+    matrix_t matrix;
+
+    matrix.m = m;
+    matrix.n = n;
+    matrix.elem = elem;
+    matrix.dynamic_alloc = false;
+
+    return matrix;
+}
+
+// Operations
+
+void matrix_add_element(matrix_t* matrix, uint32_t i, uint32_t j, real_t value)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(i < matrix->m);
+    ASSERT(j < matrix->n);
+    matrix->elem[(i*matrix->n)+j] = value;
+}
+
+real_t matrix_get_element(matrix_t* matrix, uint32_t i, uint32_t j)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(i < matrix->m);
+    ASSERT(j < matrix->n);
+
+    return matrix->elem[(i*matrix->n)+j];
+}
+
+matrix_t matrix_get_nth_row(matrix_t* matrix, uint32_t row_index)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(row_index < matrix->m);
+
+    matrix_t row_matrix;
+
+    row_matrix = matrix_alloc(1, matrix->n);
+
+    for(uint32_t i = 0; i < matrix->n; i++)
+    {
+       matrix_add_element(&row_matrix, 0, i, matrix_get_element(matrix, row_index, i));
+    }
+
+    return row_matrix;
+}
+
+matrix_t matrix_get_nth_col(matrix_t* matrix, uint32_t col_index)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(col_index < matrix->n);
+
+    matrix_t col_matrix;
+
+    col_matrix = matrix_alloc(matrix->m, 1);
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        matrix_add_element(&col_matrix, i, 0, matrix_get_element(matrix, i, col_index));
+    }
+
+    return col_matrix;
+}
+
+matrix_t matrix_get_order(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+
+    matrix_t order;
+
+    order = matrix_alloc(1, 2);
+    matrix_add_element(&order, 0, 0, matrix->m);
+    matrix_add_element(&order, 0, 1, matrix->n);
+
+    return order;
+}
+
+real_t matrix_trace(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
+
+    real_t trace = 0;
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        trace += matrix_get_element(matrix, i, i);
+    }
+
+    return trace;
+}
+
+real_t matrix_determinant(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
+
+    real_t determinant = 0;
+    real_t intermediate = 0;
+    real_t sign = -1;
+    int row_index;
+    int col_index;
+    matrix_t inner_matrix;
+
+    if(matrix->m == 3)
+    {
+        determinant = (matrix_get_element(matrix, 0, 0)*((matrix_get_element(matrix, 1, 1) * matrix_get_element(matrix, 2, 2)) - (matrix_get_element(matrix, 2, 1)*matrix_get_element(matrix, 1, 2))))
+                       - (matrix_get_element(matrix, 0, 1)*((matrix_get_element(matrix, 1, 0) * matrix_get_element(matrix, 2, 2)) - (matrix_get_element(matrix, 2, 0)*matrix_get_element(matrix, 1, 2)))) 
+                       + (matrix_get_element(matrix, 0, 2)*((matrix_get_element(matrix, 1, 0) * matrix_get_element(matrix, 2, 1)) - (matrix_get_element(matrix, 2, 0)*matrix_get_element(matrix, 1, 1)))); 
+        return determinant;
+    }
+    else if(matrix->m == 2)
+    {
+        determinant = (matrix_get_element(matrix, 0, 0) * matrix_get_element(matrix, 1, 1)) 
+                    - (matrix_get_element(matrix, 0, 1) * matrix_get_element(matrix, 1, 0));
+        return determinant;
+    }
+    else if(matrix->m == 1)
+    {
+        return matrix_get_element(matrix, 0, 0);
+    }
+    else
+    {
+        for(uint32_t i = 0; i < matrix->n; i++)
+        {
+            row_index = 0;
+            inner_matrix = matrix_alloc(matrix->m-1, matrix->n-1);
+            for(uint32_t j = 0; j < matrix->m; j++)
+            {
+                col_index = 0;
+                if(j == 0)
+                {
+                    continue;
+                }
+                for(uint32_t k = 0; k < matrix->n; k++)
+                {
+                    if(k == i)
+                    {
+                        continue;
+                    }
+                    matrix_add_element(&inner_matrix, row_index, col_index, matrix_get_element(matrix, j, k));
+                    col_index++;
+                }
+                row_index++;
+            }
+            sign *= -1;
+            intermediate = matrix_get_element(matrix, 0, i) * matrix_determinant(&inner_matrix);
+            determinant += sign * intermediate;
+            matrix_free(&inner_matrix);
+        }
+
+        return determinant;
+    }
+}
+
+// Create
+
+matrix_t matrix_create_unit_matrix(uint32_t size)
+{
+    ASSERT(size > 0);
+
+    matrix_t matrix;
+
+    matrix = matrix_alloc(size, size);
+    matrix_set_unit(&matrix);
+
+    return matrix;
+}
+
+matrix_t matrix_create_zero_matrix(uint32_t m, uint32_t n)
+{
+    ASSERT(m > 0);
+    ASSERT(n > 0);
+
+    matrix_t matrix;
+
+    matrix = matrix_alloc(m, n);
+    matrix_set_zero(&matrix);
+
+    return matrix;
+}
+
+// Arithmetic
+
+bool matrix_is_equal(matrix_t* a, matrix_t* b)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+    
+    if(a->m != b->m || a->n != b->n)
+    {
+        return false;
+    }
+    else
+    {
+        for(uint32_t i = 0; i < a->m; i++)
+        {
+            for(uint32_t j = 0; j < b->n; j++)
+            {
+                if(matrix_get_element(a, i, j) != matrix_get_element(b, i, j))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+}
+
+bool matrix_is_square(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+
+    if(matrix->m == matrix->n)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool matrix_is_zero(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            if(matrix_get_element(matrix, i, j) != 0)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool matrix_is_unit(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            if(i == j)
+            {
+                if(matrix_get_element(matrix, i, j) != 1)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if(matrix_get_element(matrix, i, j) != 0)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+bool matrix_is_multipliable(matrix_t* a, matrix_t* b)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+
+    matrix_t order_a;
+    matrix_t order_b;
+    bool status = false;
+
+    order_a = matrix_get_order(a);
+    order_b = matrix_get_order(b);
+
+    if(matrix_get_element(&order_a, 0, 1) == matrix_get_element(&order_b, 0, 0))
+    {
+        status = true;
+    }
+    
+    matrix_free(&order_a);
+    matrix_free(&order_b);
+
+    return status;
+}
+
+matrix_t matrix_add(matrix_t* a, matrix_t* b)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+
+    matrix_t sum;
+
+    sum = matrix_alloc(a->m, a->n);
+    matrix_add_into(a, b, &sum);
+
+    return sum;
+}
+
+matrix_t matrix_subtract(matrix_t* a, matrix_t* b)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+
+    matrix_t difference;
+
+    difference = matrix_alloc(a->m, a->n);
+    matrix_subtract_into(a, b, &difference);
+
+    return difference;
+}
+
+matrix_t matrix_multiply_scalar(matrix_t* matrix, real_t scalar)
+{
+    ASSERT(matrix != NULL);
+
+    matrix_t product;
+
+    product = matrix_alloc(matrix->m, matrix->n);
+    matrix_multiply_scalar_into(matrix, scalar, &product);
+
+    return product;
+}
+
+matrix_t matrix_multiply(matrix_t* a, matrix_t* b)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+    ASSERT(matrix_is_multipliable(a, b));
+
+    matrix_t product;
+
+    product = matrix_alloc(a->m, b->n);
+    matrix_multiply_into(a, b, &product);
+
+    return product;
+}
+
+matrix_t matrix_transpose(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+
+    matrix_t transpose;
+
+    transpose = matrix_alloc(matrix->n, matrix->m);
+    matrix_transpose_into(matrix, &transpose);
+
+    return transpose;
+}
+
+bool matrix_is_symmetric(matrix_t* matrix, real_t tolerance)
+{
+    ASSERT(matrix != NULL);
+
+    if(!matrix_is_square(matrix))
+    {
+        return false;
+    }
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = i + 1u; j < matrix->n; j++)
+        {
+            real_t across = REAL_ABS(matrix_get_element(matrix, i, j)
+                                     - matrix_get_element(matrix, j, i));
+            if(across > tolerance)
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool matrix_cholesky_into(matrix_t* matrix, matrix_t* dest)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(matrix_is_square(matrix));
+    ASSERT((dest->m == matrix->m) && (dest->n == matrix->n));
+
+    uint32_t order = matrix->m;
+
+    // A matrix that is not symmetric has no factor, and taking one anyway
+    // would quietly use the lower half and ignore the upper half. That is a
+    // different matrix from the one the caller gave, thus the function says no
+    // rather than answering a question that was not asked.
+    //
+    // The tolerance follows the size of the elements, because a covariance
+    // built by a long chain of arithmetic is symmetric in principle and not in
+    // its last digits.
+    real_t largest = REAL_C(0.0);
+    for(uint32_t i = 0; i < order; i++)
+    {
+        for(uint32_t j = 0; j < order; j++)
+        {
+            real_t size_of = REAL_ABS(matrix_get_element(matrix, i, j));
+            if(size_of > largest) { largest = size_of; }
+        }
+    }
+
+    if(!matrix_is_symmetric(matrix, (REAL_C(1000.0) * REAL_EPSILON * largest)
+                                    + REAL_SMALLEST))
+    {
+        return false;
+    }
+
+    // The factor is worked out one row at a time, and each element uses only
+    // elements of the same row and of rows above it. Thus the destination may
+    // be the matrix itself: every element that is read has already been
+    // written, or has not been touched yet.
+    for(uint32_t i = 0; i < order; i++)
+    {
+        for(uint32_t j = 0; j <= i; j++)
+        {
+            real_t total = matrix_get_element(matrix, i, j);
+
+            for(uint32_t k = 0; k < j; k++)
+            {
+                total -= matrix_get_element(dest, i, k)
+                         * matrix_get_element(dest, j, k);
+            }
+
+            if(i == j)
+            {
+                // The diagonal is a square root. A value at or below zero
+                // means the matrix is not positive definite: there is a
+                // direction in which the spread it describes is zero or
+                // negative, which no real spread can be.
+                if(total <= REAL_C(0.0))
+                {
+                    return false;
+                }
+
+                matrix_add_element(dest, i, j, REAL_SQRT(total));
+            }
+            else
+            {
+                matrix_add_element(dest, i, j,
+                                   total / matrix_get_element(dest, j, j));
+            }
+        }
+
+        // Everything above the diagonal is zero, because the factor is a lower
+        // triangle.
+        for(uint32_t j = i + 1u; j < order; j++)
+        {
+            matrix_add_element(dest, i, j, REAL_C(0.0));
+        }
+    }
+
+    return true;
+}
+
+matrix_t matrix_cholesky(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
+
+    matrix_t factor = matrix_alloc(matrix->m, matrix->n);
+
+    if(!matrix_cholesky_into(matrix, &factor))
+    {
+        // A matrix with no factor gives back all zeros, as a singular matrix
+        // gives back all zeros from matrix_inverse.
+        matrix_set_zero(&factor);
+    }
+
+    return factor;
+}
+
+matrix_t matrix_inverse(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
+
+    matrix_t inverse;
+    matrix_t scratch;
+
+    inverse = matrix_alloc(matrix->m, matrix->n);
+    scratch = matrix_alloc(matrix->m, 2*matrix->n);
+
+    if(!matrix_inverse_into(matrix, &inverse, &scratch))
+    {
+        // A singular matrix has no inverse. The zero matrix is the signal for
+        // that state.
+        matrix_set_zero(&inverse);
+    }
+
+    matrix_free(&scratch);
+
+    return inverse;
+}
+
+void matrix_copy(matrix_t* src, matrix_t* dest)
+{
+    ASSERT(src != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(src->m == dest->m);
+    ASSERT(src->n == dest->n);
+    for(uint32_t i = 0; i < src->m; i++)
+    {
+        for(uint32_t j = 0; j < src->n; j++)
+        {
+            matrix_add_element(dest, i, j, matrix_get_element(src, i, j));
+        }
+    }
+    
+}
+
+void matrix_printf(matrix_t* matrix, int (*func)(const char*, ...))
+{
+    ASSERT(matrix != NULL);
+
+    int (*print_func)(const char*, ...);
+
+    if(func != NULL)
+    {
+        print_func = func;
+    }
+    else
+    {
+        print_func = printf;
+    }
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            print_func("%f\t", matrix_get_element(matrix, i, j));
+        }
+        print_func("\n");
+    }
+}
+
+void matrix_free(matrix_t* matrix)
+{
+    if(matrix->dynamic_alloc)
+    {
+        free(matrix->elem);
+        matrix->dynamic_alloc = false;
+    }
+}
+// Operations that write into a matrix that already holds memory
+
+void matrix_add_into(matrix_t* a, matrix_t* b, matrix_t* dest)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(a->m == b->m && a->n == b->n);
+    ASSERT(dest->m == a->m && dest->n == a->n);
+
+    for(uint32_t i = 0; i < a->m; i++)
+    {
+        for(uint32_t j = 0; j < a->n; j++)
+        {
+            matrix_add_element(dest, i, j,
+                               matrix_get_element(a, i, j) + matrix_get_element(b, i, j));
+        }
+    }
+}
+
+void matrix_subtract_into(matrix_t* a, matrix_t* b, matrix_t* dest)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(a->m == b->m && a->n == b->n);
+    ASSERT(dest->m == a->m && dest->n == a->n);
+
+    for(uint32_t i = 0; i < a->m; i++)
+    {
+        for(uint32_t j = 0; j < a->n; j++)
+        {
+            matrix_add_element(dest, i, j,
+                               matrix_get_element(a, i, j) - matrix_get_element(b, i, j));
+        }
+    }
+}
+
+void matrix_multiply_into(matrix_t* a, matrix_t* b, matrix_t* dest)
+{
+    ASSERT(a != NULL);
+    ASSERT(b != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(a->n == b->m);
+    ASSERT(dest->m == a->m && dest->n == b->n);
+
+    real_t sum;
+
+    for(uint32_t i = 0; i < a->m; i++)
+    {
+        for(uint32_t j = 0; j < b->n; j++)
+        {
+            sum = REAL_C(0.0);
+            for(uint32_t k = 0; k < a->n; k++)
+            {
+                sum += matrix_get_element(a, i, k) * matrix_get_element(b, k, j);
+            }
+            matrix_add_element(dest, i, j, sum);
+        }
+    }
+}
+
+void matrix_multiply_scalar_into(matrix_t* matrix, real_t scalar, matrix_t* dest)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(dest->m == matrix->m && dest->n == matrix->n);
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            matrix_add_element(dest, i, j, matrix_get_element(matrix, i, j) * scalar);
+        }
+    }
+}
+
+void matrix_transpose_into(matrix_t* matrix, matrix_t* dest)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(dest->m == matrix->n);
+    ASSERT(dest->n == matrix->m);
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            matrix_add_element(dest, j, i, matrix_get_element(matrix, i, j));
+        }
+    }
+}
+
+void matrix_set_unit(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(matrix_is_square(matrix));
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            matrix_add_element(matrix, i, j, (i == j) ? REAL_C(1.0) : REAL_C(0.0));
+        }
+    }
+}
+
+void matrix_set_zero(matrix_t* matrix)
+{
+    ASSERT(matrix != NULL);
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            matrix_add_element(matrix, i, j, REAL_C(0.0));
+        }
+    }
+}
+
+bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch)
+{
+    ASSERT(matrix != NULL);
+    ASSERT(dest != NULL);
+    ASSERT(scratch != NULL);
+    ASSERT(matrix_is_square(matrix));
+    ASSERT(dest->m == matrix->m && dest->n == matrix->n);
+    ASSERT(scratch->m == matrix->m && scratch->n == 2*matrix->n);
+
+    uint32_t n = matrix->m;
+    uint32_t pivot_row;
+    real_t pivot;
+    real_t factor;
+    real_t swap;
+
+    for(uint32_t i = 0; i < n; i++)
+    {
+        for(uint32_t j = 0; j < n; j++)
+        {
+            matrix_add_element(scratch, i, j, matrix_get_element(matrix, i, j));
+            matrix_add_element(scratch, i, j + n, (i == j) ? REAL_C(1.0) : REAL_C(0.0));
+        }
+    }
+
+    for(uint32_t i = 0; i < n; i++)
+    {
+        // Move the row with the largest element of this column to the pivot
+        // position. This keeps the division stable. It also moves a zero out
+        // of the pivot position, because a zero there does not always show a
+        // singular matrix.
+        pivot_row = i;
+        for(uint32_t k = i + 1; k < n; k++)
+        {
+            real_t candidate = matrix_get_element(scratch, k, i);
+            real_t best = matrix_get_element(scratch, pivot_row, i);
+            if((candidate < 0 ? -candidate : candidate) > (best < 0 ? -best : best))
+            {
+                pivot_row = k;
+            }
+        }
+
+        if(pivot_row != i)
+        {
+            for(uint32_t j = 0; j < 2*n; j++)
+            {
+                swap = matrix_get_element(scratch, i, j);
+                matrix_add_element(scratch, i, j, matrix_get_element(scratch, pivot_row, j));
+                matrix_add_element(scratch, pivot_row, j, swap);
+            }
+        }
+
+        pivot = matrix_get_element(scratch, i, i);
+        if(pivot == REAL_C(0.0))
+        {
+            return false;
+        }
+
+        for(uint32_t j = 0; j < 2*n; j++)
+        {
+            matrix_add_element(scratch, i, j, matrix_get_element(scratch, i, j) / pivot);
+        }
+
+        for(uint32_t k = 0; k < n; k++)
+        {
+            if(k != i)
+            {
+                factor = matrix_get_element(scratch, k, i);
+                for(uint32_t j = 0; j < 2*n; j++)
+                {
+                    matrix_add_element(scratch, k, j, matrix_get_element(scratch, k, j)
+                                                      - (factor * matrix_get_element(scratch, i, j)));
+                }
+            }
+        }
+    }
+
+    for(uint32_t i = 0; i < n; i++)
+    {
+        for(uint32_t j = 0; j < n; j++)
+        {
+            matrix_add_element(dest, i, j, matrix_get_element(scratch, i, j + n));
+        }
+    }
+
+    return true;
+}

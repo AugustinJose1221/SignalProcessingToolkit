@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Polynomials, and where they cross nothing. Declared in `sptk/linalg/poly.h`.
+Polynomials, and where they cross nothing. Declared in `ffitt/linalg/poly.h`.
 
-[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../ffitt/linalg/README.md)
 
 ## Macros
 

@@ -15,7 +15,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 # Sizes are kept small. A transform of 1024 through ctypes costs far more than
@@ -41,7 +41,7 @@ def signals(draw, size=None, magnitude=10.0):
 
 def to_c(values):
     """Give a C array of complex numbers holding these pairs."""
-    array = (sptk.Cnum * len(values))()
+    array = (ffitt.Cnum * len(values))()
     for index, (re, im) in enumerate(values):
         array[index].re = re
         array[index].im = im
@@ -209,8 +209,8 @@ def test_a_signal_of_real_values_gives_a_spectrum_that_mirrors(lib, values):
     real_only = [value for value, _ in values]
 
     fft = lib.fft_alloc(size)
-    spectrum = (sptk.Cnum * size)()
-    lib.fft_forward_real(ctypes.byref(fft), sptk.float_array(real_only),
+    spectrum = (ffitt.Cnum * size)()
+    lib.fft_forward_real(ctypes.byref(fft), ffitt.float_array(real_only),
                          spectrum)
     answer = from_c(spectrum, size)
 
@@ -230,11 +230,11 @@ def test_a_real_signal_comes_back_from_half_a_spectrum(lib, values):
     real_only = [value for value, _ in values]
 
     fft = lib.fft_alloc(size)
-    spectrum = (sptk.Cnum * size)()
-    work = (sptk.Cnum * size)()
-    output = sptk.real_buffer(size)
+    spectrum = (ffitt.Cnum * size)()
+    work = (ffitt.Cnum * size)()
+    output = ffitt.real_buffer(size)
 
-    lib.fft_forward_real(ctypes.byref(fft), sptk.float_array(real_only),
+    lib.fft_forward_real(ctypes.byref(fft), ffitt.float_array(real_only),
                          spectrum)
     lib.fft_inverse_real(ctypes.byref(fft), spectrum, output, work)
 

@@ -1,7 +1,7 @@
 #ifndef BENCHMARK_H
 #define BENCHMARK_H
 
-#include <sptk/core/real.h>
+#include <ffitt/core/real.h>
 #include <stdint.h>
 
 // The benchmark measures how long an operation of the library takes. It uses

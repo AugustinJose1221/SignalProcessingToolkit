@@ -231,7 +231,7 @@ void test_how_small_alpha_may_be_follows_the_width_of_the_build(void)
     // The weights are about one divided by the spreading, and they must add to
     // one. A small alpha therefore makes very large weights that add to a very
     // small number, and a narrow number cannot hold that sum.
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     // Sixteen digits carry the usual choice of the literature easily.
     TEST_ASSERT_EQUAL(true, ukf_is_valid_spread(3u, REAL_C(0.001), REAL_C(0.0)));
     TEST_ASSERT_REAL_WITHIN(TOLERANCE, REAL_C(0.001), UKF_DEFAULT_ALPHA);

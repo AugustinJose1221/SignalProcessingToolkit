@@ -29,8 +29,8 @@
 
 #if (RUN_EXAMPLE == RUN_FITCURVE_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/linalg/lstsq.h>
+#include <ffitt/core/real.h>
+#include <ffitt/linalg/lstsq.h>
 #include <math.h>
 #include <stdio.h>
 

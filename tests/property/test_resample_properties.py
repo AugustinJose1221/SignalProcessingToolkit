@@ -24,7 +24,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 factors = st.sampled_from([2, 3, 4, 5, 8])
@@ -42,16 +42,16 @@ def rms(values):
 
 
 def decimate_block(lib, resample, values):
-    source = sptk.float_array(values)
-    room = sptk.real_buffer(len(values))
+    source = ffitt.float_array(values)
+    room = ffitt.real_buffer(len(values))
     written = lib.resample_decimate_block(ctypes.byref(resample), source, room,
                                           len(values))
     return list(room)[:written]
 
 
 def interpolate_block(lib, resample, values, factor):
-    source = sptk.float_array(values)
-    room = sptk.real_buffer(len(values) * factor)
+    source = ffitt.float_array(values)
+    room = ffitt.real_buffer(len(values) * factor)
     written = lib.resample_interpolate_block(ctypes.byref(resample), source,
                                              room, len(values))
     return list(room)[:written]
@@ -279,7 +279,7 @@ def test_feeding_a_block_is_the_same_as_feeding_the_samples_one_at_a_time(
         together = decimate_block(lib, blockwise, values)
 
         apart = []
-        room = sptk.real_buffer(1)
+        room = ffitt.real_buffer(1)
         for value in values:
             if lib.resample_decimate(ctypes.byref(singly),
                                      sp.to_float32(value), room):
@@ -302,7 +302,7 @@ def test_the_same_holds_for_the_interpolator(lib, factor, size):
         together = interpolate_block(lib, blockwise, values, factor)
 
         apart = []
-        room = sptk.real_buffer(factor)
+        room = ffitt.real_buffer(factor)
         for value in values:
             written = lib.resample_interpolate(ctypes.byref(singly),
                                                sp.to_float32(value), room)

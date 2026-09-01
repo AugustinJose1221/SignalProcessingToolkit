@@ -27,7 +27,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 REFERENCE = ctypes.byref
@@ -41,11 +41,11 @@ level = st.floats(min_value=-20.0, max_value=20.0, width=32)
 
 
 def elements(lib, matrix):
-    return sptk.matrix_rows(lib, matrix)
+    return ffitt.matrix_rows(lib, matrix)
 
 
 def straight_model(lib):
-    @sptk.STATE_FUNCTION
+    @ffitt.STATE_FUNCTION
     def next_state(state, given_input, result):
         where = lib.matrix_get_element(state, 0, 0)
         speed = lib.matrix_get_element(state, 1, 0)
@@ -53,7 +53,7 @@ def straight_model(lib):
                                sp.to_float32(where + STEP * speed))
         lib.matrix_add_element(result, 1, 0, speed)
 
-    @sptk.MEASUREMENT_FUNCTION
+    @ffitt.MEASUREMENT_FUNCTION
     def measurement(state, result):
         lib.matrix_add_element(result, 0, 0,
                                lib.matrix_get_element(state, 0, 0))
@@ -62,7 +62,7 @@ def straight_model(lib):
 
 
 def set_matrix(lib, setter, handle, rows):
-    matrix = sptk.make_matrix(lib, rows)
+    matrix = ffitt.make_matrix(lib, rows)
     getattr(lib, setter)(REFERENCE(handle), REFERENCE(matrix))
     lib.matrix_free(REFERENCE(matrix))
 
@@ -126,7 +126,7 @@ def test_a_straight_model_gives_what_the_plain_filter_of_kalman_gives(
     points = build_points(lib, state, covariance, process, noise, model)
     try:
         for reading in readings:
-            y = sptk.make_matrix(lib, [[sp.to_float32(reading)]])
+            y = ffitt.make_matrix(lib, [[sp.to_float32(reading)]])
             first = lib.kalman_step(REFERENCE(plain), None, REFERENCE(y))
             second = lib.ukf_step(REFERENCE(points), None, REFERENCE(y))
             lib.matrix_free(REFERENCE(y))
@@ -275,7 +275,7 @@ def test_the_covariance_stays_the_same_read_either_way_round(lib, state,
     ukf = build_points(lib, state, covariance, process, noise, model)
     try:
         for reading in readings:
-            y = sptk.make_matrix(lib, [[sp.to_float32(reading)]])
+            y = ffitt.make_matrix(lib, [[sp.to_float32(reading)]])
             ran = lib.ukf_step(REFERENCE(ukf), None, REFERENCE(y))
             lib.matrix_free(REFERENCE(y))
             assume(ran)

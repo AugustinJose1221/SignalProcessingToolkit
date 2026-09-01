@@ -34,12 +34,12 @@
 
 #if (RUN_EXAMPLE == RUN_DETECT_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/detect/changepoint.h>
-#include <sptk/detect/delay.h>
-#include <sptk/detect/matched.h>
-#include <sptk/transform/fft.h>
-#include <sptk/util/stats.h>
+#include <ffitt/core/real.h>
+#include <ffitt/detect/changepoint.h>
+#include <ffitt/detect/delay.h>
+#include <ffitt/detect/matched.h>
+#include <ffitt/transform/fft.h>
+#include <ffitt/util/stats.h>
 #include <math.h>
 #include <stdio.h>
 

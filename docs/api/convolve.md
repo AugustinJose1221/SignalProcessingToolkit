@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Sliding one signal along another. Declared in `sptk/transform/convolve.h`.
+Sliding one signal along another. Declared in `ffitt/transform/convolve.h`.
 
-[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
+[Back to the index](../API.md) | [How the transform modules work](../../ffitt/transform/README.md)
 
 ## Functions
 

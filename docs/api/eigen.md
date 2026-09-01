@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The directions a matrix stretches. Declared in `sptk/linalg/eigen.h`.
+The directions a matrix stretches. Declared in `ffitt/linalg/eigen.h`.
 
-[Back to the index](../API.md) | [How the linalg modules work](../../sptk/linalg/README.md)
+[Back to the index](../API.md) | [How the linalg modules work](../../ffitt/linalg/README.md)
 
 ## Macros
 

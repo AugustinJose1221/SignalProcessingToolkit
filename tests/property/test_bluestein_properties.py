@@ -16,7 +16,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 # Every size, and not only the comfortable ones. The awkward sizes are the
@@ -37,7 +37,7 @@ def signals(draw, size, magnitude=10.0):
 
 
 def to_c(values):
-    array = (sptk.Cnum * len(values))()
+    array = (ffitt.Cnum * len(values))()
     for index, (re, im) in enumerate(values):
         array[index].re = re
         array[index].im = im

@@ -34,9 +34,9 @@
 
 #if (RUN_EXAMPLE == RUN_EKF_EXAMPLE)
 
-#include <sptk/core/real.h>
-#include <sptk/estimate/ekf.h>
-#include <sptk/linalg/matrix.h>
+#include <ffitt/core/real.h>
+#include <ffitt/estimate/ekf.h>
+#include <ffitt/linalg/matrix.h>
 #include <math.h>
 #include <stdio.h>
 

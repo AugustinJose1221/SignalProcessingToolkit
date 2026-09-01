@@ -24,7 +24,7 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 SCALE = 1.4826
@@ -73,8 +73,8 @@ def hampel_model(values, window, threshold=THRESHOLD):
 
 def run_block(lib, hampel, values):
     """Give the output of the filter for a whole block."""
-    source = sptk.float_array(values)
-    room = sptk.real_buffer(len(values))
+    source = ffitt.float_array(values)
+    room = ffitt.real_buffer(len(values))
     replaced = lib.hampel_process_block(ctypes.byref(hampel), source, room,
                                         len(values))
     return list(room), replaced

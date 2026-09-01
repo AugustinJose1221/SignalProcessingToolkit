@@ -9,7 +9,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 REFERENCE = ctypes.byref
@@ -21,7 +21,7 @@ def make_spline(lib, x, y):
     spline = lib.cspline_alloc(size)
     mempool = lib.cspline_alloc_mempool(size)
     lib.cspline_init(REFERENCE(spline), mempool,
-                     sptk.float_array(x), sptk.float_array(y))
+                     ffitt.float_array(x), ffitt.float_array(y))
     return spline, mempool
 
 

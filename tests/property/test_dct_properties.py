@@ -13,7 +13,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
@@ -32,17 +32,17 @@ def signal(draw, size=None):
 
 
 def forward(lib, values):
-    out = sptk.real_buffer(len(values))
+    out = ffitt.real_buffer(len(values))
 
-    assert lib.dct_forward(sptk.float_array(values), out, len(values))
+    assert lib.dct_forward(ffitt.float_array(values), out, len(values))
 
     return [out[index] for index in range(len(values))]
 
 
 def inverse(lib, values):
-    out = sptk.real_buffer(len(values))
+    out = ffitt.real_buffer(len(values))
 
-    assert lib.dct_inverse(sptk.float_array(values), out, len(values))
+    assert lib.dct_inverse(ffitt.float_array(values), out, len(values))
 
     return [out[index] for index in range(len(values))]
 
@@ -127,9 +127,9 @@ def test_a_slow_signal_needs_fewer_numbers_than_noise(lib, size):
         state = ((state * 1103515245) + 12345) & 0xFFFFFFFF
         noise.append(sp.to_float32((((state >> 16) % 2000) / 1000.0) - 1.0))
 
-    for_slow = lib.dct_count_for_share(sptk.float_array(forward(lib, slow)),
+    for_slow = lib.dct_count_for_share(ffitt.float_array(forward(lib, slow)),
                                        size, sp.to_float32(0.99))
-    for_noise = lib.dct_count_for_share(sptk.float_array(forward(lib, noise)),
+    for_noise = lib.dct_count_for_share(ffitt.float_array(forward(lib, noise)),
                                         size, sp.to_float32(0.99))
 
     assert 0 < for_slow <= 6
@@ -144,7 +144,7 @@ def test_asking_for_a_larger_share_never_needs_fewer_numbers(lib, values,
     more of the signal can only ever want more of them."""
     assume(sum(value * value for value in values) > 0.01)
 
-    cosines = sptk.float_array(forward(lib, values))
+    cosines = ffitt.float_array(forward(lib, values))
     size = len(values)
 
     fewer = lib.dct_count_for_share(cosines, size, sp.to_float32(share / 2.0))
@@ -170,7 +170,7 @@ def test_the_count_given_really_holds_the_share_asked_for(lib, values, share):
     whole = sum(value * value for value in cosines)
     assume(whole > 0.01)
 
-    count = lib.dct_count_for_share(sptk.float_array(cosines), size,
+    count = lib.dct_count_for_share(ffitt.float_array(cosines), size,
                                     sp.to_float32(share))
 
     assert 1 <= count <= size
@@ -198,7 +198,7 @@ def test_only_a_size_the_cost_is_worth_paying_at_is_taken(lib, size):
 @RUNS
 def test_a_share_that_is_not_a_share_is_refused(lib, values, share):
     """Nothing rather than a count of numbers for a share nobody can have."""
-    cosines = sptk.float_array(forward(lib, values))
+    cosines = ffitt.float_array(forward(lib, values))
 
     assert lib.dct_count_for_share(cosines, len(values),
                                    sp.to_float32(share)) == 0

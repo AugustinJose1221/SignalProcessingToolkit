@@ -39,9 +39,17 @@ from collections import OrderedDict
 # Only the kinds that say something happened to the library. A change to the
 # tests or to the build is real work and belongs in the history, not in a list
 # a caller reads to find out what moved under them.
+#
+# BREAKING COMES FIRST AND TAKES ANY KIND. A commit that ends its kind with an
+# exclamation mark has changed something a caller relied on, and that must be
+# read before anything else. It is listed whatever its kind, because the kind
+# no longer matters once the caller's code has stopped building: the rename of
+# this library was a refactor, which none of the kinds below would have shown.
+BREAKING = "Breaking"
+
 TYPES = OrderedDict([("feat", "Feat"), ("fix", "Fix"), ("perf", "Perf")])
 
-PATTERN = re.compile(r"^(feat|fix|perf)(?:\(([^)]*)\))?!?:\s*(.+)$")
+PATTERN = re.compile(r"^([a-z]+)(?:\(([^)]*)\))?(!)?:\s*(.+)$")
 
 
 def run(*arguments):
@@ -72,22 +80,25 @@ def build(unreleased=None):
         at = "HEAD" if tag == unreleased else tag
         date = run("git", "log", "-1", "--format=%cs", at).strip()
 
-        grouped = OrderedDict((kind, []) for kind in TYPES)
+        grouped = OrderedDict([(BREAKING, [])]
+                              + [(kind, []) for kind in TYPES])
         seen = set()
 
         for subject in subjects:
             found = PATTERN.match(subject.strip())
             if not found:
                 continue
-            kind, scope, text = found.group(1), found.group(2), found.group(3)
+            kind, scope, bang, text = found.groups()
+            if not bang and kind not in TYPES:
+                continue
             line = "- **%s**: %s" % (scope, text) if scope else "- %s" % text
             if line in seen:
                 continue
             seen.add(line)
-            grouped[kind].append(line)
+            grouped[BREAKING if bang else kind].append(line)
 
         block = ["## %s (%s)" % (tag, date)]
-        for kind, title in TYPES.items():
+        for kind, title in [(BREAKING, BREAKING)] + list(TYPES.items()):
             if grouped[kind]:
                 block += ["", "### %s" % title, ""] + grouped[kind]
 
@@ -97,7 +108,7 @@ def build(unreleased=None):
         # the tests, the documentation or the build has nothing to show. A bare
         # heading with nothing under it reads as an oversight. This says what
         # is true instead.
-        if not any(grouped[kind] for kind in TYPES):
+        if not any(grouped[kind] for kind in grouped):
             block += ["", "Nothing here changes what a caller sees. The work of"
                           " this release went into the tests, the"
                           " documentation or the build."]

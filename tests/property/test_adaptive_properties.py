@@ -17,12 +17,12 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=30, deadline=None)
 
-RULES = st.sampled_from(sptk.ADAPTIVE_RULES)
+RULES = st.sampled_from(ffitt.ADAPTIVE_RULES)
 
 # Rates a float of 32 bits holds exactly.
 RATES = st.sampled_from([0.001953125, 0.0078125, 0.03125, 0.125])
@@ -76,15 +76,15 @@ def test_it_finds_the_path_it_was_shown(lib, rule):
     wanted = path(reference, taps)
 
     # A rate each rule is stable and reasonably quick at.
-    rate = {sptk.ADAPTIVE_LMS: 0.05,
-            sptk.ADAPTIVE_NORMALISED: 0.5,
-            sptk.ADAPTIVE_SIGN: 0.01}[rule]
+    rate = {ffitt.ADAPTIVE_LMS: 0.05,
+            ffitt.ADAPTIVE_NORMALISED: 0.5,
+            ffitt.ADAPTIVE_SIGN: 0.01}[rule]
 
     filt = designed(lib, len(taps), rule, rate)
 
     try:
-        assert lib.adaptive_process_block(filt, sptk.float_array(reference),
-                                          sptk.float_array(wanted), None,
+        assert lib.adaptive_process_block(filt, ffitt.float_array(reference),
+                                          ffitt.float_array(wanted), None,
                                           None, len(reference))
 
         for tap, weight in enumerate(taps):
@@ -94,7 +94,7 @@ def test_it_finds_the_path_it_was_shown(lib, rule):
         lib.adaptive_free(filt)
 
 
-@given(st.sampled_from([sptk.ADAPTIVE_LMS, sptk.ADAPTIVE_NORMALISED]),
+@given(st.sampled_from([ffitt.ADAPTIVE_LMS, ffitt.ADAPTIVE_NORMALISED]),
        RATES, st.integers(min_value=1, max_value=8))
 @RUNS
 def test_what_is_left_after_the_step_is_no_larger_than_before_it(lib, rule,
@@ -159,14 +159,14 @@ def test_the_normalised_rule_does_not_care_how_loud_the_reference_is(
     louder_reference = [sp.to_float32(value * louder) for value in reference]
     louder_wanted = [sp.to_float32(value * louder) for value in wanted]
 
-    quiet = designed(lib, len(taps), sptk.ADAPTIVE_NORMALISED, rate)
-    loud = designed(lib, len(taps), sptk.ADAPTIVE_NORMALISED, rate)
+    quiet = designed(lib, len(taps), ffitt.ADAPTIVE_NORMALISED, rate)
+    loud = designed(lib, len(taps), ffitt.ADAPTIVE_NORMALISED, rate)
 
     try:
         for filt, ref, want in ((quiet, reference, wanted),
                                 (loud, louder_reference, louder_wanted)):
-            assert lib.adaptive_process_block(filt, sptk.float_array(ref),
-                                              sptk.float_array(want), None,
+            assert lib.adaptive_process_block(filt, ffitt.float_array(ref),
+                                              ffitt.float_array(want), None,
                                               None, len(ref))
 
         for tap in range(len(taps)):
@@ -197,8 +197,8 @@ def test_a_leak_pulls_the_coefficients_back_towards_nothing(lib, rule, rate,
     try:
         assert lib.adaptive_set_leak(filt, sp.to_float32(leak))
 
-        assert lib.adaptive_process_block(filt, sptk.float_array(reference),
-                                          sptk.float_array(wanted), None,
+        assert lib.adaptive_process_block(filt, ffitt.float_array(reference),
+                                          ffitt.float_array(wanted), None,
                                           None, len(reference))
 
         started = [abs(lib.adaptive_get_coefficient(filt, tap))
@@ -207,7 +207,7 @@ def test_a_leak_pulls_the_coefficients_back_towards_nothing(lib, rule, rate,
         assume(max(started) > 0.01)
 
         # Nothing arriving at all, for a long time.
-        quiet = sptk.float_array([0.0] * 20000)
+        quiet = ffitt.float_array([0.0] * 20000)
 
         assert lib.adaptive_process_block(filt, quiet, quiet, None, None,
                                           20000)
@@ -232,8 +232,8 @@ def test_a_filter_with_no_leak_stands_still_when_nothing_arrives(lib, rule,
         reference = noise(2000)
         wanted = path(reference, [0.6, -0.3])
 
-        assert lib.adaptive_process_block(filt, sptk.float_array(reference),
-                                          sptk.float_array(wanted), None,
+        assert lib.adaptive_process_block(filt, ffitt.float_array(reference),
+                                          ffitt.float_array(wanted), None,
                                           None, len(reference))
 
         # THE HISTORY MUST BE LET DRAIN FIRST. The filter holds the last few
@@ -242,7 +242,7 @@ def test_a_filter_with_no_leak_stands_still_when_nothing_arrives(lib, rule,
         # still learning from the error of it. It is standing still only once
         # the history is empty. Read before that, a filter with no leak at all
         # looks as though it were leaking.
-        drain = sptk.float_array([0.0] * (length + 2))
+        drain = ffitt.float_array([0.0] * (length + 2))
 
         assert lib.adaptive_process_block(filt, drain, drain, None, None,
                                           length + 2)
@@ -250,7 +250,7 @@ def test_a_filter_with_no_leak_stands_still_when_nothing_arrives(lib, rule,
         held = [lib.adaptive_get_coefficient(filt, tap)
                 for tap in range(length)]
 
-        quiet = sptk.float_array([0.0] * 5000)
+        quiet = ffitt.float_array([0.0] * 5000)
 
         assert lib.adaptive_process_block(filt, quiet, quiet, None, None, 5000)
 
@@ -300,16 +300,16 @@ def test_a_reset_filter_answers_as_a_new_one_does(lib, rule, rate, length):
     fresh = designed(lib, length, rule, rate)
 
     try:
-        assert lib.adaptive_process_block(used, sptk.float_array(reference),
-                                          sptk.float_array(wanted), None,
+        assert lib.adaptive_process_block(used, ffitt.float_array(reference),
+                                          ffitt.float_array(wanted), None,
                                           None, len(reference))
 
         lib.adaptive_reset(used)
 
         for filt in (used, fresh):
             assert lib.adaptive_process_block(filt,
-                                              sptk.float_array(reference),
-                                              sptk.float_array(wanted), None,
+                                              ffitt.float_array(reference),
+                                              ffitt.float_array(wanted), None,
                                               None, len(reference))
 
         for tap in range(length):
@@ -348,8 +348,8 @@ def test_the_sign_rule_hunts_by_an_amount_that_follows_its_rate(lib, rate):
 
         try:
             assert lib.adaptive_process_block(filt,
-                                              sptk.float_array(reference),
-                                              sptk.float_array(wanted), None,
+                                              ffitt.float_array(reference),
+                                              ffitt.float_array(wanted), None,
                                               None, len(reference))
 
             seen = []
@@ -362,8 +362,8 @@ def test_the_sign_rule_hunts_by_an_amount_that_follows_its_rate(lib, rate):
         finally:
             lib.adaptive_free(filt)
 
-    hunting = wander_of(sptk.ADAPTIVE_SIGN, rate)
-    settled = wander_of(sptk.ADAPTIVE_NORMALISED, rate)
+    hunting = wander_of(ffitt.ADAPTIVE_SIGN, rate)
+    settled = wander_of(ffitt.ADAPTIVE_NORMALISED, rate)
 
     # It really is still moving, and by far more than a rule that settles.
     assert hunting > 0.001
@@ -371,7 +371,7 @@ def test_the_sign_rule_hunts_by_an_amount_that_follows_its_rate(lib, rate):
 
     # And the amount follows the rate: four times the rate, about four times
     # the wander.
-    faster = wander_of(sptk.ADAPTIVE_SIGN, rate * 4.0)
+    faster = wander_of(ffitt.ADAPTIVE_SIGN, rate * 4.0)
 
     assert 2.0 < (faster / hunting) < 8.0
 

@@ -34,7 +34,7 @@ void test_the_limit_of_the_tracker_follows_the_width_of_the_build(void)
     // width, because one pole has no cancelling sums in it.
     TEST_ASSERT_TRUE(DCBLOCK_MIN_CUTOFF < (IIR_MIN_CUTOFF / REAL_C(100.0)));
 
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     TEST_ASSERT_EQUAL(true, dcblock_is_valid_cutoff(REAL_C(0.000000001)));
     TEST_ASSERT_EQUAL(false, dcblock_is_valid_cutoff(REAL_C(0.0000000001)));
 #else
@@ -208,7 +208,7 @@ void test_dcblock_stands_against_a_large_level_better_than_a_section_does(void)
     // and has no two nearly equal numbers to subtract.
     TEST_ASSERT_TRUE(dcblock_added < REAL_C(1.0));
 
-#if defined(SPTK_REAL_64)
+#if defined(FFITT_REAL_64)
     // At 64 bits the section has digits to spare, thus it gains nothing
     // either. The two are then alike in accuracy and differ only in shape.
     TEST_ASSERT_TRUE(iir_added < REAL_C(1.0));

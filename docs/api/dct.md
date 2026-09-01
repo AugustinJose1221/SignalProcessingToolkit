@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Turning a signal into cosines. Declared in `sptk/transform/dct.h`.
+Turning a signal into cosines. Declared in `ffitt/transform/dct.h`.
 
-[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
+[Back to the index](../API.md) | [How the transform modules work](../../ffitt/transform/README.md)
 
 ## Macros
 

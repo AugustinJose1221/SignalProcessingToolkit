@@ -14,7 +14,7 @@ from hypothesis import assume, given
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 PARTS = st.floats(min_value=-4.0, max_value=4.0, width=32)
@@ -82,9 +82,9 @@ def test_an_attitude_undone_by_its_conjugate_is_no_turn_at_all(lib, axis):
 def test_turning_a_vector_does_not_change_its_length(lib, axis, x, y, z):
     """A turn moves a thing and does not stretch it."""
     q = made(lib, axis)
-    out_x = sptk.real_buffer(1)
-    out_y = sptk.real_buffer(1)
-    out_z = sptk.real_buffer(1)
+    out_x = ffitt.real_buffer(1)
+    out_y = ffitt.real_buffer(1)
+    out_z = ffitt.real_buffer(1)
 
     lib.quaternion_rotate(q, x, y, z, out_x, out_y, out_z)
 
@@ -99,8 +99,8 @@ def test_turning_a_vector_and_turning_it_back_gives_the_vector(lib, axis, x, y,
                                                                z):
     """The conjugate must undo the turn on a vector as well as on an attitude."""
     q = made(lib, axis)
-    mid = [sptk.real_buffer(1) for _ in range(3)]
-    back = [sptk.real_buffer(1) for _ in range(3)]
+    mid = [ffitt.real_buffer(1) for _ in range(3)]
+    back = [ffitt.real_buffer(1) for _ in range(3)]
 
     lib.quaternion_rotate(q, x, y, z, mid[0], mid[1], mid[2])
     lib.quaternion_rotate(lib.quaternion_conjugate(q), mid[0][0], mid[1][0],
@@ -129,8 +129,8 @@ def test_an_attitude_and_its_negative_turn_a_vector_the_same_way(lib, axis, x,
     q = made(lib, axis)
     negative = lib.quaternion_make(-q.w, -q.x, -q.y, -q.z)
 
-    first = [sptk.real_buffer(1) for _ in range(3)]
-    second = [sptk.real_buffer(1) for _ in range(3)]
+    first = [ffitt.real_buffer(1) for _ in range(3)]
+    second = [ffitt.real_buffer(1) for _ in range(3)]
 
     lib.quaternion_rotate(q, x, y, z, first[0], first[1], first[2])
     lib.quaternion_rotate(negative, x, y, z, second[0], second[1], second[2])

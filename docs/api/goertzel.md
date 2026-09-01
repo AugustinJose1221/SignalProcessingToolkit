@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Detection of one frequency. Declared in `sptk/transform/goertzel.h`.
+Detection of one frequency. Declared in `ffitt/transform/goertzel.h`.
 
-[Back to the index](../API.md) | [How the transform modules work](../../sptk/transform/README.md)
+[Back to the index](../API.md) | [How the transform modules work](../../ffitt/transform/README.md)
 
 ## Types
 

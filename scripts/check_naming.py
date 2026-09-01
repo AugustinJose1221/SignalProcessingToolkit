@@ -27,7 +27,7 @@ ALLOWED_NAMES = {"setUp", "tearDown", "main"}
 
 # The library lies under this directory. Each file there holds one module, and
 # the name of the file is the name of the module.
-LIBRARY_DIRECTORY = "sptk"
+LIBRARY_DIRECTORY = "ffitt"
 
 # The headers that hold no module of their own. They give a type or a macro,
 # and no function starts with their name.

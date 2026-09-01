@@ -27,7 +27,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 cutoffs = st.sampled_from([0.02, 0.05, 0.1, 0.15, 0.25])
@@ -39,7 +39,7 @@ def low_pass(lib, sections, cutoff):
     handle = lib.iir_alloc(sections)
     if not lib.iir_design_low_pass_with(ctypes.byref(handle),
                                         sp.to_float32(cutoff),
-                                        sptk.IIR_BUTTERWORTH,
+                                        ffitt.IIR_BUTTERWORTH,
                                         sp.to_float32(1.0),
                                         sp.to_float32(40.0)):
         lib.iir_free(ctypes.byref(handle))
@@ -48,8 +48,8 @@ def low_pass(lib, sections, cutoff):
 
 
 def run_iir(lib, handle, values):
-    source = sptk.float_array(values)
-    room = sptk.real_buffer(len(values))
+    source = ffitt.float_array(values)
+    room = ffitt.real_buffer(len(values))
     ran = lib.filtfilt_iir(ctypes.byref(handle), source, room, len(values))
     return list(room), ran
 
@@ -190,8 +190,8 @@ def test_one_pass_leans_where_two_passes_do_not(lib, sections, cutoff, width):
     handle = low_pass(lib, sections, cutoff)
     assume(handle is not None)
     try:
-        source = sptk.float_array(values)
-        once = sptk.real_buffer(size)
+        source = ffitt.float_array(values)
+        once = ffitt.real_buffer(size)
         lib.iir_reset(ctypes.byref(handle))
         for index in range(size):
             once[index] = lib.iir_process_sample(ctypes.byref(handle),
@@ -295,7 +295,7 @@ def test_filtering_a_list_into_itself_gives_the_same_as_into_another(
         apart, ran = run_iir(lib, handle, values)
         assert ran
 
-        together = sptk.float_array(values)
+        together = ffitt.float_array(values)
         assert lib.filtfilt_iir(ctypes.byref(handle), together, together, size)
     finally:
         lib.iir_free(ctypes.byref(handle))
@@ -310,8 +310,8 @@ def test_a_signal_too_short_to_fill_the_filter_is_refused(lib, sections,
     handle = low_pass(lib, sections, cutoff)
     assume(handle is not None)
     try:
-        source = sptk.float_array([sp.to_float32(1.0)] * max(size, 1))
-        room = sptk.real_buffer(max(size, 1))
+        source = ffitt.float_array([sp.to_float32(1.0)] * max(size, 1))
+        room = ffitt.real_buffer(max(size, 1))
         ran = lib.filtfilt_iir(ctypes.byref(handle), source, room, size)
         assert ran == (size > (2 * sections))
     finally:
@@ -345,7 +345,7 @@ def test_the_same_holds_for_a_filter_with_no_feedback(lib, length, cutoff,
     try:
         assume(lib.fir_design_low_pass_with(ctypes.byref(handle),
                                             sp.to_float32(cutoff),
-                                            sptk.WINDOW_HAMMING,
+                                            ffitt.WINDOW_HAMMING,
                                             sp.to_float32(0.0)))
         once = lib.fir_get_gain(ctypes.byref(handle), sp.to_float32(frequency))
         promised = lib.filtfilt_fir_gain(ctypes.byref(handle),
@@ -355,8 +355,8 @@ def test_the_same_holds_for_a_filter_with_no_feedback(lib, length, cutoff,
 
         size = 2048
         values = tone(size, frequency)
-        source = sptk.float_array(values)
-        room = sptk.real_buffer(size)
+        source = ffitt.float_array(values)
+        room = ffitt.real_buffer(size)
         assert lib.filtfilt_fir(ctypes.byref(handle), source, room, size)
 
         trim = size // 4
@@ -377,10 +377,10 @@ def test_a_signal_shorter_than_the_filter_with_no_feedback_is_refused(
     try:
         assume(lib.fir_design_low_pass_with(ctypes.byref(handle),
                                             sp.to_float32(cutoff),
-                                            sptk.WINDOW_HAMMING,
+                                            ffitt.WINDOW_HAMMING,
                                             sp.to_float32(0.0)))
-        source = sptk.float_array([sp.to_float32(1.0)] * max(size, 1))
-        room = sptk.real_buffer(max(size, 1))
+        source = ffitt.float_array([sp.to_float32(1.0)] * max(size, 1))
+        room = ffitt.real_buffer(max(size, 1))
         ran = lib.filtfilt_fir(ctypes.byref(handle), source, room, size)
         assert ran == (size > length)
     finally:

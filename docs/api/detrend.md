@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Taking the level and the drift out of a block. Declared in `sptk/filter/detrend.h`.
+Taking the level and the drift out of a block. Declared in `ffitt/filter/detrend.h`.
 
-[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+[Back to the index](../API.md) | [How the filter modules work](../../ffitt/filter/README.md)
 
 ## Functions
 

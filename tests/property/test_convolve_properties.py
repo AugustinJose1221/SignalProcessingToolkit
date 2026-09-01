@@ -13,13 +13,13 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 SIGNALS = st.lists(sp.elements(20.0), min_size=1, max_size=24)
 SHAPES = st.lists(sp.elements(5.0), min_size=1, max_size=8)
-MODES = st.sampled_from([sptk.CONVOLVE_FULL, sptk.CONVOLVE_SAME,
-                         sptk.CONVOLVE_VALID])
+MODES = st.sampled_from([ffitt.CONVOLVE_FULL, ffitt.CONVOLVE_SAME,
+                         ffitt.CONVOLVE_VALID])
 
 
 def plain_convolution(signal, shape):
@@ -41,9 +41,9 @@ def plain_convolution(signal, shape):
 
 def offset_of(mode, shape_size):
     """Where in the whole answer the wanted part begins."""
-    if mode == sptk.CONVOLVE_SAME:
+    if mode == ffitt.CONVOLVE_SAME:
         return (shape_size - 1) // 2
-    if mode == sptk.CONVOLVE_VALID:
+    if mode == ffitt.CONVOLVE_VALID:
         return shape_size - 1
     return 0
 
@@ -53,9 +53,9 @@ def convolved(lib, signal, shape, mode):
     count = lib.convolve_output_size(len(signal), len(shape), mode)
     if count == 0:
         return None
-    output = sptk.real_buffer(count)
-    assert lib.convolve_direct(sptk.float_array(signal), len(signal),
-                               sptk.float_array(shape), len(shape), output,
+    output = ffitt.real_buffer(count)
+    assert lib.convolve_direct(ffitt.float_array(signal), len(signal),
+                               ffitt.float_array(shape), len(shape), output,
                                mode)
     return list(output)
 
@@ -82,9 +82,9 @@ def test_the_size_that_is_promised_is_the_size_that_comes_back(lib, signal,
     """A caller allocates from convolve_output_size before it calls."""
     count = lib.convolve_output_size(len(signal), len(shape), mode)
 
-    if mode == sptk.CONVOLVE_FULL:
+    if mode == ffitt.CONVOLVE_FULL:
         assert count == len(signal) + len(shape) - 1
-    elif mode == sptk.CONVOLVE_SAME:
+    elif mode == ffitt.CONVOLVE_SAME:
         assert count == len(signal)
     else:
         # A shape longer than the signal never lies wholly inside it.
@@ -96,8 +96,8 @@ def test_the_size_that_is_promised_is_the_size_that_comes_back(lib, signal,
 def test_it_does_not_matter_which_one_is_slid_along_the_other(lib, signal,
                                                               shape):
     """A convolution does not care which of the two is called the shape."""
-    one = convolved(lib, signal, shape, sptk.CONVOLVE_FULL)
-    other = convolved(lib, shape, signal, sptk.CONVOLVE_FULL)
+    one = convolved(lib, signal, shape, ffitt.CONVOLVE_FULL)
+    other = convolved(lib, shape, signal, ffitt.CONVOLVE_FULL)
     assume(one is not None and other is not None)
 
     scale = 1.0 + (max(abs(v) for v in signal) * sum(abs(v) for v in shape))
@@ -117,7 +117,7 @@ def test_a_shape_that_is_a_single_one_gives_the_signal_back(lib, signal,
     shape = [0.0] * (place + 1)
     shape[place] = 1.0
 
-    answer = convolved(lib, signal, shape, sptk.CONVOLVE_FULL)
+    answer = convolved(lib, signal, shape, ffitt.CONVOLVE_FULL)
     assume(answer is not None)
 
     for index, value in enumerate(signal):
@@ -133,9 +133,9 @@ def test_two_shapes_added_give_two_answers_added(lib, signal, first, second):
     second = second + [0.0] * (size - len(second))
     both = [sp.to_float32(a + b) for a, b in zip(first, second)]
 
-    by_parts_first = convolved(lib, signal, first, sptk.CONVOLVE_FULL)
-    by_parts_second = convolved(lib, signal, second, sptk.CONVOLVE_FULL)
-    together = convolved(lib, signal, both, sptk.CONVOLVE_FULL)
+    by_parts_first = convolved(lib, signal, first, ffitt.CONVOLVE_FULL)
+    by_parts_second = convolved(lib, signal, second, ffitt.CONVOLVE_FULL)
+    together = convolved(lib, signal, both, ffitt.CONVOLVE_FULL)
     assume(together is not None)
 
     scale = 1.0 + (max(abs(v) for v in signal)
@@ -154,7 +154,7 @@ def test_the_whole_answer_holds_the_whole_of_both_signals(lib, signal, shape):
     exactly. The same and valid modes cut the ends off, which is what the
     header warns of, and this test says why that warning is there.
     """
-    answer = convolved(lib, signal, shape, sptk.CONVOLVE_FULL)
+    answer = convolved(lib, signal, shape, ffitt.CONVOLVE_FULL)
     assume(answer is not None)
 
     scale = 1.0 + (sum(abs(v) for v in signal) * sum(abs(v) for v in shape))
@@ -173,7 +173,7 @@ def test_the_valid_mode_never_reports_a_place_that_was_partly_assumed(lib,
     valid mode is exactly the part where it does not, and this test holds the
     boundary by working each value out from the samples alone.
     """
-    answer = convolved(lib, signal, shape, sptk.CONVOLVE_VALID)
+    answer = convolved(lib, signal, shape, ffitt.CONVOLVE_VALID)
     assume(answer is not None)
 
     scale = 1.0 + (max(abs(v) for v in signal) * sum(abs(v) for v in shape))
@@ -233,13 +233,13 @@ def test_the_two_ways_of_convolving_give_one_answer(lib, signal, shape, mode):
     assume(larger > 0)
 
     fft = lib.fft_alloc(larger)
-    first = (sptk.Cnum * larger)()
-    second = (sptk.Cnum * larger)()
-    work = sptk.real_buffer(larger)
-    fast = sptk.real_buffer(len(slow))
+    first = (ffitt.Cnum * larger)()
+    second = (ffitt.Cnum * larger)()
+    work = ffitt.real_buffer(larger)
+    fast = ffitt.real_buffer(len(slow))
 
-    assert lib.convolve_by_transform(sptk.float_array(signal), len(signal),
-                                     sptk.float_array(shape), len(shape),
+    assert lib.convolve_by_transform(ffitt.float_array(signal), len(signal),
+                                     ffitt.float_array(shape), len(shape),
                                      fast, mode, ctypes.byref(fft), first,
                                      second, work)
 

@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-A buffer of the last samples. Declared in `sptk/core/ringbuf.h`.
+A buffer of the last samples. Declared in `ffitt/core/ringbuf.h`.
 
-[Back to the index](../API.md) | [How the core modules work](../../sptk/core/README.md)
+[Back to the index](../API.md) | [How the core modules work](../../ffitt/core/README.md)
 
 ## Types
 

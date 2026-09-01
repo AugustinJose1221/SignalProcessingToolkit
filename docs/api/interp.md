@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-Reading between the points of a table. Declared in `sptk/interpolate/interp.h`.
+Reading between the points of a table. Declared in `ffitt/interpolate/interp.h`.
 
-[Back to the index](../API.md) | [How the interpolate modules work](../../sptk/interpolate/README.md)
+[Back to the index](../API.md) | [How the interpolate modules work](../../ffitt/interpolate/README.md)
 
 ## Macros
 

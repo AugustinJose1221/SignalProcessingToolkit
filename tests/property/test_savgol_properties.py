@@ -18,7 +18,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=40, deadline=None)
@@ -37,9 +37,9 @@ def designed(lib, window, order, derivative=0):
 
 
 def through(lib, savgol, values):
-    out = sptk.real_buffer(len(values))
+    out = ffitt.real_buffer(len(values))
 
-    lib.savgol_process_block(savgol, sptk.float_array(values), out,
+    lib.savgol_process_block(savgol, ffitt.float_array(values), out,
                              len(values))
 
     return [out[index] for index in range(len(values))]
@@ -184,7 +184,7 @@ def test_the_coefficients_of_a_smoother_add_up_to_one(lib, window, order,
         assert abs(total - 1.0) <= 1e-4
 
         # And the level really does come through.
-        window_values = sptk.float_array([level] * window)
+        window_values = ffitt.float_array([level] * window)
 
         assert abs(lib.savgol_apply(savgol, window_values)
                    - level) <= 1e-3 * (1.0 + abs(level))

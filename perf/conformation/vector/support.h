@@ -1,7 +1,7 @@
 #ifndef __CONFORMATION_VECTOR_SUPPORT_H__
 #define __CONFORMATION_VECTOR_SUPPORT_H__
 
-#include <sptk/linalg/vector.h>
+#include <ffitt/linalg/vector.h>
 #include <gsl/gsl_vector_float.h>
 
 void support_init(void);

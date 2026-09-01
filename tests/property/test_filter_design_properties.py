@@ -14,14 +14,14 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 DESIGN = settings(max_examples=40)
 
 RIPPLES = st.sampled_from([0.0625, 0.25, 0.5, 1.0, 2.0, 3.0])
 ATTENUATIONS = st.sampled_from([20.0, 30.0, 40.0, 60.0, 70.0])
-SHAPES = st.sampled_from(sptk.IIR_SHAPES)
+SHAPES = st.sampled_from(ffitt.IIR_SHAPES)
 
 
 def gains_across(lib, filter_handle, low, high, count=200):
@@ -68,7 +68,7 @@ def test_the_sections_it_asks_for_really_meet_the_specification(lib, spec,
 
     # For Chebyshev II the cutoff counts at the far edge; for the others at the
     # near one.
-    cutoff = stop_edge if shape == sptk.IIR_CHEBYSHEV_II else pass_edge
+    cutoff = stop_edge if shape == ffitt.IIR_CHEBYSHEV_II else pass_edge
 
     assume(lib.iir_design_low_pass_with(ctypes.byref(handle),
                                         sp.to_float32(cutoff), shape,
@@ -87,7 +87,7 @@ def test_the_sections_it_asks_for_really_meet_the_specification(lib, spec,
     # coefficients cannot always place them exactly and the floor sits up to
     # about 3 dB high, which the header of the module records. Every other
     # shape, and every shape at 64 bits, delivers what was asked.
-    if (shape == sptk.IIR_ELLIPTIC) and not sptk.REAL_64:
+    if (shape == ffitt.IIR_ELLIPTIC) and not ffitt.REAL_64:
         room = 10.0 ** (3.5 / 20.0)
     else:
         room = 1.05
@@ -110,7 +110,7 @@ def test_a_sharper_shape_never_needs_more_sections(lib, spec):
                                    sp.to_float32(stop_edge),
                                    sp.to_float32(ripple),
                                    sp.to_float32(attenuation))
-              for shape in sptk.IIR_SHAPES_BY_SHARPNESS]
+              for shape in ffitt.IIR_SHAPES_BY_SHARPNESS]
 
     assume(all(count > 0 for count in counts))
 
@@ -132,7 +132,7 @@ def test_a_chebyshev_ripples_by_exactly_what_was_asked(lib, ripple, sections,
 
     assume(lib.iir_design_low_pass_with(ctypes.byref(handle),
                                         sp.to_float32(cutoff),
-                                        sptk.IIR_CHEBYSHEV_I,
+                                        ffitt.IIR_CHEBYSHEV_I,
                                         sp.to_float32(ripple),
                                         sp.to_float32(60.0)))
 
@@ -164,7 +164,7 @@ def test_an_elliptic_ripples_at_both_ends_by_what_was_asked(lib, ripple,
 
     assume(lib.iir_design_low_pass_with(ctypes.byref(handle),
                                         sp.to_float32(cutoff),
-                                        sptk.IIR_ELLIPTIC,
+                                        ffitt.IIR_ELLIPTIC,
                                         sp.to_float32(ripple),
                                         sp.to_float32(attenuation)))
 
@@ -200,7 +200,7 @@ def test_an_elliptic_ripples_at_both_ends_by_what_was_asked(lib, ripple,
     assume(stopped is not None)
 
     # The same allowance the other test explains.
-    room = 10.0 ** (3.5 / 20.0) if not sptk.REAL_64 else 1.1
+    room = 10.0 ** (3.5 / 20.0) if not ffitt.REAL_64 else 1.1
 
     assert max(stopped) <= wanted_stop * room
 
@@ -239,7 +239,7 @@ def test_a_low_pass_passes_the_bottom_and_stops_the_top(lib, cutoff, shape,
     assert at_the_top < 0.5
 
 
-@given(st.sampled_from(sptk.WINDOWS_WITHOUT_A_PARAMETER),
+@given(st.sampled_from(ffitt.WINDOWS_WITHOUT_A_PARAMETER),
        st.sampled_from([0.005, 0.01, 0.02, 0.05]))
 @DESIGN
 def test_the_length_it_asks_for_really_turns_that_fast(lib, kind, width):
@@ -278,8 +278,8 @@ def test_the_length_it_asks_for_really_turns_that_fast(lib, kind, width):
 @given(st.sampled_from([0.005, 0.01, 0.02]))
 def test_a_gentler_window_needs_a_longer_filter(lib, width):
     """The trade, seen through the length it costs."""
-    order = [sptk.WINDOW_RECTANGULAR, sptk.WINDOW_HAMMING, sptk.WINDOW_HANN,
-             sptk.WINDOW_BLACKMAN, sptk.WINDOW_BLACKMAN_HARRIS]
+    order = [ffitt.WINDOW_RECTANGULAR, ffitt.WINDOW_HAMMING, ffitt.WINDOW_HANN,
+             ffitt.WINDOW_BLACKMAN, ffitt.WINDOW_BLACKMAN_HARRIS]
     lengths = [lib.fir_length_for(kind, sp.to_float32(width))
                for kind in order]
 
@@ -287,7 +287,7 @@ def test_a_gentler_window_needs_a_longer_filter(lib, width):
         assert longer >= shorter
 
 
-@given(st.sampled_from(sptk.WINDOWS_WITHOUT_A_PARAMETER),
+@given(st.sampled_from(ffitt.WINDOWS_WITHOUT_A_PARAMETER),
        st.integers(min_value=3, max_value=400))
 def test_the_turn_of_a_window_is_a_number_divided_by_the_length(lib, kind,
                                                                 length):
@@ -314,7 +314,7 @@ def test_a_filter_holds_the_signal_back_and_never_pushes_it_forward(lib,
 
     assume(lib.iir_design_low_pass_with(ctypes.byref(handle),
                                         sp.to_float32(cutoff),
-                                        sptk.IIR_BUTTERWORTH,
+                                        ffitt.IIR_BUTTERWORTH,
                                         sp.to_float32(1.0),
                                         sp.to_float32(60.0)))
 

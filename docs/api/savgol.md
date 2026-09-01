@@ -7,9 +7,9 @@ To make it again, give:
 python3 scripts/api_doc.py
 ```
 
-The filter of Savitzky and Golay. Declared in `sptk/filter/savgol.h`.
+The filter of Savitzky and Golay. Declared in `ffitt/filter/savgol.h`.
 
-[Back to the index](../API.md) | [How the filter modules work](../../sptk/filter/README.md)
+[Back to the index](../API.md) | [How the filter modules work](../../ffitt/filter/README.md)
 
 ## Types
 

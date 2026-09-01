@@ -13,7 +13,7 @@ from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import sptk  # noqa: E402
+import ffitt  # noqa: E402
 import strategies as sp  # noqa: E402
 
 RUNS = settings(max_examples=30, deadline=None)
@@ -37,7 +37,7 @@ WEIGHT_ROOM = {1: 0.0, 2: 0.0, 3: 1.4e-7, 4: 9.5e-7, 5: 3.6e-5,
 
 
 def weight_room(order):
-    if sptk.REAL_64:
+    if ffitt.REAL_64:
         return 1e-10
 
     # TWENTY TIMES THE MEASURED WORST, and the factor is not timidity. The
@@ -61,9 +61,9 @@ def built(lib, order, part):
 
 
 def through(lib, filt, values):
-    out = sptk.real_buffer(len(values))
+    out = ffitt.real_buffer(len(values))
 
-    assert lib.farrow_process_block(filt, sptk.float_array(values), out,
+    assert lib.farrow_process_block(filt, ffitt.float_array(values), out,
                                     len(values))
 
     return [out[index] for index in range(len(values))]
@@ -338,13 +338,13 @@ def test_a_delay_applied_is_a_delay_that_can_be_measured(lib, order, part):
 
     # The second half of each, where the filter is full and the block holds a
     # whole number of turns of everything in it.
-    one = sptk.float_array(first[window:])
-    other = sptk.float_array(second[window:])
+    one = ffitt.float_array(first[window:])
+    other = ffitt.float_array(second[window:])
 
     fft = lib.fft_alloc(window)
-    work_a = (sptk.Cnum * window)()
-    work_b = (sptk.Cnum * window)()
-    found = sptk.real_buffer(1)
+    work_a = (ffitt.Cnum * window)()
+    work_b = (ffitt.Cnum * window)()
+    found = ffitt.real_buffer(1)
 
     try:
         assert lib.delay_by_phase(one, other, window, fft, work_a, work_b,
