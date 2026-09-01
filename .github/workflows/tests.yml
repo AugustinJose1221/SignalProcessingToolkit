@@ -152,6 +152,28 @@ jobs:
         env:
           FFITT_DEFINE: ${{ matrix.define }}
 
+      - name: Examine that enough of the library was run
+        # TWO OF THE THINGS THE FREEZE ASKS FOR, CHECKED RATHER THAN HOPED FOR.
+        #
+        # Every public function must be run by something. That one is held at
+        # 100 and it has been met since 0.17.0, when three functions were found
+        # that nothing had ever called.
+        #
+        # Lines are held at 98 and not 99. What is left is the guards against
+        # the heap giving nothing and against numbers the width cannot hold.
+        # Reaching those needs an allocator that fails on purpose, or calls
+        # that break what the headers say a caller may do. Covering every line
+        # a caller CAN reach still leaves the whole below 99, thus 99 is a
+        # number the code cannot meet while those guards stand, and taking the
+        # guards out to meet it would be the wrong trade.
+        #
+        # gcovr is called straight rather than through the plugin, because the
+        # plugin fails by raising an exception and not by saying which number
+        # was missed.
+        run: |
+          gcovr -r . --filter 'ffitt/' --print-summary \
+            --fail-under-line 98 --fail-under-function 100
+
       - name: Keep the test report
         if: always()
         uses: actions/upload-artifact@v4

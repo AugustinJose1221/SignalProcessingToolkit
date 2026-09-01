@@ -295,20 +295,19 @@
     # - Xml
     # - XmlSummary
   :gcovr:
-    # THE FREEZE ASKS FOR A NUMBER, THUS THE BUILD MEASURES IT.
+    # THE NUMBER THE FREEZE ASKS FOR IS CHECKED, BUT NOT HERE.
     #
-    # A criterion that nothing checks is a wish. This one fails the build when
-    # the lines covered fall below it, in the same way the freeze check fails
-    # the build when a function is added.
+    # This section held :fail_under_line: 98. It does fail the build when the
+    # coverage falls short, but it fails it by raising an exception out of the
+    # plugin -- "undefined method `[]' for nil" -- and not by saying which
+    # number was missed. A reader who met that message would not know that
+    # coverage was the reason.
     #
-    # Why 98 and not 99: the lines that are left are guards against the heap
-    # giving nothing and against numbers the width cannot hold. Reaching them
-    # needs an allocator that fails on purpose, or calls that break what the
-    # headers say a caller may do. Even covering every line that a caller CAN
-    # reach leaves the whole below 99, thus 99 would be a number the code
-    # cannot meet while those guards stand, and taking the guards out to meet
-    # it would be the wrong trade.
-    :fail_under_line: 98
+    # The check now runs as its own step of the workflow, calling gcovr
+    # straight. It says what it wants and what it got:
+    #
+    #     Failed minimum line coverage (got 98.3%, minimum 99.0%)
+    #
     :html_artifact_filename: ffitt Test Report.html
     :html_title: Test Coverage Report
     :html_medium_threshold: 75
