@@ -204,8 +204,33 @@ jobs:
 
       - name: Build the library
         run: |
-          cmake -S . -B build/library -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
+          cmake -S . -B build/library \
+            -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build build/library
+
+      - name: Examine that the width asked for reached the compiler
+        # THE FLAG WAS PASSED AND NOTHING READ IT. Every build in this job
+        # asked for 64 bits and every one was built at 32, because
+        # CMakeLists.txt never looked at the variable. Nothing failed, because
+        # a build that quietly gives the wrong thing still gives a thing.
+        #
+        # This step reads the commands that cmake really ran and looks for the
+        # definition among them. A flag that is asked for and not read now
+        # stops the build, and so does one that arrives when it was not asked
+        # for.
+        run: |
+          if grep -q -- '-DFFITT_REAL_64' build/library/compile_commands.json; then
+            reached=yes
+          else
+            reached=no
+          fi
+          wanted=${{ matrix.width == 64 && 'yes' || 'no' }}
+          echo "asked for ${{ matrix.width }} bits; the definition reached the compiler: $reached"
+          if [ "$reached" != "$wanted" ]; then
+            echo "The width asked for is not the width that was built."
+            exit 1
+          fi
 
       - name: Build the example program
         # The example files hold their code inside a condition on RUN_EXAMPLE.
