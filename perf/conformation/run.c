@@ -5,6 +5,8 @@
 #include <perf/conformation/fft/fft.h>
 #include <perf/conformation/eigen/eigen.h>
 #include <perf/conformation/poly/poly.h>
+#include <perf/conformation/stats/stats.h>
+#include <perf/conformation/cspline/cspline.h>
 
 int test_cases_run = 0;
 int test_cases_passed = 0;
@@ -23,6 +25,8 @@ static void run_dynamic_conformation_tests(void)
     run_fft_conformation_tests();
     run_eigen_conformation_tests();
     run_poly_conformation_tests();
+    run_stats_conformation_tests();
+    run_cspline_conformation_tests();
 }
 
 int main(void)
