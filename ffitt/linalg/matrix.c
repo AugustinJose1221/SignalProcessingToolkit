@@ -716,14 +716,30 @@ bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch)
     real_t factor;
     real_t swap;
 
+    // The largest element the matrix started with. A pivot is weighed against
+    // it, because that is the size the arithmetic works at, and a pivot far
+    // below it is nothing but what the rounding left behind.
+    real_t largest = REAL_C(0.0);
+
     for(uint32_t i = 0; i < n; i++)
     {
         for(uint32_t j = 0; j < n; j++)
         {
-            matrix_add_element(scratch, i, j, matrix_get_element(matrix, i, j));
+            real_t element = matrix_get_element(matrix, i, j);
+            real_t size_of = REAL_ABS(element);
+
+            if(size_of > largest)
+            {
+                largest = size_of;
+            }
+
+            matrix_add_element(scratch, i, j, element);
             matrix_add_element(scratch, i, j + n, (i == j) ? REAL_C(1.0) : REAL_C(0.0));
         }
     }
+
+    // How small a pivot has to be before it means the matrix is singular.
+    real_t smallest_pivot = largest * (real_t)n * REAL_EPSILON;
 
     for(uint32_t i = 0; i < n; i++)
     {
@@ -753,7 +769,22 @@ bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch)
         }
 
         pivot = matrix_get_element(scratch, i, i);
-        if(pivot == REAL_C(0.0))
+
+        // A PIVOT THAT IS NOT EXACTLY ZERO CAN STILL BE NOTHING.
+        //
+        // This asked whether the pivot was exactly zero. After a column has
+        // been eliminated the pivot of a singular matrix is not zero: it is
+        // the rounding left over from the subtraction, which is tiny and
+        // almost never exactly nothing. The test therefore let a singular
+        // matrix through, and dividing by that rounding gave an answer in the
+        // millions where there is no inverse at all.
+        //
+        // Measured on the 4 by 4 matrix of 1 to 16, whose determinant is 0:
+        // matrix_inverse_into gave true, and matrix_inverse gave elements
+        // near 2 000 000 rather than the zeros its header promises. A caller
+        // following that header would have called matrix_is_zero, been told
+        // no, and used the answer.
+        if(REAL_ABS(pivot) <= smallest_pivot)
         {
             return false;
         }
