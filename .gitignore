@@ -7,7 +7,3 @@ build
 __pycache__
 .venv
 .hypothesis
-
-# The local python tools, installed with pip --target. They are a
-# convenience of the workspace and belong to nobody else.
-.pydeps/
