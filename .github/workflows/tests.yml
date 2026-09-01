@@ -332,6 +332,11 @@ jobs:
       - name: Get the sources
         uses: actions/checkout@v4
 
+      - name: Install the GNU Scientific Library
+        # The conformation sources are read here as well, and they include the
+        # headers of that library.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libgsl-dev
+
       - name: Build each source with the warnings switched on
         # The sources give no warning. A new warning stops the job, thus a
         # warning cannot come into the repository without a signal.
