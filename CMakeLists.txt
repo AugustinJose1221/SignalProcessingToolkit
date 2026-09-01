@@ -2,12 +2,26 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(Ffitt VERSION 0.18.0 LANGUAGES C)
+project(Ffitt VERSION 0.18.1 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 include_directories(${PROJECT_SOURCE_DIR})
+
+# THE WIDTH THAT EVERY NUMBER IS HELD IN.
+#
+# Off gives a float, which keeps about 7 digits. On gives a double, which keeps
+# about 16. Nothing else in the build changes.
+#
+#     cmake -S . -B build -DFFITT_REAL_64=ON
+#
+# THIS WAS ASKED FOR AND NOT READ. The workflow passed -DFFITT_REAL_64=ON to
+# four builds and nothing here ever looked at it, thus every one of them was
+# built at 32 bits and the job named "64 bit" was the 32 bit job over again.
+# Passing a variable that no file reads fails silently, which is the whole of
+# why it stood for so long.
+option(FFITT_REAL_64 "Hold every number in a double rather than a float." OFF)
 
 # The library sources. These sources use only the C standard library.
 set(SIGNALPROC_SOURCES
@@ -76,6 +90,22 @@ set(SIGNALPROC_SOURCES
 # needs no main function, and it always builds.
 add_library(signalproc STATIC ${SIGNALPROC_SOURCES})
 target_link_libraries(signalproc m)
+
+# PUBLIC and not PRIVATE, because the width is part of what a caller sees. Every
+# structure of the library holds real_t, thus a program built at one width
+# cannot use a library built at the other. The example, the benchmark and the
+# conformation tests all link this target and take the width with it.
+if(FFITT_REAL_64)
+    target_compile_definitions(signalproc PUBLIC FFITT_REAL_64)
+endif()
+
+# Say which width was built. The reading stands in the log of every build, so
+# that a build at the wrong width is seen rather than assumed.
+if(FFITT_REAL_64)
+    message(STATUS "ffitt: every number is held in a double, 64 bits")
+else()
+    message(STATUS "ffitt: every number is held in a float, 32 bits")
+endif()
 
 # The example program. Choose the example in examples/run_example.h. The value
 # RUN_NONE gives no main function, thus the program cannot link. For that

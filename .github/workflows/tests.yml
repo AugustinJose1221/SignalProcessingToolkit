@@ -152,6 +152,28 @@ jobs:
         env:
           FFITT_DEFINE: ${{ matrix.define }}
 
+      - name: Examine that enough of the library was run
+        # TWO OF THE THINGS THE FREEZE ASKS FOR, CHECKED RATHER THAN HOPED FOR.
+        #
+        # Every public function must be run by something. That one is held at
+        # 100 and it has been met since 0.17.0, when three functions were found
+        # that nothing had ever called.
+        #
+        # Lines are held at 98 and not 99. What is left is the guards against
+        # the heap giving nothing and against numbers the width cannot hold.
+        # Reaching those needs an allocator that fails on purpose, or calls
+        # that break what the headers say a caller may do. Covering every line
+        # a caller CAN reach still leaves the whole below 99, thus 99 is a
+        # number the code cannot meet while those guards stand, and taking the
+        # guards out to meet it would be the wrong trade.
+        #
+        # gcovr is called straight rather than through the plugin, because the
+        # plugin fails by raising an exception and not by saying which number
+        # was missed.
+        run: |
+          gcovr -r . --filter 'ffitt/' --print-summary \
+            --fail-under-line 98 --fail-under-function 100
+
       - name: Keep the test report
         if: always()
         uses: actions/upload-artifact@v4
@@ -204,8 +226,33 @@ jobs:
 
       - name: Build the library
         run: |
-          cmake -S . -B build/library -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
+          cmake -S . -B build/library \
+            -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           cmake --build build/library
+
+      - name: Examine that the width asked for reached the compiler
+        # THE FLAG WAS PASSED AND NOTHING READ IT. Every build in this job
+        # asked for 64 bits and every one was built at 32, because
+        # CMakeLists.txt never looked at the variable. Nothing failed, because
+        # a build that quietly gives the wrong thing still gives a thing.
+        #
+        # This step reads the commands that cmake really ran and looks for the
+        # definition among them. A flag that is asked for and not read now
+        # stops the build, and so does one that arrives when it was not asked
+        # for.
+        run: |
+          if grep -q -- '-DFFITT_REAL_64' build/library/compile_commands.json; then
+            reached=yes
+          else
+            reached=no
+          fi
+          wanted=${{ matrix.width == 64 && 'yes' || 'no' }}
+          echo "asked for ${{ matrix.width }} bits; the definition reached the compiler: $reached"
+          if [ "$reached" != "$wanted" ]; then
+            echo "The width asked for is not the width that was built."
+            exit 1
+          fi
 
       - name: Build the example program
         # The example files hold their code inside a condition on RUN_EXAMPLE.
