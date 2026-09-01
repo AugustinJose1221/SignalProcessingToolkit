@@ -174,6 +174,7 @@ if(BUILD_CONFORMATION_TESTS)
         perf/conformation/matrix/support.c
         perf/conformation/vector/vector.c
         perf/conformation/vector/support.c
+        perf/conformation/fft/fft.c
         perf/conformation/run.c)
 
     target_link_libraries(conformation signalproc GSL::gsl GSL::gslcblas m)
