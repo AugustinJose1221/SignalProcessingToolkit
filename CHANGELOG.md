@@ -1,3 +1,10 @@
+## 0.18.1 (2026-09-01)
+
+### Fix
+
+- **ci**: Say which number the coverage missed, and hold the functions too
+- **build**: Read the width that the build asks for
+
 ## 0.18.0 (2026-09-01)
 
 ### Breaking
