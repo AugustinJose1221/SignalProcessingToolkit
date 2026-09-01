@@ -1,3 +1,13 @@
+## 0.18.0 (2026-09-01)
+
+### Breaking
+
+- Rename the library to ffitt
+
+### Fix
+
+- **changelog**: List the changes that break what a caller relied on
+
 ## 0.17.2 (2026-08-31)
 
 Nothing here changes what a caller sees. The work of this release went into the tests, the documentation or the build.
