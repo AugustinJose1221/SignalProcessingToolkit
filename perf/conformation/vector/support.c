@@ -1,3 +1,4 @@
+#include <perf/conformation/support.h>
 #include <perf/conformation/vector/support.h>
 #include <math.h>
 #include <stdlib.h>
@@ -32,7 +33,7 @@ bool support_vector_dot_product_check(int size, float min, float max)
     float gsl_dot_product = 0.0f;
     gsl_blas_sdot(gsl_A, gsl_B, &gsl_dot_product);
 
-    bool flag = fabs(dot_product - gsl_dot_product) < 1e-3;
+    bool flag = CONFORMATION_IS_NEAR(dot_product, gsl_dot_product);
 
     vector_free(&A);
     vector_free(&B);
@@ -57,7 +58,7 @@ bool support_vector_norm_check(int size, float min, float max)
     
     gsl_norm = gsl_blas_snrm2(gsl_A);
 
-    bool flag = fabs(norm - gsl_norm) < 1e-3;
+    bool flag = CONFORMATION_IS_NEAR(norm, gsl_norm);
 
     vector_free(&A);
     gsl_vector_float_free(gsl_A);

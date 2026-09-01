@@ -282,6 +282,22 @@ jobs:
           done
           git checkout examples/run_example.h
 
+      - name: Install the GNU Scientific Library
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libgsl-dev
+
+      - name: Build and run the conformation tests
+        # THESE WERE NEVER RUN. The tests compare this library against the GNU
+        # Scientific Library, which is the only place anything here is held
+        # against an outside authority. They were off by default, no job built
+        # them, and no job read them, thus 940 lines of test sat unread. When
+        # they were built again 3 of the 75 were failing, and the binary told
+        # the shell that all was well.
+        run: |
+          cmake -S . -B build/conformation -DBUILD_CONFORMATION_TESTS=ON \
+            -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
+          cmake --build build/conformation
+          ./build/conformation/conformation
+
       - name: Build and run the benchmark
         # The benchmark needs no external library. The workflow runs it so that
         # a change that stops the benchmark cannot pass without a signal. It
@@ -323,7 +339,7 @@ jobs:
           WIDTH: ${{ matrix.width == 64 && '-DFFITT_REAL_64' || '' }}
         run: |
           status=0
-          for source in ffitt/*/*.c perf/benchmark/*.c; do
+          for source in ffitt/*/*.c perf/benchmark/*.c perf/conformation/*.c perf/conformation/*/*.c; do
             echo "== $source"
             gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
           done

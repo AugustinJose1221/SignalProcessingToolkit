@@ -23,5 +23,11 @@ int main(void)
     run_static_conformation_tests();
     run_dynamic_conformation_tests();
     CONFORMATION_TEST_SUMMARY();
-    return 0;
+
+    // THE EXIT CODE MUST SAY WHAT THE SUMMARY SAYS.
+    //
+    // This returned 0 whatever happened. The suite printed "Total Test Cases
+    // Failed: 3" and told the shell that all was well, thus a build that ran
+    // it would have gone green with three tests failing inside it.
+    return (test_cases_failed == 0) ? 0 : 1;
 }
