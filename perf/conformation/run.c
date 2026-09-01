@@ -3,6 +3,8 @@
 #include <perf/conformation/matrix/matrix.h>
 #include <perf/conformation/vector/vector.h>
 #include <perf/conformation/fft/fft.h>
+#include <perf/conformation/eigen/eigen.h>
+#include <perf/conformation/poly/poly.h>
 
 int test_cases_run = 0;
 int test_cases_passed = 0;
@@ -19,6 +21,8 @@ static void run_dynamic_conformation_tests(void)
     run_matrix_dynamic_conformation_tests();
     run_vector_dynamic_conformation_tests();
     run_fft_conformation_tests();
+    run_eigen_conformation_tests();
+    run_poly_conformation_tests();
 }
 
 int main(void)
