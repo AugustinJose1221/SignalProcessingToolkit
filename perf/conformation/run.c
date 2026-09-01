@@ -7,6 +7,8 @@
 #include <perf/conformation/poly/poly.h>
 #include <perf/conformation/stats/stats.h>
 #include <perf/conformation/cspline/cspline.h>
+#include <perf/conformation/lstsq/lstsq.h>
+#include <perf/conformation/dwt/dwt.h>
 
 int test_cases_run = 0;
 int test_cases_passed = 0;
@@ -27,6 +29,8 @@ static void run_dynamic_conformation_tests(void)
     run_poly_conformation_tests();
     run_stats_conformation_tests();
     run_cspline_conformation_tests();
+    run_lstsq_conformation_tests();
+    run_dwt_conformation_tests();
 }
 
 int main(void)
