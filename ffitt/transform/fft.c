@@ -33,6 +33,18 @@ fft_t fft_alloc(uint32_t size)
     fft.reverse = (uint32_t*)malloc(sizeof(uint32_t)*FFT_REVERSE_COUNT(size));
     fft.dynamic_alloc = true;
 
+    // The tables are written through both lists, thus they must not be built
+    // with nothing to write to.
+    if((fft.twiddle == NULL) || (fft.reverse == NULL))
+    {
+        fft_free(&fft);
+
+        fft.size = 0;
+        fft.dynamic_alloc = false;
+
+        return fft;
+    }
+
     fft_build_tables(&fft);
 
     return fft;

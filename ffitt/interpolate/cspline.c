@@ -78,6 +78,19 @@ cspline_mempool_t cspline_alloc_mempool(uint32_t size)
     mempool.dx = (real_t*)malloc((size-1)*sizeof(real_t));
     mempool.dynamic_alloc = true;
 
+    if((mempool.d == NULL) || (mempool.b == NULL) || (mempool.q == NULL)
+       || (mempool.dp == NULL) || (mempool.dx == NULL))
+    {
+        cspline_free_mempool(mempool);
+
+        mempool.d = NULL;
+        mempool.b = NULL;
+        mempool.q = NULL;
+        mempool.dp = NULL;
+        mempool.dx = NULL;
+        mempool.dynamic_alloc = false;
+    }
+
     return mempool;
 }
 

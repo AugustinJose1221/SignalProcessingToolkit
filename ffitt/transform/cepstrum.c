@@ -38,12 +38,26 @@ cepstrum_t cepstrum_alloc(uint32_t size)
     cepstrum.window = NULL;
     cepstrum.windowed = NULL;
     cepstrum.dynamic_alloc = true;
-    cepstrum.fft = fft_alloc(size);
+    cepstrum.fft.size = 0;
+    cepstrum.fft.twiddle = NULL;
+    cepstrum.fft.reverse = NULL;
+    cepstrum.fft.dynamic_alloc = false;
 
+    // THE SIZE IS EXAMINED BEFORE THE TRANSFORM IS ASKED FOR, AND NOT AFTER.
+    //
+    // The header promises that a size this module cannot take gives a handle
+    // that cannot be used. The transform promises nothing of the kind: it
+    // asserts, because a size that is no power of two is a caller bug to it.
+    // This asked for the transform first and examined the size afterwards,
+    // thus the graceful answer this module promises could never be reached -
+    // the assertion inside the transform stopped the program on the way. It
+    // never fired only because the tests were built with assertions off.
     if(!cepstrum_is_valid_size(size))
     {
         return cepstrum;
     }
+
+    cepstrum.fft = fft_alloc(size);
 
     cepstrum.work = (cnum_t*)calloc(size, sizeof(cnum_t));
     cepstrum.window = (real_t*)calloc(size, sizeof(real_t));

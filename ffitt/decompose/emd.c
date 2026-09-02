@@ -31,6 +31,19 @@ emd_t emd_alloc(uint32_t size)
     emd.valley_buffer = (real_t*)malloc(sizeof(real_t)*size);
     emd.dynamic_alloc = true;
 
+    // The spline and its pool are held by a module of its own and answer for
+    // themselves: a size of nothing says they got nothing.
+    if((emd.peak_buffer == NULL) || (emd.valley_buffer == NULL)
+       || (emd.cspline.size == 0u))
+    {
+        emd_free(emd);
+
+        emd.peak_buffer = NULL;
+        emd.valley_buffer = NULL;
+        emd.size = 0;
+        emd.dynamic_alloc = false;
+    }
+
     return emd;
 }
 

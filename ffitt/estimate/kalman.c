@@ -29,6 +29,17 @@ kalman_t kalman_alloc(uint32_t ni, uint32_t nx, uint32_t ny)
     kalman.singular = false;
     kalman.dynamic_alloc = true;
 
+    // The matrices are laid out across the pool, thus there must be a pool.
+    if(mempool == NULL)
+    {
+        kalman.ni = 0;
+        kalman.nx = 0;
+        kalman.ny = 0;
+        kalman.dynamic_alloc = false;
+
+        return kalman;
+    }
+
     build_matrices(&kalman, mempool);
 
     return kalman;

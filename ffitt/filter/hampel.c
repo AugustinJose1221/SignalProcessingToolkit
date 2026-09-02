@@ -31,6 +31,17 @@ hampel_t hampel_alloc(uint32_t window)
     hampel.seen = 0;
     hampel.dynamic_alloc = true;
 
+    // The middle and the history are held by modules of their own and answer
+    // for themselves: a size of nothing says they got nothing.
+    if((hampel.distance == NULL) || (hampel.history.size == 0u)
+       || (hampel.middle.sorted == NULL))
+    {
+        hampel_free(&hampel);
+
+        hampel.distance = NULL;
+        hampel.dynamic_alloc = false;
+    }
+
     return hampel;
 }
 
