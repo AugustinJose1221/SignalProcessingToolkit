@@ -85,14 +85,13 @@ cmake -S . -B build -DBUILD_COST_TESTS=ON && cmake --build build
 
 What is tested is the SHAPE of a cost and never the number, because a number
 belongs to the machine that measured it. See
-[perf/cost/README.md](../perf/cost/README.md), which also holds the one finding
-these tests have made that is still open.
+[perf/cost/README.md](../perf/cost/README.md), which also holds what these tests
+found: a transform that was fourteen times slower than it needed to be at 64
+bits, and the two claims that broke because of it.
 
 ## What the build runs
 
-The workflow runs all four at both widths, with one exception it names: the
-cost tests run at 32 bits only, because two of their twelve claims break at 64
-bits for a reason that is not the library's.
+The workflow runs all four at both widths.
 
 It also holds the coverage: the build fails below 98 percent of lines, below
 100 percent of functions and below 90 percent of branches. The assertions are

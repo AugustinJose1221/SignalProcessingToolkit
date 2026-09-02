@@ -25,11 +25,10 @@
 // does that well, and the transform of 8192 is longer than the 4607 the answer
 // needs because a transform wants a power of two. Measured 2.22 at 32 bits.
 //
-// THIS CLAIM BREAKS AT 64 BITS AND HOLDS AT 32, AND THE LIBRARY IS NOT THE
-// REASON. GCC 13.3 builds the same transform more than six times slower at 64
-// bits with -O2 than it does with -O1, and the answers do not change by a
-// digit. perf/cost/README.md holds the measurement. Nothing here is weakened
-// to hide it.
+// THIS CLAIM ONCE BROKE AT 64 BITS AND NOW HOLDS AT BOTH. The butterfly of the
+// transform handed a cnum_t to a function and took one back, which at 64 bits
+// is a sixteen byte pair that GCC 13.3 built badly at -O2. It is written on the
+// parts now. This measured 0.27 against the 1.50 it asks for; it measures 2.62.
 
 #include <perf/cost/cost.h>
 
