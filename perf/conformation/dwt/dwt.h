@@ -1,9 +1,9 @@
-#ifndef __CONFORMATION_DWT_H__
-#define __CONFORMATION_DWT_H__
+#ifndef CONFORMATION_DWT_H
+#define CONFORMATION_DWT_H
 
 #include <ffitt/transform/dwt.h>
 #include <perf/conformation/support.h>
 
 void run_dwt_conformation_tests(void);
 
-#endif//__CONFORMATION_DWT_H__
+#endif//CONFORMATION_DWT_H

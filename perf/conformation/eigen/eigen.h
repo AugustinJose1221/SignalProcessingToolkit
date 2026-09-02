@@ -1,9 +1,9 @@
-#ifndef __CONFORMATION_EIGEN_H__
-#define __CONFORMATION_EIGEN_H__
+#ifndef CONFORMATION_EIGEN_H
+#define CONFORMATION_EIGEN_H
 
 #include <ffitt/linalg/eigen.h>
 #include <perf/conformation/support.h>
 
 void run_eigen_conformation_tests(void);
 
-#endif//__CONFORMATION_EIGEN_H__
+#endif//CONFORMATION_EIGEN_H

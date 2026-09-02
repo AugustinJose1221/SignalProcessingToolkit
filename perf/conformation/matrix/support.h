@@ -1,5 +1,5 @@
-#ifndef __CONFORMATION_MATRIX_SUPPORT_H__
-#define __CONFORMATION_MATRIX_SUPPORT_H__
+#ifndef CONFORMATION_MATRIX_SUPPORT_H
+#define CONFORMATION_MATRIX_SUPPORT_H
 
 #include <ffitt/linalg/matrix.h>
 #include <gsl/gsl_matrix.h>
@@ -14,4 +14,4 @@ bool support_matrix_transpose_check(int rows, int cols, float min, float max);
 bool support_matrix_inverse_check(int size, float min, float max);
 bool support_matrix_determinant_check(int size, float min, float max);
 
-#endif//__CONFORMATION_MATRIX_SUPPORT_H__
+#endif//CONFORMATION_MATRIX_SUPPORT_H
