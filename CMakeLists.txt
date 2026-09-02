@@ -140,7 +140,11 @@ if(BUILD_EXAMPLE)
         examples/shapes.c
         examples/continuous.c
         examples/survey.c
-        examples/detect.c)
+        examples/detect.c
+        examples/pll.c
+        examples/detrend.c
+        examples/interp.c
+        examples/quantise.c)
 
     target_link_libraries(ffitt_example ffitt m)
 endif()

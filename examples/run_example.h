@@ -46,6 +46,16 @@
 #define RUN_CONTINUOUS_EXAMPLE      25
 #define RUN_SURVEY_EXAMPLE          26
 #define RUN_DETECT_EXAMPLE          27
+#define RUN_PLL_EXAMPLE             28
+#define RUN_FARROW_EXAMPLE          29
+#define RUN_LATTICE_EXAMPLE         30
+#define RUN_CEPSTRUM_EXAMPLE        31
+#define RUN_BLUESTEIN_EXAMPLE       32
+#define RUN_DCT_EXAMPLE             33
+#define RUN_CONVOLVE_EXAMPLE        34
+#define RUN_INTERP_EXAMPLE          35
+#define RUN_DETREND_EXAMPLE         36
+#define RUN_QUANTISE_EXAMPLE        37
 
 #define RUN_EXAMPLE     RUN_NONE
 
