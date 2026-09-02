@@ -261,7 +261,7 @@ jobs:
           sed -i 's/RUN_EXAMPLE     RUN_NONE/RUN_EXAMPLE     RUN_MATRIX_EXAMPLE/' examples/run_example.h
           cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/example
-          ./build/example/signalproc_example
+          ./build/example/ffitt_example
 
       - name: Build every example
         # Each example holds its own main function inside a condition on
@@ -278,7 +278,7 @@ jobs:
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} > /dev/null
             cmake --build build/example > /dev/null
-            ./build/example/signalproc_example > /dev/null
+            ./build/example/ffitt_example > /dev/null
           done
           git checkout examples/run_example.h
 
