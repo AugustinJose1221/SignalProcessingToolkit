@@ -12,12 +12,21 @@ int main(void)
 
     benchmark_report_header();
 
+    run_core_benchmark();
     run_matrix_benchmark();
     run_vector_benchmark();
+    run_linalg_benchmark();
     run_cspline_benchmark();
-    run_kalman_benchmark();
-    run_emd_benchmark();
+    run_interpolate_benchmark();
+    run_transform_benchmark();
+    run_filter_benchmark();
     run_movavg_benchmark();
+    run_kalman_benchmark();
+    run_estimate_benchmark();
+    run_detect_benchmark();
+    run_emd_benchmark();
+    run_imf_benchmark();
+    run_util_benchmark();
 
     benchmark_report_footer();
 

@@ -3,6 +3,7 @@
 #include <ffitt/core/real.h>
 #include <perf/benchmark/benchmark.h>
 
+#include <stddef.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -33,9 +34,9 @@ uint32_t benchmark_measured_above_zero(void)
 
 void benchmark_report_header(void)
 {
-    printf("%-10s %-22s %8s %8s %14s %14s %14s\n",
+    printf("%-10s %-22s %8s %8s %14s %14s %14s  %s\n",
            "MODULE", "OPERATION", "SIZE", "REPEATS",
-           "BEST [us]", "MEAN [us]", "PER SECOND");
+           "BEST [us]", "MEAN [us]", "PER SECOND", "WHAT IT IS");
     printf("---------------------------------------------------------"
            "----------------------------------------\n");
 }
@@ -51,14 +52,15 @@ void benchmark_report(benchmark_result_t* result)
         measured_above_zero++;
     }
 
-    printf("%-10s %-22s %8u %8u %14.3f %14.3f %14.0f\n",
+    printf("%-10s %-22s %8u %8u %14.3f %14.3f %14.0f  %s\n",
            result->group,
            result->operation,
            result->size,
            result->repeats,
            (double)result->best_seconds * 1000000.0,
            (double)mean_seconds * 1000000.0,
-           (double)per_second);
+           (double)per_second,
+           (result->what != NULL) ? result->what : "-");
 }
 
 void benchmark_report_footer(void)
@@ -70,4 +72,11 @@ void benchmark_report_footer(void)
     printf("divided by the number of repeats. PER SECOND says how many times "
            "the operation runs\n");
     printf("in one second at the speed of the fastest repeat.\n");
+    printf("WHAT IT IS names the operation in words. scripts/benchmark_table.py "
+           "reads that name and\n");
+    printf("the best time, and writes the table of costs in README.md from "
+           "them. A dash there marks\n");
+    printf("one size of a sweep: measured and printed here, and left out of "
+           "the table, because the\n");
+    printf("table gives one row for each operation and not one for each size.\n");
 }

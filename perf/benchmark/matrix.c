@@ -3,6 +3,7 @@
 #include <ffitt/core/real.h>
 #include <ffitt/linalg/matrix.h>
 
+#include <stddef.h>
 #include <stdlib.h>
 
 static const uint32_t ORDERS[] = {2, 4, 8, 16, 32};
@@ -64,22 +65,34 @@ void run_matrix_benchmark(void)
         matrix_t b = make_random_matrix(order, order);
         matrix_t result;
 
-        BENCHMARK_MEASURE("matrix", "add", order, repeats,
+        BENCHMARK_MEASURE("matrix", "add",
+                          (order == 8u) ? "add two 8 by 8 matrices" : NULL,
+                          order, repeats,
                           { result = matrix_add(&a, &b); matrix_free(&result); });
 
-        BENCHMARK_MEASURE("matrix", "subtract", order, repeats,
+        BENCHMARK_MEASURE("matrix", "subtract",
+                          (order == 8u) ? "subtract two 8 by 8 matrices" : NULL,
+                          order, repeats,
                           { result = matrix_subtract(&a, &b); matrix_free(&result); });
 
-        BENCHMARK_MEASURE("matrix", "multiply", order, repeats,
+        BENCHMARK_MEASURE("matrix", "multiply",
+                          (order == 8u) ? "multiply two 8 by 8 matrices" : NULL,
+                          order, repeats,
                           { result = matrix_multiply(&a, &b); matrix_free(&result); });
 
-        BENCHMARK_MEASURE("matrix", "transpose", order, repeats,
+        BENCHMARK_MEASURE("matrix", "transpose",
+                          (order == 8u) ? "transpose an 8 by 8 matrix" : NULL,
+                          order, repeats,
                           { result = matrix_transpose(&a); matrix_free(&result); });
 
         // The operation that writes into a matrix gets no memory. The
         // difference between the two lines shows the cost of that memory.
         matrix_t destination = matrix_alloc(order, order);
-        BENCHMARK_MEASURE("matrix", "multiply_into", order, repeats,
+        BENCHMARK_MEASURE("matrix", "multiply_into",
+                          (order == 8u)
+                              ? "multiply two 8 by 8 matrices into the caller's memory"
+                              : NULL,
+                          order, repeats,
                           matrix_multiply_into(&a, &b, &destination));
 
         matrix_free(&destination);
@@ -95,7 +108,9 @@ void run_matrix_benchmark(void)
         matrix_t matrix = make_invertible_matrix(order);
         matrix_t result;
 
-        BENCHMARK_MEASURE("matrix", "inverse", order, repeats,
+        BENCHMARK_MEASURE("matrix", "inverse",
+                          (order == 8u) ? "invert an 8 by 8 matrix" : NULL,
+                          order, repeats,
                           { result = matrix_inverse(&matrix); matrix_free(&result); });
 
         matrix_free(&matrix);
@@ -107,7 +122,9 @@ void run_matrix_benchmark(void)
         matrix_t matrix = make_random_matrix(order, order);
         real_t value;
 
-        BENCHMARK_MEASURE("matrix", "determinant", order, 5,
+        BENCHMARK_MEASURE("matrix", "determinant",
+                          (order == 8u) ? "the determinant of an 8 by 8 matrix" : NULL,
+                          order, 5,
                           value = matrix_determinant(&matrix));
         (void)value;
 
