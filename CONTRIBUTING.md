@@ -8,6 +8,42 @@ branch merges into `development`. When `development` is stable, a branch with
 the name `release/vX.Y.Z` comes from it. Only fixes go into a release branch,
 and that branch then merges into `main`.
 
+## Naming
+
+The names follow the scheme of the Linux kernel:
+
+- A name is in lower case, with an underscore between the words.
+- The name of a function starts with the name of its module, thus `matrix_add`
+  and not `add_matrix`. The name of the file is the name of the module, thus
+  every function of `ffitt/linalg/matrix.c` starts with `matrix_`.
+- The name of a type is in lower case and ends with `_t`.
+- The name of a macro is in upper case.
+- A function that only its own file uses is static.
+
+To examine the names:
+
+```bash
+python3 scripts/check_naming.py
+```
+
+## Keeping the documentation with the code
+
+The files under [docs/api](docs/api) come from the comments in the headers,
+thus the documentation and the code cannot say two different things. After a
+change to a header, make the files again:
+
+```bash
+python3 scripts/api_doc.py
+```
+
+To examine that every function has a comment, that the files are current, that
+no file belongs to a module that went away, that every area holds a guide, and
+that no link of any Markdown file points at something that is not there:
+
+```bash
+python3 scripts/api_doc.py --check
+```
+
 ## The feature freeze
 
 **From the release of 0.17.0 this library is in a feature freeze.** It takes

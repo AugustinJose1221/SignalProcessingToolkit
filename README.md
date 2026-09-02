@@ -137,6 +137,7 @@ cmake -S . -B build -DBUILD_EXAMPLE=ON && cmake --build build
 ```
 
 The directory [examples](examples) says which examples there are.
+
 ## Tests
 
 The repository holds four kinds of test: unit tests for known examples,
@@ -167,38 +168,10 @@ cmake -S . -B build -DBUILD_BENCHMARK=ON && cmake --build build && ./build/bench
 module.
 
 The files come from the comments in the headers, thus the documentation and the
-code cannot say two different things. After a change to a header, make the files
-again:
+code cannot say two different things. [CONTRIBUTING.md](CONTRIBUTING.md) says
+how they are made again after a header changes.
 
-```bash
-python3 scripts/api_doc.py
-```
-
-To examine that every function has a comment, that the files are current, that
-no file belongs to a module that went away, and that every area holds a guide:
-
-```bash
-python3 scripts/api_doc.py --check
-```
-
-## Naming
-
-The names follow the scheme of the Linux kernel:
-
-- A name is in lower case, with an underscore between the words.
-- The name of a function starts with the name of its module, thus `matrix_add`
-  and not `add_matrix`. The name of the file is the name of the module, thus
-  every function of `ffitt/linalg/matrix.c` starts with `matrix_`.
-- The name of a type is in lower case and ends with `_t`.
-- The name of a macro is in upper case.
-- A function that only its own file uses is static.
-
-To examine the names:
-
-```bash
-python3 scripts/check_naming.py
-```
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md) holds the branch flow, the feature freeze
-that has been in force since 0.17.0, and how a release is made.
+[CONTRIBUTING.md](CONTRIBUTING.md) holds the naming scheme, the branch flow, the
+feature freeze that has been in force since 0.17.0, and how a release is made.
