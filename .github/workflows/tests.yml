@@ -298,15 +298,56 @@ jobs:
           cmake --build build/conformation
           ./build/conformation/conformation
 
+      - name: Build and run the cost tests
+        # THE HEADERS SAY WHAT THINGS COST AND NOTHING HELD THEM TO IT. movavg
+        # says its work does not follow the window, resample says the filtering
+        # costs the output rate and not the input rate, and correlate says the
+        # transform wins above about 300 samples. Those sentences decide which
+        # function a caller picks. The benchmark measures and prints, thus a
+        # claim could stop being true and the table would still be green.
+        #
+        # AT 32 BITS ONLY, AND ON PURPOSE. Two of the twelve claims break at 64
+        # bits, and the cause is not the library: GCC 13.3 builds the same
+        # transform more than six times slower at 64 bits with -O2 than with
+        # -O1, and the answers do not change. perf/cost/README.md holds the
+        # measurement. A job that is known to be red teaches nobody anything,
+        # thus 64 bits waits until the transform is dealt with.
+        if: matrix.width == 32
+        run: |
+          cmake -S . -B build/cost -DBUILD_COST_TESTS=ON
+          cmake --build build/cost
+          ./build/cost/cost
+
       - name: Build and run the benchmark
         # The benchmark needs no external library. The workflow runs it so that
         # a change that stops the benchmark cannot pass without a signal. It
         # does not compare the times, because the speed of a runner changes
         # from one run to the next.
+        #
+        # IT USED TO MEASURE NOTHING AND STILL PASS HERE. The clock was read
+        # into a real_t, which holds about 7 digits against the 10 that seconds
+        # since 1970 already need, thus every reading rounded to the same
+        # number and every line of the table said 0.000 microseconds. This step
+        # went green on it, because a program that measures nothing still
+        # finishes and still gives 0 to the shell. The benchmark now counts how
+        # many of its measurements came out above nothing and gives 1 when none
+        # did, thus this step fails if the same fault comes back. That guard was
+        # held against a build with the narrow clock put back, which gave 1.
         run: |
           cmake -S . -B build/benchmark -DBUILD_BENCHMARK=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/benchmark
           ./build/benchmark/benchmark
+
+      - name: Examine that the table of costs names every operation
+        # README.md holds a table of what each operation costs, written from
+        # this benchmark by scripts/benchmark_table.py. This asks that the
+        # table still names every operation the benchmark measures, so that an
+        # operation added here and forgotten there is caught.
+        #
+        # IT LOOKS AT THE ROWS AND NEVER AT THE TIMES. A time belongs to the
+        # machine that measured it, and this runner is not that machine.
+        if: matrix.width == 32
+        run: python3 scripts/benchmark_table.py --check
 
       - name: Examine that the library needs no external library
         # The library must work with the C standard library alone. This step
@@ -344,7 +385,7 @@ jobs:
           WIDTH: ${{ matrix.width == 64 && '-DFFITT_REAL_64' || '' }}
         run: |
           status=0
-          for source in ffitt/*/*.c perf/benchmark/*.c perf/conformation/*.c perf/conformation/*/*.c; do
+          for source in ffitt/*/*.c perf/benchmark/*.c perf/cost/*.c perf/conformation/*.c perf/conformation/*/*.c; do
             echo "== $source"
             gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
           done

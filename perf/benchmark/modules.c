@@ -12,6 +12,7 @@
 #include <ffitt/filter/movavg.h>
 #include <ffitt/filter/fir.h>
 
+#include <stddef.h>
 #include <stdlib.h>
 
 static const uint32_t VECTOR_SIZES[] = {2, 16, 128, 1024, 8192};
@@ -47,10 +48,14 @@ void run_vector_benchmark(void)
             vector_add_point_at_index(&b, position, random_value());
         }
 
-        BENCHMARK_MEASURE("vector", "dot_product", size, repeats,
+        BENCHMARK_MEASURE("vector", "dot_product",
+                          (size == 1024u) ? "the dot product of two vectors of 1024" : NULL,
+                          size, repeats,
                           value = vector_dot_product(&a, &b));
 
-        BENCHMARK_MEASURE("vector", "norm", size, repeats,
+        BENCHMARK_MEASURE("vector", "norm",
+                          (size == 1024u) ? "the length of a vector of 1024" : NULL,
+                          size, repeats,
                           value = vector_norm(&a));
         (void)value;
 
@@ -79,12 +84,16 @@ void run_cspline_benchmark(void)
         cspline_t spline = cspline_alloc(size);
         cspline_mempool_t mempool = cspline_alloc_mempool(size);
 
-        BENCHMARK_MEASURE("cspline", "init", size, repeats,
+        BENCHMARK_MEASURE("cspline", "init",
+                          (size == 512u) ? "build a cubic spline through 512 points" : NULL,
+                          size, repeats,
                           cspline_init(&spline, mempool, x, y));
 
         cspline_init(&spline, mempool, x, y);
 
-        BENCHMARK_MEASURE("cspline", "interpolate_one_point", size, repeats * 10,
+        BENCHMARK_MEASURE("cspline", "interpolate_one_point",
+                          (size == 512u) ? "read one point from a spline of 512" : NULL,
+                          size, repeats * 10,
                           value = cspline_get_interpolated_point(&spline,
                                                                  (real_t)(size/2) + REAL_C(0.5)));
         (void)value;
@@ -132,10 +141,14 @@ void run_kalman_benchmark(void)
         kalman_set_measurement_covariance_matrix(&kalman, &r);
         kalman_set_observation_matrix(&kalman, &c);
 
-        BENCHMARK_MEASURE("kalman", "predict", nx, repeats,
+        BENCHMARK_MEASURE("kalman", "predict",
+                          (nx == 4u) ? "one prediction of a Kalman filter over four states" : NULL,
+                          nx, repeats,
                           kalman_predict(&kalman));
 
-        BENCHMARK_MEASURE("kalman", "step", nx, repeats,
+        BENCHMARK_MEASURE("kalman", "step",
+                          (nx == 4u) ? "one full step of a Kalman filter over four states" : NULL,
+                          nx, repeats,
                           kalman_step(&kalman, NULL, &y));
 
         matrix_free(&a);
@@ -186,7 +199,9 @@ void run_emd_benchmark(void)
         emd_initialize(&emd, NUMBER_OF_IMF, imf, x, y, residue, working,
                        peak_index, valley_index);
 
-        BENCHMARK_MEASURE("emd", "sift", size, repeats,
+        BENCHMARK_MEASURE("emd", "sift",
+                          (size == 256u) ? "sift 256 samples into three modes" : NULL,
+                          size, repeats,
                           count = emd_sift(&emd, 3));
         (void)count;
 
@@ -202,6 +217,26 @@ void run_emd_benchmark(void)
         free(peak_index);
         free(valley_index);
     }
+}
+
+void run_imf_benchmark(void)
+{
+    // A mode holds two lists and nothing else, thus taking the memory for one
+    // is the whole of what it does. Its other work is writing a mode out, and
+    // that measures the console of the machine and not this library.
+    static const uint32_t SIZE = 1024u;
+
+    imf_t mode = imf_alloc(SIZE);
+
+    imf_free(mode);
+
+    BENCHMARK_MEASURE("imf", "alloc",
+                      "take the memory for a mode of 1024 points",
+                      SIZE, 20000,
+                      {
+                          mode = imf_alloc(SIZE);
+                          imf_free(mode);
+                      });
 }
 
 void run_movavg_benchmark(void)
@@ -230,10 +265,16 @@ void run_movavg_benchmark(void)
             fir_set_coefficient(&fir, position, REAL_C(1.0)/(real_t)size);
         }
 
-        BENCHMARK_MEASURE("movavg", "process_sample", size, repeats,
+        BENCHMARK_MEASURE("movavg", "process_sample",
+                          (size == 64u) ? "one sample through a moving mean of 64" : NULL,
+                          size, repeats,
                           value = movavg_process_sample(&movavg, random_value()));
 
-        BENCHMARK_MEASURE("fir", "equal_coefficients", size, repeats,
+        BENCHMARK_MEASURE("fir", "equal_coefficients",
+                          (size == 64u)
+                              ? "one sample through an equal fir of 64, the mean the slow way"
+                              : NULL,
+                          size, repeats,
                           value = fir_process_sample(&fir, random_value()));
         (void)value;
 

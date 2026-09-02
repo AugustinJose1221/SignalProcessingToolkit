@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(Ffitt VERSION 0.18.2 LANGUAGES C)
+project(Ffitt VERSION 0.18.3 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -155,9 +155,52 @@ if(BUILD_BENCHMARK)
         perf/benchmark/benchmark.c
         perf/benchmark/matrix.c
         perf/benchmark/modules.c
+        perf/benchmark/core_and_util.c
+        perf/benchmark/linalg.c
+        perf/benchmark/transform.c
+        perf/benchmark/filter.c
+        perf/benchmark/estimate.c
         perf/benchmark/run.c)
 
     target_link_libraries(benchmark signalproc m)
+endif()
+
+# The cost tests hold the headers to what they claim an operation costs. The
+# headers say that a moving mean does not follow its window, that decimating
+# costs the output rate and not the input rate, and that a transform beats the
+# plain way above a size that they name. Those sentences decide which function
+# a caller picks, and nothing held them until now.
+#
+# The tests measure a time, thus they need a machine that is not busy with
+# something else, and they take time to run. Thus this target is off by
+# default. It needs no external library.
+option(BUILD_COST_TESTS "Build the tests that hold the headers to what they claim an operation costs." OFF)
+
+if(BUILD_COST_TESTS)
+    # THESE TESTS MUST MEASURE AN OPTIMISED BUILD, AND WITHOUT THIS THEY DO
+    # NOT. A build with no build type is a build with no optimisation, and what
+    # that measures is the compiler and not the module. Measured on the same
+    # machine, convolve at a shape of 512 beat the plain way by 2.2 times built
+    # for release and by 1.16 times built with nothing, which is below what the
+    # header claims and would have reported the header as wrong.
+    #
+    # A caller who names a build type keeps it. This only fills in the gap.
+    if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+        set(CMAKE_BUILD_TYPE Release)
+        message(STATUS "The cost tests measure a time, thus the build type is set to Release.")
+    endif()
+
+    add_executable(cost
+        perf/cost/cost.c
+        perf/cost/ringbuf.c
+        perf/cost/resample.c
+        perf/cost/movavg.c
+        perf/cost/correlate.c
+        perf/cost/goertzel.c
+        perf/cost/convolve.c
+        perf/cost/run.c)
+
+    target_link_libraries(cost signalproc m)
 endif()
 
 # The conformation tests compare the results of the library with the results of
