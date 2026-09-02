@@ -171,8 +171,25 @@ bool lstsq_solve(matrix_t* model, matrix_t* readings, matrix_t* answer,
 // Both of the fits the module offers are this one underneath. What parts them
 // is what they do with the places before they get here, and what lstsq_polyfit
 // does with the answer afterwards.
+// The place at one index, brought to the range the fit wants.
+//
+// WHY THIS AND NOT A LIST OF SCALED PLACES. Bringing the places near zero
+// needs one subtraction and one division at each place, and it was done by
+// filling a list of them from the heap. That list was memory the caller never
+// asked for, in a module whose header offers no allocating function, thus a
+// caller with no heap could not use the scaled fit at all and nothing said so.
+//
+// The arithmetic is cheaper than the memory. A centre of 0 and a width of 1
+// leave the place as it stands, which is what the plain fit passes.
+static real_t lstsq_place(const real_t* x, uint32_t index, real_t centre,
+                          real_t width)
+{
+    return (x[index] - centre) / width;
+}
+
 static bool lstsq_fit_raw(const real_t* x, const real_t* y, uint32_t size,
-                          uint32_t order, real_t* coefficients)
+                          uint32_t order, real_t* coefficients,
+                          real_t centre, real_t width)
 {
     ASSERT(x != NULL);
     ASSERT(y != NULL);
@@ -197,11 +214,12 @@ static bool lstsq_fit_raw(const real_t* x, const real_t* y, uint32_t size,
     for(uint32_t row = 0; row < size; row++)
     {
         real_t power = REAL_C(1.0);
+        real_t place = lstsq_place(x, row, centre, width);
 
         for(uint32_t which = 0; which < wanted; which++)
         {
             matrix_add_element(&model, row, which, power);
-            power *= x[row];
+            power *= place;
         }
 
         matrix_add_element(&readings, row, 0, y[row]);
@@ -264,14 +282,14 @@ void lstsq_scaling(const real_t* x, uint32_t size, real_t* centre,
 // Give the total squared error that a set of coefficients leaves.
 static real_t lstsq_total_error(const real_t* x, const real_t* y,
                                 uint32_t size, const real_t* coefficients,
-                                uint32_t order)
+                                uint32_t order, real_t centre, real_t width)
 {
     real_t total = REAL_C(0.0);
 
     for(uint32_t index = 0; index < size; index++)
     {
-        real_t error = y[index] - lstsq_evaluate(coefficients, order,
-                                                 x[index]);
+        real_t place = lstsq_place(x, index, centre, width);
+        real_t error = y[index] - lstsq_evaluate(coefficients, order, place);
 
         total += error * error;
     }
@@ -294,7 +312,8 @@ bool lstsq_polyfit(const real_t* x, const real_t* y, uint32_t size,
         return false;
     }
 
-    if(!lstsq_fit_raw(x, y, size, order, coefficients))
+    if(!lstsq_fit_raw(x, y, size, order, coefficients, REAL_C(0.0),
+                      REAL_C(1.0)))
     {
         return false;
     }
@@ -324,34 +343,25 @@ bool lstsq_polyfit(const real_t* x, const real_t* y, uint32_t size,
     // does the right fit once and never needs the comparison.
     real_t centre;
     real_t width;
-    // Taken as cleared rather than as raw memory. The loop below fills every
-    // place of it, but a compiler cannot see that through the check above, and
-    // a buffer that is read before it is written is worth ruling out rather
-    // than arguing about.
-    real_t* scaled = (real_t*)calloc(size, sizeof(real_t));
-    real_t* other = (real_t*)calloc(LSTSQ_COEFFICIENT_COUNT(order),
-                                    sizeof(real_t));
 
-    if((scaled == NULL) || (other == NULL))
-    {
-        free(scaled);
-        free(other);
-        return false;
-    }
+    // The coefficients of the comparison fit, on the stack and not from the
+    // heap: the order is held at LSTSQ_HIGHEST_ORDER, thus the largest this
+    // can ever need is known while the file is compiled.
+    real_t other[LSTSQ_COEFFICIENT_COUNT(LSTSQ_HIGHEST_ORDER)] = {REAL_C(0.0)};
 
     lstsq_scaling(x, size, &centre, &width);
 
-    for(uint32_t index = 0; index < size; index++)
-    {
-        scaled[index] = (x[index] - centre) / width;
-    }
-
     bool trustworthy = true;
 
-    if(lstsq_fit_raw(scaled, y, size, order, other))
+    // The comparison fit reads the same places brought near zero. It is given
+    // the centre and the width rather than a list of scaled places, thus this
+    // check now takes no memory of its own at all.
+    if(lstsq_fit_raw(x, y, size, order, other, centre, width))
     {
-        real_t plain = lstsq_total_error(x, y, size, coefficients, order);
-        real_t brought_near = lstsq_total_error(scaled, y, size, other, order);
+        real_t plain = lstsq_total_error(x, y, size, coefficients, order,
+                                         REAL_C(0.0), REAL_C(1.0));
+        real_t brought_near = lstsq_total_error(x, y, size, other, order,
+                                                centre, width);
 
         // The size of the readings themselves, which sets the floor below.
         real_t weight = REAL_C(0.0);
@@ -384,9 +394,6 @@ bool lstsq_polyfit(const real_t* x, const real_t* y, uint32_t size,
         }
     }
 
-    free(scaled);
-    free(other);
-
     return trustworthy;
 }
 
@@ -405,25 +412,9 @@ bool lstsq_polyfit_scaled(const real_t* x, const real_t* y, uint32_t size,
         return false;
     }
 
-    // The scaled places, worked out once into memory of their own so that the
-    // readings the caller gave are left alone.
-    real_t* scaled = (real_t*)malloc(sizeof(real_t)*size);
-
-    if(scaled == NULL)
-    {
-        return false;
-    }
-
-    for(uint32_t index = 0; index < size; index++)
-    {
-        scaled[index] = (x[index] - *centre) / *width;
-    }
-
-    bool fitted = lstsq_fit_raw(scaled, y, size, order, coefficients);
-
-    free(scaled);
-
-    return fitted;
+    // The fit is given the centre and the width and brings each place near
+    // zero as it reads it. Nothing is copied and no memory is taken.
+    return lstsq_fit_raw(x, y, size, order, coefficients, *centre, *width);
 }
 
 real_t lstsq_evaluate_scaled(const real_t* coefficients, uint32_t order,
