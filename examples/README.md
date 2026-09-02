@@ -32,6 +32,9 @@ comment that says so.
 | `RUN_DETREND_EXAMPLE` | [detrend.c](detrend.c) | A strain gauge on a warming beam | How large is the vibration, when the baseline walks away underneath it? |
 | `RUN_INTERP_EXAMPLE` | [interp.c](interp.c) | A thermistor on an analog input | What temperature does this resistance mean? |
 | `RUN_QUANTISE_EXAMPLE` | [quantise.c](quantise.c) | None yet, the board is being designed | Does this signal need the 16 bit converter, or does the 12 bit one hold it? |
+| `RUN_DCT_EXAMPLE` | [dct.c](dct.c) | A field logger with a small radio | How do I send a day of readings in a fraction of the bytes? |
+| `RUN_CONVOLVE_EXAMPLE` | [convolve.c](convolve.c) | A temperature probe with a known lag | What will this probe really report, and would the spike even show? |
+| `RUN_CEPSTRUM_EXAMPLE` | [cepstrum.c](cepstrum.c) | A microphone | What is the pitch of the voice, when the loudest line is not it? |
 | `RUN_PSD_EXAMPLE` | [psd.c](psd.c) | An accelerometer on a pump | Which band holds the energy, and is the bearing failing? |
 | `RUN_CORRELATE_EXAMPLE` | [correlate.c](correlate.c) | Two microphones | Which way did that sound come from? |
 | `RUN_ADAPTIVE_EXAMPLE` | [adaptive.c](adaptive.c) | Two microphones, one at a fan | How do I hear a voice over a fan? |
