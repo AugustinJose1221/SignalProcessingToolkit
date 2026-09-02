@@ -29,6 +29,9 @@ comment that says so.
 | `RUN_MATRIX_EXAMPLE` | [matrix.c](matrix.c) | — | The operations of the matrix module |
 | `RUN_RESAMPLE_EXAMPLE` | [resample.c](resample.c) | A vibration sensor on a bearing | How do I log at a lower rate without inventing a tone? |
 | `RUN_PLL_EXAMPLE` | [pll.c](pll.c) | A monitor on a power outlet | What is the mains frequency right now, and is the grid sagging? |
+| `RUN_DETREND_EXAMPLE` | [detrend.c](detrend.c) | A strain gauge on a warming beam | How large is the vibration, when the baseline walks away underneath it? |
+| `RUN_INTERP_EXAMPLE` | [interp.c](interp.c) | A thermistor on an analog input | What temperature does this resistance mean? |
+| `RUN_QUANTISE_EXAMPLE` | [quantise.c](quantise.c) | None yet, the board is being designed | Does this signal need the 16 bit converter, or does the 12 bit one hold it? |
 | `RUN_PSD_EXAMPLE` | [psd.c](psd.c) | An accelerometer on a pump | Which band holds the energy, and is the bearing failing? |
 | `RUN_CORRELATE_EXAMPLE` | [correlate.c](correlate.c) | Two microphones | Which way did that sound come from? |
 | `RUN_ADAPTIVE_EXAMPLE` | [adaptive.c](adaptive.c) | Two microphones, one at a fan | How do I hear a voice over a fan? |
