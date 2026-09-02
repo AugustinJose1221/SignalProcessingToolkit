@@ -53,9 +53,9 @@ bool support_matrix_addition_check(int rows, int cols, float min, float max)
     {
         for(int j = 0; j < cols; j++)
         {
-            float expected = gsl_matrix_float_get(gsl_A, i, j);
-            float computed = matrix_get_element(&sum, i, j);
-            if (fabs(expected - computed) > 1e-6) 
+            real_t expected = (real_t)gsl_matrix_float_get(gsl_A, i, j);
+            real_t computed = matrix_get_element(&sum, i, j);
+            if(!CONFORMATION_IS_NEAR(expected, computed))
             {
                 flag = false;
                 break;
@@ -96,9 +96,9 @@ bool support_matrix_scalar_multiplication_check(int rows, int cols, float min, f
     {
         for(int j = 0; j < cols; j++)
         {
-            float expected = gsl_matrix_float_get(gsl_A, i, j);
-            float computed = matrix_get_element(&scaled, i, j);
-            if (fabs(expected - computed) > 1e-6) 
+            real_t expected = (real_t)gsl_matrix_float_get(gsl_A, i, j);
+            real_t computed = matrix_get_element(&scaled, i, j);
+            if(!CONFORMATION_IS_NEAR(expected, computed))
             {
                 flag = false;
                 break;
@@ -140,9 +140,9 @@ bool support_matrix_multiplication_check(int rows_a, int cols_a, int rows_b, int
     {
         for(int j = 0; j < cols_b; j++)
         {
-            float expected = gsl_matrix_float_get(gsl_product, i, j);
-            float computed = matrix_get_element(&product, i, j);
-            if (fabs(expected - computed) > 1e-6) 
+            real_t expected = (real_t)gsl_matrix_float_get(gsl_product, i, j);
+            real_t computed = matrix_get_element(&product, i, j);
+            if(!CONFORMATION_IS_NEAR(expected, computed))
             {
                 flag = false;
                 break;
@@ -190,9 +190,9 @@ bool support_matrix_transpose_check(int rows, int cols, float min, float max)
     {
         for(int j = 0; j < rows; j++)
         {
-            float expected = gsl_matrix_float_get(gsl_transposed, i, j);
-            float computed = matrix_get_element(&transpose, i, j);
-            if (fabs(expected - computed) > 1e-6) 
+            real_t expected = (real_t)gsl_matrix_float_get(gsl_transposed, i, j);
+            real_t computed = matrix_get_element(&transpose, i, j);
+            if(!CONFORMATION_IS_NEAR(expected, computed))
             {
                 flag = false;
                 break;
@@ -264,9 +264,9 @@ bool support_matrix_inverse_check(int size, float min, float max)
     {
         for(int j = 0; j < size; j++)
         {
-            float expected = gsl_matrix_float_get(gsl_inverse, i, j);
-            float computed = matrix_get_element(&inverse, i, j);
-            if (fabs(expected - computed) > 1e-2) 
+            real_t expected = (real_t)gsl_matrix_float_get(gsl_inverse, i, j);
+            real_t computed = matrix_get_element(&inverse, i, j);
+            if(!CONFORMATION_IS_NEAR(expected, computed))
             {
                 flag = false;
                 break;
@@ -309,7 +309,7 @@ bool support_matrix_determinant_check(int size, float min, float max)
         }
     }
 
-    float my_det = matrix_determinant(&A);
+    real_t my_det = matrix_determinant(&A);
 
     gsl_matrix *LU = gsl_matrix_alloc(size, size);
     
@@ -322,18 +322,20 @@ bool support_matrix_determinant_check(int size, float min, float max)
     }
 
     gsl_linalg_LU_decomp(LU, perm, &signum);
-    float gsl_det = (float)gsl_linalg_LU_det(LU, signum);
+    real_t gsl_det = (real_t)gsl_linalg_LU_det(LU, signum);
 
-    bool flag = true;
-
-    if (fabsf(my_det - gsl_det) < 1.0f) 
-    {
-        flag = true;
-    } 
-    else 
-    {
-        flag = false;
-    }
+    // A DETERMINANT IS WEIGHED AGAINST HOW LARGE IT IS, NOT AGAINST ONE.
+    //
+    // This asked for the two to stand within 1.0 of each other, whatever the
+    // determinant was. A determinant of order one would then pass however
+    // wrong it was, and this check could not fail for the small matrices it is
+    // given.
+    //
+    // A determinant is a sum of products, thus it is large when its elements
+    // are, and the digits thrown away when those products cancel do not become
+    // small merely because the sum did. The room allowed follows the larger of
+    // the two readings.
+    bool flag = CONFORMATION_IS_NEAR(my_det, gsl_det);
     
     matrix_free(&A);
     gsl_matrix_float_free(gsl_A);

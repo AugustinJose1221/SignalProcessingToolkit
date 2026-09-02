@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(Ffitt VERSION 0.18.1 LANGUAGES C)
+project(Ffitt VERSION 0.18.2 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -174,6 +174,13 @@ if(BUILD_CONFORMATION_TESTS)
         perf/conformation/matrix/support.c
         perf/conformation/vector/vector.c
         perf/conformation/vector/support.c
+        perf/conformation/fft/fft.c
+        perf/conformation/eigen/eigen.c
+        perf/conformation/poly/poly.c
+        perf/conformation/stats/stats.c
+        perf/conformation/cspline/cspline.c
+        perf/conformation/lstsq/lstsq.c
+        perf/conformation/dwt/dwt.c
         perf/conformation/run.c)
 
     target_link_libraries(conformation signalproc GSL::gsl GSL::gslcblas m)

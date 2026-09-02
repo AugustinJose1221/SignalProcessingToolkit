@@ -1,3 +1,10 @@
+## 0.18.2 (2026-09-02)
+
+### Fix
+
+- **ci**: Give the warnings job the library its sources need
+- **linalg**: Weigh a pivot against the matrix, not against exactly zero
+
 ## 0.18.1 (2026-09-01)
 
 ### Fix

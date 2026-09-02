@@ -245,21 +245,21 @@ static void run_matrix_inverse_dynamic_conformation(void)
 static void run_matrix_determinant_static_conformation(void)
 {
     matrix_t A0;
-    float determinant0;
+    real_t determinant0;
     MATRIX_INIT(A0, 2, 2, ((float[]){4, 7, 2, 6}));
     determinant0 = matrix_determinant(&A0);
     VALUE_CHECK_EQUAL_CASE(determinant0, 10, "Matrix Static Determinant Test");
     MATRIX_FREE(A0);
 
     matrix_t A1;
-    float determinant1;
+    real_t determinant1;
     MATRIX_INIT(A1, 3, 3, ((float[]){1, 2, 3, 0, 1, 4, 5, 6, 0}));
     determinant1 = matrix_determinant(&A1);
     VALUE_CHECK_EQUAL_CASE(determinant1, 1, "Matrix Static Determinant Test");
     MATRIX_FREE(A1);
 
     matrix_t A2;
-    float determinant2;
+    real_t determinant2;
     MATRIX_INIT(A2, 4, 4, ((float[]){1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}));
     determinant2 = matrix_determinant(&A2);
     VALUE_CHECK_EQUAL_CASE(determinant2, 0, "Matrix Static Determinant Test");

@@ -543,6 +543,40 @@ void cmatrix_set_zero(cmatrix_t* matrix)
 // Give the row below the given row that holds the largest element of the given
 // column. The elimination then takes that row as the pivot row. This keeps the
 // division stable, and it moves a zero out of the pivot position.
+// How small a pivot has to be before the matrix counts as singular.
+//
+// A PIVOT THAT IS NOT EXACTLY ZERO CAN STILL BE NOTHING. After a column has
+// been eliminated the pivot of a singular matrix is not zero: it is the
+// rounding left over from the subtraction, tiny and almost never exactly
+// nothing. Asking cnum_is_zero therefore let a singular matrix through, and
+// dividing by that rounding gave an answer far from any inverse.
+//
+// Measured on the 4 by 4 matrix of 1 to 16 held as complex numbers, whose
+// determinant is 0: cmatrix_inverse gave a first element near -1 260 000
+// rather than the zeros its header promises.
+//
+// The pivot is weighed against the largest element the matrix started with,
+// because that is the size the arithmetic works at.
+static real_t cmatrix_smallest_pivot(cmatrix_t* matrix)
+{
+    real_t largest = REAL_C(0.0);
+
+    for(uint32_t i = 0; i < matrix->m; i++)
+    {
+        for(uint32_t j = 0; j < matrix->n; j++)
+        {
+            real_t size_of = cnum_magnitude(cmatrix_get_element(matrix, i, j));
+
+            if(size_of > largest)
+            {
+                largest = size_of;
+            }
+        }
+    }
+
+    return largest * (real_t)matrix->m * REAL_EPSILON;
+}
+
 static uint32_t cmatrix_get_pivot_row(cmatrix_t* matrix, uint32_t column, uint32_t from_row)
 {
     uint32_t pivot_row = from_row;
@@ -581,6 +615,8 @@ cnum_t cmatrix_determinant_into(cmatrix_t* matrix, cmatrix_t* scratch)
     uint32_t n = matrix->m;
     cnum_t determinant = cnum_one();
 
+    real_t smallest_pivot = cmatrix_smallest_pivot(matrix);
+
     cmatrix_copy(matrix, scratch);
 
     // The elimination makes the matrix upper triangular. The determinant is
@@ -598,7 +634,7 @@ cnum_t cmatrix_determinant_into(cmatrix_t* matrix, cmatrix_t* scratch)
 
         cnum_t pivot = cmatrix_get_element(scratch, i, i);
 
-        if(cnum_is_zero(pivot))
+        if(cnum_magnitude(pivot) <= smallest_pivot)
         {
             return cnum_zero();
         }
@@ -632,6 +668,7 @@ bool cmatrix_inverse_into(cmatrix_t* matrix, cmatrix_t* dest, cmatrix_t* scratch
     ASSERT(scratch->m == matrix->m && scratch->n == 2*matrix->n);
 
     uint32_t n = matrix->m;
+    real_t smallest_pivot = cmatrix_smallest_pivot(matrix);
 
     for(uint32_t i = 0; i < n; i++)
     {
@@ -653,7 +690,7 @@ bool cmatrix_inverse_into(cmatrix_t* matrix, cmatrix_t* dest, cmatrix_t* scratch
 
         cnum_t pivot = cmatrix_get_element(scratch, i, i);
 
-        if(cnum_is_zero(pivot))
+        if(cnum_magnitude(pivot) <= smallest_pivot)
         {
             return false;
         }
