@@ -35,6 +35,9 @@ comment that says so.
 | `RUN_DCT_EXAMPLE` | [dct.c](dct.c) | A field logger with a small radio | How do I send a day of readings in a fraction of the bytes? |
 | `RUN_CONVOLVE_EXAMPLE` | [convolve.c](convolve.c) | A temperature probe with a known lag | What will this probe really report, and would the spike even show? |
 | `RUN_CEPSTRUM_EXAMPLE` | [cepstrum.c](cepstrum.c) | A microphone | What is the pitch of the voice, when the loudest line is not it? |
+| `RUN_BLUESTEIN_EXAMPLE` | [bluestein.c](bluestein.c) | A power quality analyser | How strong is each harmonic, from a block that is no power of two? |
+| `RUN_FARROW_EXAMPLE` | [farrow.c](farrow.c) | Two recorders with their own crystals | How do I line up two streams that stand a fraction of a sample apart? |
+| `RUN_LATTICE_EXAMPLE` | [lattice.c](lattice.c) | A vibration sensor on a bearing | Is there a pattern in this reading, or is it only noise? |
 | `RUN_PSD_EXAMPLE` | [psd.c](psd.c) | An accelerometer on a pump | Which band holds the energy, and is the bearing failing? |
 | `RUN_CORRELATE_EXAMPLE` | [correlate.c](correlate.c) | Two microphones | Which way did that sound come from? |
 | `RUN_ADAPTIVE_EXAMPLE` | [adaptive.c](adaptive.c) | Two microphones, one at a fan | How do I hear a voice over a fan? |

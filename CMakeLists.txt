@@ -147,7 +147,10 @@ if(BUILD_EXAMPLE)
         examples/quantise.c
         examples/dct.c
         examples/convolve.c
-        examples/cepstrum.c)
+        examples/cepstrum.c
+        examples/bluestein.c
+        examples/farrow.c
+        examples/lattice.c)
 
     target_link_libraries(ffitt_example ffitt m)
 endif()
