@@ -323,10 +323,31 @@ jobs:
         # a change that stops the benchmark cannot pass without a signal. It
         # does not compare the times, because the speed of a runner changes
         # from one run to the next.
+        #
+        # IT USED TO MEASURE NOTHING AND STILL PASS HERE. The clock was read
+        # into a real_t, which holds about 7 digits against the 10 that seconds
+        # since 1970 already need, thus every reading rounded to the same
+        # number and every line of the table said 0.000 microseconds. This step
+        # went green on it, because a program that measures nothing still
+        # finishes and still gives 0 to the shell. The benchmark now counts how
+        # many of its measurements came out above nothing and gives 1 when none
+        # did, thus this step fails if the same fault comes back. That guard was
+        # held against a build with the narrow clock put back, which gave 1.
         run: |
           cmake -S . -B build/benchmark -DBUILD_BENCHMARK=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/benchmark
           ./build/benchmark/benchmark
+
+      - name: Examine that the table of costs names every operation
+        # README.md holds a table of what each operation costs, written from
+        # this benchmark by scripts/benchmark_table.py. This asks that the
+        # table still names every operation the benchmark measures, so that an
+        # operation added here and forgotten there is caught.
+        #
+        # IT LOOKS AT THE ROWS AND NEVER AT THE TIMES. A time belongs to the
+        # machine that measured it, and this runner is not that machine.
+        if: matrix.width == 32
+        run: python3 scripts/benchmark_table.py --check
 
       - name: Examine that the library needs no external library
         # The library must work with the C standard library alone. This step

@@ -155,6 +155,11 @@ if(BUILD_BENCHMARK)
         perf/benchmark/benchmark.c
         perf/benchmark/matrix.c
         perf/benchmark/modules.c
+        perf/benchmark/core_and_util.c
+        perf/benchmark/linalg.c
+        perf/benchmark/transform.c
+        perf/benchmark/filter.c
+        perf/benchmark/estimate.c
         perf/benchmark/run.c)
 
     target_link_libraries(benchmark signalproc m)

@@ -13,14 +13,15 @@
 typedef struct{
     const char* group;          // The module, for example matrix
     const char* operation;      // The operation, for example multiply
+    // The same in words, for the table in README.md. NULL marks one size of
+    // a sweep: printed here and left out of the table, because the table
+    // gives one row for each operation and not one for each size.
+    const char* what;
     uint32_t size;              // The size of the input
     uint32_t repeats;           // The number of times the operation ran
     real_t total_seconds;       // The time of all the repeats together
     real_t best_seconds;        // The time of the fastest repeat
 }benchmark_result_t;
-
-// Give the reading of the monotonic clock in seconds.
-real_t benchmark_now(void);
 
 // Write the head of the table.
 void benchmark_report_header(void);
@@ -31,6 +32,20 @@ void benchmark_report(benchmark_result_t* result);
 // Write the foot of the table.
 void benchmark_report_footer(void);
 
+// How many of the measurements came out above nothing.
+//
+// THE GUARD AGAINST A CLOCK TOO NARROW TO READ. Every time this table ever
+// printed before was 0.000, because the clock was read into a real_t. The
+// program still finished and still gave 0 to the shell, thus the build ran it
+// and went green on it. main asks this and gives 1 when nothing was measured,
+// so that the same fault cannot come back unseen.
+uint32_t benchmark_measured_above_zero(void);
+
+// A time is a double here and never a real_t. Built for a float, real_t holds
+// about 7 digits and the clock counts seconds since 1970, which is already 10.
+// Every reading would then round to the same number.
+double benchmark_now(void);
+
 // Measure one operation. The macro runs the given statement `repeat_count`
 // times and keeps the total time and the time of the fastest repeat. The
 // fastest repeat gives the best picture of the operation, because the other
@@ -38,19 +53,20 @@ void benchmark_report_footer(void);
 //
 // Each name inside the macro starts with benchmark_, so that a name of the
 // caller and a name of the macro cannot be the same.
-#define BENCHMARK_MEASURE(group_name, operation_name, input_size, repeat_count, statement) \
+#define BENCHMARK_MEASURE(group_name, operation_name, what_in_words, input_size, repeat_count, statement) \
     do                                                                                    \
     {                                                                                     \
         benchmark_result_t benchmark_measurement;                                         \
-        real_t benchmark_start;                                                           \
-        real_t benchmark_elapsed;                                                         \
+        double benchmark_start;                                                           \
+        double benchmark_elapsed;                                                          \
                                                                                           \
         benchmark_measurement.group = (group_name);                                       \
         benchmark_measurement.operation = (operation_name);                               \
+        benchmark_measurement.what = (what_in_words);                                     \
         benchmark_measurement.size = (input_size);                                        \
         benchmark_measurement.repeats = (repeat_count);                                   \
-        benchmark_measurement.total_seconds = 0.0;                                        \
-        benchmark_measurement.best_seconds = 0.0;                                         \
+        benchmark_measurement.total_seconds = REAL_C(0.0);                                \
+        benchmark_measurement.best_seconds = REAL_C(0.0);                                 \
                                                                                           \
         for(uint32_t benchmark_repeat = 0;                                                \
             benchmark_repeat < (repeat_count);                                            \
@@ -59,11 +75,11 @@ void benchmark_report_footer(void);
             benchmark_start = benchmark_now();                                            \
             statement;                                                                    \
             benchmark_elapsed = benchmark_now() - benchmark_start;                        \
-            benchmark_measurement.total_seconds += benchmark_elapsed;                     \
-            if(benchmark_repeat == 0                                                      \
-               || benchmark_elapsed < benchmark_measurement.best_seconds)                 \
+            benchmark_measurement.total_seconds += (real_t)benchmark_elapsed;             \
+            if((benchmark_repeat == 0u)                                                   \
+               || (benchmark_elapsed < (double)benchmark_measurement.best_seconds))        \
             {                                                                             \
-                benchmark_measurement.best_seconds = benchmark_elapsed;                   \
+                benchmark_measurement.best_seconds = (real_t)benchmark_elapsed;            \
             }                                                                             \
         }                                                                                 \
                                                                                           \
@@ -80,5 +96,15 @@ void run_emd_benchmark(void);
 // modules against each other, because the whole reason movavg exists is that
 // it costs the same for every size of window and a fir does not.
 void run_movavg_benchmark(void);
+
+void run_imf_benchmark(void);
+void run_transform_benchmark(void);
+void run_filter_benchmark(void);
+void run_estimate_benchmark(void);
+void run_detect_benchmark(void);
+void run_linalg_benchmark(void);
+void run_util_benchmark(void);
+void run_core_benchmark(void);
+void run_interpolate_benchmark(void);
 
 #endif//BENCHMARK_H
