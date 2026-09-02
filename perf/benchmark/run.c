@@ -1,5 +1,6 @@
 #include <perf/benchmark/benchmark.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
@@ -19,6 +20,17 @@ int main(void)
     run_movavg_benchmark();
 
     benchmark_report_footer();
+
+    // A BENCHMARK THAT MEASURED NOTHING MUST NOT SAY ALL IS WELL. Every time
+    // this table printed before the clock was mended was 0.000, and this
+    // program gave 0 to the shell all the same, thus the build ran it and went
+    // green on it for as long as it existed.
+    if(benchmark_measured_above_zero() == 0u)
+    {
+        printf("\nEvery measurement came out as zero. The clock is not being "
+               "read properly.\n");
+        return 1;
+    }
 
     return 0;
 }
