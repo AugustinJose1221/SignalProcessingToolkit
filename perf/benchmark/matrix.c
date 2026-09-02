@@ -11,7 +11,7 @@ static const uint32_t ORDER_COUNT = sizeof(ORDERS)/sizeof(ORDERS[0]);
 
 // The determinant uses the rule of the cofactors, thus its cost grows with the
 // factorial of the order. An order above 9 takes too long to measure.
-static const uint32_t DETERMINANT_ORDERS[] = {2, 4, 6, 8, 9};
+static const uint32_t DETERMINANT_ORDERS[] = {2, 4, 6, 8, 10};
 static const uint32_t DETERMINANT_ORDER_COUNT =
     sizeof(DETERMINANT_ORDERS)/sizeof(DETERMINANT_ORDERS[0]);
 
@@ -124,7 +124,7 @@ void run_matrix_benchmark(void)
 
         BENCHMARK_MEASURE("matrix", "determinant",
                           (order == 8u) ? "the determinant of an 8 by 8 matrix" : NULL,
-                          order, 5,
+                          order, 2000,
                           value = matrix_determinant(&matrix));
         (void)value;
 
