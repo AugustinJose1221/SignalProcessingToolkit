@@ -75,6 +75,19 @@ medfilt_t medfilt_alloc(uint32_t size)
     medfilt.sorted = (real_t*)malloc(sizeof(real_t)*size);
     medfilt.dynamic_alloc = true;
 
+    // The clearing below writes through the list, thus it must not be reached
+    // with nothing to write to. The window is a buffer of its own and answers
+    // for itself: a size of nothing says it got nothing.
+    if((medfilt.sorted == NULL) || (medfilt.window.size == 0u))
+    {
+        medfilt_free(&medfilt);
+
+        medfilt.sorted = NULL;
+        medfilt.dynamic_alloc = false;
+
+        return medfilt;
+    }
+
     for(uint32_t index = 0; index < size; index++)
     {
         medfilt.sorted[index] = REAL_C(0.0);

@@ -18,6 +18,12 @@ vector_t vector_alloc(uint32_t size)
     vector.data = (real_t*)malloc(sizeof(real_t)*size);
     vector.dynamic_alloc = true;
 
+    if(vector.data == NULL)
+    {
+        vector.size = 0;
+        vector.dynamic_alloc = false;
+    }
+
     return vector;
 }
 

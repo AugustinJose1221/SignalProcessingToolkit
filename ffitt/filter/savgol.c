@@ -23,6 +23,16 @@ savgol_t savgol_alloc(uint32_t window)
     savgol.coefficient = (real_t*)malloc(sizeof(real_t)*window);
     savgol.dynamic_alloc = true;
 
+    // The clearing below writes through the list, thus it must not be reached
+    // with nothing to write to.
+    if(savgol.coefficient == NULL)
+    {
+        savgol.window = 0;
+        savgol.dynamic_alloc = false;
+
+        return savgol;
+    }
+
     for(uint32_t index = 0; index < window; index++)
     {
         savgol.coefficient[index] = REAL_C(0.0);

@@ -20,6 +20,13 @@ cmatrix_t cmatrix_alloc(uint32_t m, uint32_t n)
     matrix.elem = (cnum_t*)malloc(sizeof(cnum_t)*m*n);
     matrix.dynamic_alloc = true;
 
+    if(matrix.elem == NULL)
+    {
+        matrix.m = 0;
+        matrix.n = 0;
+        matrix.dynamic_alloc = false;
+    }
+
     return matrix;
 }
 

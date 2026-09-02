@@ -28,6 +28,18 @@ fir_t fir_alloc(uint32_t length)
     fir.position = 0;
     fir.dynamic_alloc = true;
 
+    // The clearing below writes through both lists, thus it must not be
+    // reached with nothing to write to.
+    if((fir.coefficient == NULL) || (fir.history == NULL))
+    {
+        fir_free(&fir);
+
+        fir.length = 0;
+        fir.dynamic_alloc = false;
+
+        return fir;
+    }
+
     for(uint32_t index = 0; index < length; index++)
     {
         fir.coefficient[index] = REAL_C(0.0);

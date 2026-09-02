@@ -18,6 +18,17 @@ pmatrix_t pmatrix_alloc(uint32_t m, uint32_t n)
     matrix.elem = (pmatrix_function_t*)malloc(sizeof(pmatrix_function_t)*m*n);
     matrix.dynamic_alloc = true;
 
+    // The clearing below walks every place, thus it must not be reached with
+    // nothing to walk.
+    if(matrix.elem == NULL)
+    {
+        matrix.m = 0;
+        matrix.n = 0;
+        matrix.dynamic_alloc = false;
+
+        return matrix;
+    }
+
     pmatrix_set_zero(&matrix);
 
     return matrix;

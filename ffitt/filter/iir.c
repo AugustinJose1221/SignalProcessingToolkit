@@ -24,6 +24,18 @@ iir_t iir_alloc(uint32_t sections)
     iir.state = (real_t*)malloc(sizeof(real_t)*IIR_STATE_SIZE(sections));
     iir.dynamic_alloc = true;
 
+    // Both calls below write through the lists, thus they must not be reached
+    // with nothing to write to.
+    if((iir.coefficient == NULL) || (iir.state == NULL))
+    {
+        iir_free(&iir);
+
+        iir.sections = 0;
+        iir.dynamic_alloc = false;
+
+        return iir;
+    }
+
     iir_set_pass_through(&iir);
     iir_reset(&iir);
 
