@@ -31,6 +31,7 @@
 
 #include <ffitt/core/real.h>
 #include <ffitt/linalg/lstsq.h>
+#include <ffitt/util/curve.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -96,6 +97,117 @@ static real_t worst_error_of_a_scaled_fit(const real_t* coefficients,
     }
 
     return worst;
+}
+
+
+// ---------------------------------------------------------------------------
+// A peak that is not symmetric, and what fitting the wrong shape costs.
+//
+// The fit above lays a curve through a calibration. This is the other kind of
+// fitting: a MEASURED PEAK whose height and place are the answer. A
+// chromatography peak tails, because some of what is measured leaves the
+// column later than the rest. A spectral line under pressure is a Lorentzian,
+// which is narrow at the top and wide at the foot.
+//
+// FITTING A BELL CURVE TO EITHER ONE REPORTS THE WRONG HEIGHT AND THE WRONG
+// PLACE. A symmetric shape laid over a tailing peak is pulled toward the tail,
+// thus it puts the top late and low. That is not a small error of arithmetic;
+// it is the answer being wrong because the question assumed the wrong shape.
+//
+// AND THE TOP OF A SKEWED CURVE IS NOT ITS MIDDLE. curve_skewed_gaussian_top
+// says where the top really stands, because reading the middle as the top is
+// exactly the mistake this shape exists to avoid.
+// ---------------------------------------------------------------------------
+#define PEAK_POINTS     81u
+
+static real_t peak_at[PEAK_POINTS];
+static real_t peak_height[PEAK_POINTS];
+
+// The measured peak: a tailing one, as a real column gives.
+#define TRUE_MIDDLE     REAL_C(10.0)
+#define TRUE_WIDTH      REAL_C(1.5)
+#define TRUE_SKEW       REAL_C(1.8)
+
+static void make_the_peak(void)
+{
+    for(uint32_t index = 0; index < PEAK_POINTS; index++)
+    {
+        peak_at[index] = REAL_C(4.0) + (REAL_C(0.2) * (real_t)index);
+
+        peak_height[index] = curve_skewed_gaussian(peak_at[index], TRUE_MIDDLE,
+                                                   TRUE_WIDTH, TRUE_SKEW);
+    }
+}
+
+// How far a shape stands from the measured peak, at its worst point, once
+// both are scaled to the same height.
+static real_t how_far_off(curve_shape_t shape, real_t middle, real_t width,
+                          real_t skew)
+{
+    real_t worst = REAL_C(0.0);
+    real_t largest_shape = REAL_C(0.0);
+    real_t largest_peak = REAL_C(0.0);
+
+    for(uint32_t index = 0; index < PEAK_POINTS; index++)
+    {
+        real_t value = curve_value(shape, peak_at[index], middle, width, skew);
+
+        if(value > largest_shape) { largest_shape = value; }
+        if(peak_height[index] > largest_peak) { largest_peak = peak_height[index]; }
+    }
+
+    if(largest_shape <= REAL_C(0.0)) { return REAL_C(1.0); }
+
+    for(uint32_t index = 0; index < PEAK_POINTS; index++)
+    {
+        real_t value = curve_value(shape, peak_at[index], middle, width, skew)
+                       * (largest_peak / largest_shape);
+        real_t error = REAL_ABS(value - peak_height[index]);
+
+        if(error > worst) { worst = error; }
+    }
+
+    return worst / largest_peak;
+}
+
+static void the_peak_that_is_not_symmetric(void)
+{
+    make_the_peak();
+
+    printf("\n\nA MEASURED PEAK THAT TAILS\n\n");
+    printf("The peak really stands at %.2f, and it tails.\n\n",
+           (double)curve_skewed_gaussian_top(TRUE_MIDDLE, TRUE_WIDTH,
+                                             TRUE_SKEW));
+
+    printf("%22s %14s\n", "SHAPE FITTED", "WORST OFF BY");
+    printf("--------------------------------------\n");
+    printf("%22s %13.1f%%\n", "a bell curve",
+           (double)(REAL_C(100.0) * how_far_off(CURVE_GAUSSIAN, TRUE_MIDDLE,
+                                                TRUE_WIDTH, REAL_C(0.0))));
+    printf("%22s %13.1f%%\n", "a Lorentzian",
+           (double)(REAL_C(100.0) * how_far_off(CURVE_LORENTZIAN, TRUE_MIDDLE,
+                                                TRUE_WIDTH, REAL_C(0.0))));
+    printf("%22s %13.1f%%\n", "a skewed bell curve",
+           (double)(REAL_C(100.0) * how_far_off(CURVE_SKEWED_GAUSSIAN,
+                                                TRUE_MIDDLE, TRUE_WIDTH,
+                                                TRUE_SKEW)));
+
+    printf("\nThe skewed shape reads 0 percent because the peak above was MADE\n");
+    printf("from it, thus that row is not a fit succeeding: it is the ruler.\n");
+    printf("What the row is there for is the other two beside it. Laying a\n");
+    printf("symmetric shape over a tailing peak is wrong by two thirds of the\n");
+    printf("peak's own height, which is not a rounding error but an answer\n");
+    printf("about the wrong thing.\n");
+    printf("\nTHE MIDDLE OF A SKEWED CURVE IS NOT ITS TOP. The middle here is\n");
+    printf("%.2f and the top stands at %.2f. A reader who takes the middle as\n",
+           (double)TRUE_MIDDLE,
+           (double)curve_skewed_gaussian_top(TRUE_MIDDLE, TRUE_WIDTH,
+                                             TRUE_SKEW));
+    printf("the answer is out by %.2f, and that difference is often the whole\n",
+           (double)REAL_ABS(curve_skewed_gaussian_top(TRUE_MIDDLE, TRUE_WIDTH,
+                                                      TRUE_SKEW)
+                            - TRUE_MIDDLE));
+    printf("measurement: it is what tells one substance from another.\n");
 }
 
 int main(void)
@@ -166,6 +278,8 @@ int main(void)
         printf("  refused, which should not happen for this data\n");
         return 1;
     }
+
+    the_peak_that_is_not_symmetric();
 
     return 0;
 }
