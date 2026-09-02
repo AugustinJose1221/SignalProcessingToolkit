@@ -8,7 +8,7 @@
 // the value below, and then build with:
 //
 //     cmake -S . -B build -DBUILD_EXAMPLE=ON && cmake --build build
-//     ./build/signalproc_example
+//     ./build/ffitt_example
 //
 // The value RUN_NONE gives no main function at all, thus the example program
 // cannot link. That value is the default, because the library itself is the

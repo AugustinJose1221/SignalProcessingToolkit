@@ -105,7 +105,7 @@ fft_magnitude(spectrum, magnitude, SIZE);
 cmake -S . -B build && cmake --build build
 ```
 
-This gives the static library `libsignalproc.a`, with every number held in 32
+This gives the static library `libffitt.a`, with every number held in 32
 bits.
 
 ### The width of a number
@@ -133,7 +133,7 @@ then give:
 
 ```bash
 cmake -S . -B build -DBUILD_EXAMPLE=ON && cmake --build build
-./build/signalproc_example
+./build/ffitt_example
 ```
 
 The directory [examples](examples) says which examples there are.

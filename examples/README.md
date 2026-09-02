@@ -8,7 +8,7 @@ gives one example. Choose the example in
 
 ```bash
 cmake -S . -B build -DBUILD_EXAMPLE=ON && cmake --build build
-./build/signalproc_example
+./build/ffitt_example
 ```
 
 Each example stands on a real device, and each one holds one function that
