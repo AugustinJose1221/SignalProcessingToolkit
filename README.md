@@ -200,134 +200,134 @@ narrowed after it, which costs as well.
 | `ringbuf` | put one sample into a buffer of 256 | 0.03 us | 0.03 us |
 | `ringbuf` | read a sample from a hundred steps ago | 0.03 us | 0.03 us |
 | `ringbuf` | write the whole buffer of 256 out in order | 1.76 us | 1.76 us |
-| `real` | one sine, at the width the library was built for | 0.02 us | 0.03 us |
+| `real` | one sine, at the width the library was built for | 0.03 us | 0.03 us |
 | `real` | one square root | 0.02 us | 0.02 us |
 | `real` | one exponential | 0.03 us | 0.03 us |
 | `matrix` | add two 8 by 8 matrices | 0.96 us | 0.96 us |
 | `matrix` | subtract two 8 by 8 matrices | 0.95 us | 0.95 us |
-| `matrix` | multiply two 8 by 8 matrices | 5.23 us | 5.27 us |
+| `matrix` | multiply two 8 by 8 matrices | 5.22 us | 5.24 us |
 | `matrix` | transpose an 8 by 8 matrix | 0.62 us | 0.62 us |
-| `matrix` | multiply two 8 by 8 matrices into the caller's memory | 5.22 us | 5.16 us |
-| `matrix` | invert an 8 by 8 matrix | 15.81 us | 15.71 us |
-| `matrix` | the determinant of an 8 by 8 matrix | 1773.33 us | 1811.23 us |
-| `vector` | the dot product of two vectors of 1024 | 2.52 us | 3.58 us |
+| `matrix` | multiply two 8 by 8 matrices into the caller's memory | 5.11 us | 5.15 us |
+| `matrix` | invert an 8 by 8 matrix | 15.71 us | 15.79 us |
+| `matrix` | the determinant of an 8 by 8 matrix | 4.07 us | 4.11 us |
+| `vector` | the dot product of two vectors of 1024 | 2.53 us | 2.54 us |
 | `vector` | the length of a vector of 1024 | 2.53 us | 2.54 us |
-| `cmatrix` | multiply two 10 by 10 complex matrices | 26.06 us | 63.51 us |
-| `cmatrix` | the determinant of a 10 by 10 complex matrix | 12.69 us | 30.25 us |
-| `cmatrix` | invert a 10 by 10 complex matrix | 56.77 us | 138.36 us |
-| `cnum` | multiply two complex numbers | 0.03 us | 0.04 us |
+| `cmatrix` | multiply two 10 by 10 complex matrices | 26.07 us | 63.49 us |
+| `cmatrix` | the determinant of a 10 by 10 complex matrix | 12.70 us | 30.22 us |
+| `cmatrix` | invert a 10 by 10 complex matrix | 56.63 us | 138.24 us |
+| `cnum` | multiply two complex numbers | 0.03 us | 0.03 us |
 | `cnum` | divide one complex number by another | 0.04 us | 0.05 us |
 | `cnum` | the size of a complex number | 0.03 us | 0.04 us |
-| `eigen` | the eigenvalues and vectors of a 10 by 10 matrix | 3.55 us | 3.40 us |
+| `eigen` | the eigenvalues and vectors of a 10 by 10 matrix | 4.12 us | 3.79 us |
 | `eigen` | how badly conditioned that matrix is | 0.05 us | 0.05 us |
-| `lstsq` | fit a curve of order 8 through 256 readings | 219.28 us | 219.98 us |
+| `lstsq` | fit a curve of order 8 through 256 readings | 218.87 us | 219.49 us |
 | `lstsq` | how well that curve holds the readings | 8.48 us | 8.74 us |
 | `poly` | read a curve of order 8 at one place | 0.05 us | 0.05 us |
 | `poly` | multiply two curves of order 8 | 0.27 us | 0.27 us |
-| `poly` | every root of a curve of order 4 | 3.75 us | 9.06 us |
+| `poly` | every root of a curve of order 4 | 3.43 us | 10.03 us |
 | `quaternion` | join two turns into one | 0.04 us | 0.03 us |
 | `quaternion` | turn one point by a quaternion | 0.03 us | 0.03 us |
 | `quaternion` | the same turn written as a 3 by 3 matrix | 0.09 us | 0.09 us |
 | `quaternion` | the turn part way between two others | 0.16 us | 0.17 us |
 | `quaternion` | carry a turn forward by a rate over a step | 0.11 us | 0.11 us |
 | `pmatrix` | read a 10 by 10 matrix of functions at one place | 1.26 us | 1.26 us |
-| `matrix` | the factor of Cholesky of a 10 by 10 matrix | 3.68 us | 3.72 us |
+| `matrix` | the factor of Cholesky of a 10 by 10 matrix | 3.65 us | 3.70 us |
 | `vector2d` | the dot product of two vectors of two | 0.03 us | 0.03 us |
 | `vector2d` | the length of a vector of two | 0.03 us | 0.03 us |
-| `cspline` | build a cubic spline through 512 points | 17.79 us | 21.44 us |
+| `cspline` | build a cubic spline through 512 points | 17.76 us | 21.45 us |
 | `cspline` | read one point from a spline of 512 | 0.08 us | 0.10 us |
 | `interp` | read one place from a table of 256, straight lines | 0.03 us | 0.03 us |
 | `interp` | the same, smooth and never above the neighbours | 0.03 us | 0.03 us |
 | `interp` | read 4096 places from that table at one call | 0.03 us | 0.03 us |
-| `fft` | a 1024 point transform of a real signal | 170.24 us | 264.32 us |
-| `fft` | a 1024 point transform of a complex signal | 162.79 us | 256.74 us |
-| `fft` | a 1024 point inverse transform | 191.08 us | 306.70 us |
-| `fft` | the size of every bin of a 1024 point spectrum | 4.83 us | 5.21 us |
-| `bluestein` | a 1000 point transform, a size no power of two | 820.58 us | 1309.94 us |
-| `dct` | a 1024 point cosine transform | 11938.22 us | 18036.50 us |
-| `dct` | a 1024 point inverse cosine transform | 18345.18 us | 24972.62 us |
-| `dwt` | one level of a wavelet over 1024 samples | 12.14 us | 11.95 us |
-| `dwt` | rebuild 1024 samples from one wavelet level | 7.45 us | 7.19 us |
-| `dwt` | four levels of a wavelet over 1024 samples | 26.22 us | 25.93 us |
-| `dwt` | take the small wavelet values out of 1024 | 1.85 us | 1.83 us |
-| `window` | build a window of Blackman and Harris over 1024 | 33.27 us | 58.22 us |
-| `window` | put a window over 1024 samples | 2.56 us | 2.55 us |
-| `window` | the noise bandwidth of a window of 1024 | 2.60 us | 2.60 us |
-| `hilbert` | the analytic signal of 1024 samples | 369.80 us | 584.95 us |
-| `hilbert` | the envelope of 1024 samples | 6.64 us | 16.47 us |
-| `hilbert` | the frequency at each of 1024 samples | 48.87 us | 52.78 us |
-| `cepstrum` | the cepstrum of 1024 samples | 393.40 us | 633.81 us |
-| `cepstrum` | find the pitch in a cepstrum of 1024 | 0.87 us | 0.88 us |
+| `fft` | a 1024 point transform of a real signal | 170.30 us | 264.18 us |
+| `fft` | a 1024 point transform of a complex signal | 162.81 us | 256.66 us |
+| `fft` | a 1024 point inverse transform | 191.15 us | 306.62 us |
+| `fft` | the size of every bin of a 1024 point spectrum | 4.86 us | 5.21 us |
+| `bluestein` | a 1000 point transform, a size no power of two | 820.95 us | 1309.62 us |
+| `dct` | a 1024 point cosine transform | 11909.43 us | 18039.26 us |
+| `dct` | a 1024 point inverse cosine transform | 18695.38 us | 24987.68 us |
+| `dwt` | one level of a wavelet over 1024 samples | 11.57 us | 12.28 us |
+| `dwt` | rebuild 1024 samples from one wavelet level | 7.43 us | 7.19 us |
+| `dwt` | four levels of a wavelet over 1024 samples | 25.20 us | 26.51 us |
+| `dwt` | take the small wavelet values out of 1024 | 1.91 us | 1.89 us |
+| `window` | build a window of Blackman and Harris over 1024 | 33.28 us | 58.14 us |
+| `window` | put a window over 1024 samples | 2.55 us | 2.55 us |
+| `window` | the noise bandwidth of a window of 1024 | 2.60 us | 2.65 us |
+| `hilbert` | the analytic signal of 1024 samples | 369.99 us | 584.69 us |
+| `hilbert` | the envelope of 1024 samples | 6.63 us | 16.90 us |
+| `hilbert` | the frequency at each of 1024 samples | 49.14 us | 53.18 us |
+| `cepstrum` | the cepstrum of 1024 samples | 393.69 us | 633.66 us |
+| `cepstrum` | find the pitch in a cepstrum of 1024 | 0.88 us | 0.90 us |
 | `goertzel` | watch one frequency over a block of 1024 | 6.48 us | 6.48 us |
 | `goertzel` | read how much of that frequency was there | 0.03 us | 0.03 us |
-| `correlate` | 4096 samples against themselves at every lag | 21055.72 us | 21154.98 us |
-| `correlate` | the same by the transform | 3779.90 us | 5939.87 us |
-| `correlate` | 4096 samples against another signal at 512 lags | 4945.99 us | 4991.93 us |
-| `correlate` | find the period of 4096 samples | 13620.02 us | 13638.35 us |
-| `convolve` | slide a shape of 512 along 4096 samples | 6452.34 us | 6412.18 us |
-| `convolve` | the same by the transform | 5563.10 us | 8750.82 us |
-| `psd` | the spectrum of 4096 samples by the way of Welch | 1113.94 us | 1697.03 us |
-| `psd` | the power between two frequencies of that spectrum | 1.16 us | 1.13 us |
-| `csd` | the cross spectrum of two signals of 4096 | 2342.61 us | 3614.36 us |
-| `csd` | how much two signals of 4096 agree, bin by bin | 2341.89 us | 3613.24 us |
-| `csd` | the transfer between two signals of 4096 | 2342.39 us | 3614.14 us |
-| `stft` | 4096 samples into frames of 256, hopping 64 | 2178.40 us | 3322.91 us |
-| `stft` | rebuild the 4096 samples from those frames | 2668.76 us | 4194.99 us |
-| `spectrogram` | a picture in decibel from those frames | 124.99 us | 226.99 us |
-| `spectrogram` | hold that picture against its own loudest point | 35.18 us | 35.31 us |
-| `hht` | amplitude and frequency of one mode of 1024 | 426.25 us | 658.08 us |
-| `hht` | the mean frequency of that mode | 3.31 us | 3.31 us |
+| `correlate` | 4096 samples against themselves at every lag | 21122.19 us | 21243.04 us |
+| `correlate` | the same by the transform | 3782.02 us | 5940.95 us |
+| `correlate` | 4096 samples against another signal at 512 lags | 4996.05 us | 5009.27 us |
+| `correlate` | find the period of 4096 samples | 13621.09 us | 13903.24 us |
+| `convolve` | slide a shape of 512 along 4096 samples | 6405.12 us | 6447.49 us |
+| `convolve` | the same by the transform | 5566.86 us | 8751.38 us |
+| `psd` | the spectrum of 4096 samples by the way of Welch | 1113.87 us | 1700.13 us |
+| `psd` | the power between two frequencies of that spectrum | 1.16 us | 1.12 us |
+| `csd` | the cross spectrum of two signals of 4096 | 2341.83 us | 3618.57 us |
+| `csd` | how much two signals of 4096 agree, bin by bin | 2342.04 us | 3616.55 us |
+| `csd` | the transfer between two signals of 4096 | 2342.77 us | 3618.50 us |
+| `stft` | 4096 samples into frames of 256, hopping 64 | 2177.67 us | 3331.12 us |
+| `stft` | rebuild the 4096 samples from those frames | 2667.83 us | 4201.02 us |
+| `spectrogram` | a picture in decibel from those frames | 124.76 us | 227.87 us |
+| `spectrogram` | hold that picture against its own loudest point | 35.13 us | 35.43 us |
+| `hht` | amplitude and frequency of one mode of 1024 | 426.47 us | 659.25 us |
+| `hht` | the mean frequency of that mode | 3.30 us | 3.32 us |
 | `fir` | design a low pass of 33 coefficients | 0.82 us | 1.30 us |
-| `fir` | 4096 samples through a filter of 33 with no feedback | 415.95 us | 422.48 us |
+| `fir` | 4096 samples through a filter of 33 with no feedback | 415.58 us | 417.80 us |
 | `iir` | design a low pass of two sections | 0.10 us | 0.13 us |
-| `iir` | 4096 samples through a filter of two sections | 83.23 us | 75.64 us |
-| `filtfilt` | 4096 samples both ways, thus with no delay at all | 153.51 us | 154.01 us |
-| `filtfilt` | the same with a filter of 33 and no feedback | 859.82 us | 859.41 us |
-| `adaptive` | 4096 samples through a filter of 32 that learns | 2142.98 us | 2182.26 us |
-| `rls` | 4096 samples through a filter of 32 that learns fast | 69700.03 us | 68483.44 us |
-| `lattice` | 4096 samples through eight stages that learn | 1147.15 us | 1227.32 us |
-| `savgol` | design a smoother of 33 that keeps a cubic | 11.02 us | 11.06 us |
-| `savgol` | smooth 4096 samples and keep the shape of the peaks | 485.42 us | 483.55 us |
-| `medfilt` | the middle value of a window of 33 over 4096 samples | 845.65 us | 839.48 us |
-| `hampel` | take the wild readings out of 4096 samples | 5122.25 us | 5030.70 us |
-| `dcblock` | take the standing level out of 4096 samples | 23.74 us | 23.77 us |
-| `detrend` | find the drift under 4096 samples | 32.24 us | 31.76 us |
-| `detrend` | find that drift and take it away | 62.69 us | 61.61 us |
-| `detrend` | take a drift already known away from 4096 samples | 30.39 us | 29.79 us |
-| `farrow` | delay 4096 samples by half a sample | 396.36 us | 395.39 us |
-| `resample` | 4096 samples down to a quarter of the rate | 671.67 us | 673.46 us |
-| `resample` | 4096 samples up to four times the rate | 2906.22 us | 2906.99 us |
+| `iir` | 4096 samples through a filter of two sections | 77.72 us | 81.47 us |
+| `filtfilt` | 4096 samples both ways, thus with no delay at all | 153.35 us | 153.98 us |
+| `filtfilt` | the same with a filter of 33 and no feedback | 855.76 us | 864.43 us |
+| `adaptive` | 4096 samples through a filter of 32 that learns | 2169.41 us | 2178.54 us |
+| `rls` | 4096 samples through a filter of 32 that learns fast | 70745.32 us | 71998.09 us |
+| `lattice` | 4096 samples through eight stages that learn | 1146.62 us | 1227.90 us |
+| `savgol` | design a smoother of 33 that keeps a cubic | 10.99 us | 11.09 us |
+| `savgol` | smooth 4096 samples and keep the shape of the peaks | 484.05 us | 483.26 us |
+| `medfilt` | the middle value of a window of 33 over 4096 samples | 847.82 us | 844.66 us |
+| `hampel` | take the wild readings out of 4096 samples | 5117.78 us | 5106.74 us |
+| `dcblock` | take the standing level out of 4096 samples | 23.73 us | 23.76 us |
+| `detrend` | find the drift under 4096 samples | 32.24 us | 31.71 us |
+| `detrend` | find that drift and take it away | 62.79 us | 61.65 us |
+| `detrend` | take a drift already known away from 4096 samples | 30.48 us | 29.84 us |
+| `farrow` | delay 4096 samples by half a sample | 393.01 us | 396.65 us |
+| `resample` | 4096 samples down to a quarter of the rate | 676.45 us | 673.78 us |
+| `resample` | 4096 samples up to four times the rate | 2869.69 us | 2910.24 us |
 | `movavg` | one sample through a moving mean of 64 | 0.05 us | 0.05 us |
 | `fir` | one sample through an equal fir of 64, the mean the slow way | 0.21 us | 0.21 us |
-| `kalman` | one prediction of a Kalman filter over four states | 2.23 us | 2.22 us |
-| `kalman` | one full step of a Kalman filter over four states | 4.63 us | 4.59 us |
-| `ekf` | one step of a bending filter over four states | 5.51 us | 5.51 us |
-| `ukf` | one step of a filter that places points, four states | 10.38 us | 10.40 us |
-| `pll` | hold a loop on a tone through 4096 samples | 0.02 us | 0.02 us |
+| `kalman` | one prediction of a Kalman filter over four states | 2.21 us | 2.23 us |
+| `kalman` | one full step of a Kalman filter over four states | 4.60 us | 4.61 us |
+| `ekf` | one step of a bending filter over four states | 5.49 us | 5.51 us |
+| `ukf` | one step of a filter that places points, four states | 10.44 us | 10.39 us |
+| `pll` | hold a loop on a tone through 4096 samples | 0.02 us | 0.03 us |
 | `propagate` | carry four states one step by the way of Runge | 0.11 us | 0.10 us |
-| `propagate` | carry four states across a hundred such steps | 8.99 us | 9.09 us |
-| `changepoint` | watch 4096 readings for the moment a level moves | 43.52 us | 43.71 us |
-| `matched` | look for a shape of 64 all through 4096 samples | 658.50 us | 660.47 us |
-| `matched` | find where that shape fits best | 662.11 us | 661.55 us |
-| `delay` | how far two signals of 1024 stand apart, by lag | 3190.61 us | 3194.46 us |
-| `delay` | the same to a fraction of a sample, by phase | 344.56 us | 533.87 us |
-| `emd` | sift 256 samples into three modes | 4.25 us | 3.05 us |
-| `imf` | take the memory for a mode of 1024 points | 0.10 us | 0.08 us |
+| `propagate` | carry four states across a hundred such steps | 8.98 us | 9.06 us |
+| `changepoint` | watch 4096 readings for the moment a level moves | 43.44 us | 43.73 us |
+| `matched` | look for a shape of 64 all through 4096 samples | 660.16 us | 660.38 us |
+| `matched` | find where that shape fits best | 660.82 us | 664.61 us |
+| `delay` | how far two signals of 1024 stand apart, by lag | 3192.81 us | 3196.34 us |
+| `delay` | the same to a fraction of a sample, by phase | 344.68 us | 533.62 us |
+| `emd` | sift 256 samples into three modes | 3.08 us | 3.04 us |
+| `imf` | take the memory for a mode of 1024 points | 0.12 us | 0.08 us |
 | `stats` | the mean of 4096 readings | 10.01 us | 10.01 us |
-| `stats` | how far 4096 readings spread | 20.01 us | 20.02 us |
-| `stats` | the root mean square of 4096 readings | 10.01 us | 10.02 us |
-| `stats` | the middle of 4096 readings | 99.42 us | 101.41 us |
-| `stats` | the spread of 4096 readings, wild ones and all | 185.13 us | 185.97 us |
-| `peakdetect` | every peak in 4096 samples | 17.15 us | 13.53 us |
-| `peakdetect` | the peaks in 4096 samples that pass the rules | 1678.63 us | 1675.14 us |
-| `peakdetect` | how far one peak stands above its neighbours | 0.26 us | 0.27 us |
-| `valleydetect` | every valley in 4096 samples | 14.16 us | 23.00 us |
-| `generate` | make 4096 samples of a sine | 60.91 us | 81.34 us |
-| `generate` | make 4096 samples of a square wave with no aliases | 90.94 us | 90.88 us |
-| `generate` | make 4096 samples of noise | 51.53 us | 51.54 us |
-| `quantise` | round 4096 samples to 12 bits | 56.07 us | 56.26 us |
-| `quantise` | the same with a little noise added first | 140.34 us | 139.94 us |
-| `curve` | draw a bell curve over 4096 places | 72.90 us | 88.02 us |
+| `stats` | how far 4096 readings spread | 20.03 us | 20.02 us |
+| `stats` | the root mean square of 4096 readings | 10.02 us | 10.02 us |
+| `stats` | the middle of 4096 readings | 58.22 us | 58.14 us |
+| `stats` | the spread of 4096 readings, wild ones and all | 178.53 us | 178.75 us |
+| `peakdetect` | every peak in 4096 samples | 18.12 us | 16.81 us |
+| `peakdetect` | the peaks in 4096 samples that pass the rules | 1648.88 us | 1628.88 us |
+| `peakdetect` | how far one peak stands above its neighbours | 0.03 us | 0.03 us |
+| `valleydetect` | every valley in 4096 samples | 17.01 us | 22.88 us |
+| `generate` | make 4096 samples of a sine | 60.92 us | 81.32 us |
+| `generate` | make 4096 samples of a square wave with no aliases | 90.94 us | 90.81 us |
+| `generate` | make 4096 samples of noise | 51.50 us | 50.69 us |
+| `quantise` | round 4096 samples to 12 bits | 55.26 us | 54.64 us |
+| `quantise` | the same with a little noise added first | 139.98 us | 139.33 us |
+| `curve` | draw a bell curve over 4096 places | 72.82 us | 87.66 us |
 | `curve` | read a bell curve at one place | 0.04 us | 0.04 us |
 | `binarysearch` | find a value in a sorted list of 256 | 0.05 us | 0.05 us |
 
