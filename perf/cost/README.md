@@ -53,30 +53,27 @@ the program gave 1, thus none of them is a test that cannot fail.
 
 ## What these tests found
 
-TWO CLAIMS BREAK AT 64 BITS AND HOLD AT 32.
+TWO CLAIMS BROKE AT 64 BITS AND HELD AT 32, AND THE CAUSE WAS NOT THE LIBRARY'S
+ARITHMETIC.
 
     correlate  at 4096 the transform wins by a wide margin   1.52 >= 4.00
     convolve   at a shape of 512 the transform costs far less 0.27 >= 1.50
 
-The same two claims measure 12.37 and 2.22 at 32 bits.
+The butterfly of the transform was written on `cnum_t`, handing a complex
+number to a function and taking one back. At 32 bits that pair fits where the
+compiler wants it. At 64 bits it is sixteen bytes, and what GCC 13.3 built from
+it at `-O2` was more than six times SLOWER than the same code at `-O1`, with
+the answers unchanged to every bit.
 
-The cause is not the library. Measured on one machine with GCC 13.3, one
-forward transform of 8192 points, the time for twenty of them:
+The butterfly is now written on the real and the imaginary parts. Measured for
+one transform of 8192 points, in microseconds:
 
-    width        -O1        -O2        -O3
-    32 bit    0.0081     0.0050     0.0049
-    64 bit    0.0068     0.0432     0.0432
+    width           on cnum_t     on the parts
+    32 bit             220.9            103.5
+    64 bit            2078.3            143.0
 
-At 32 bits the optimiser makes the transform faster, which is what it is for.
-At 64 bits it makes the SAME CODE more than six times slower than it is at -O1.
-The answers are the same to every digit; only the time changes. The butterfly
-reads its turning factor at a stride, and a stride of a sixteen byte value is
-what the optimiser turns into something worse than plain code.
+The two claims now measure 15.95 and 2.62, and all twelve hold at both widths.
+The build runs this suite at 32 and at 64 bits.
 
-Thus the two claims are true of the transform and false of what the compiler
-built from it, at that width and above -O1.
-
-THE TESTS ARE LEFT AS THEY STAND AND NOTHING IS WEAKENED TO MAKE THEM PASS. The
-suite runs at 32 bits in the build, where every claim holds. It is not run at 64
-bits until the transform is dealt with, because a job that is known to be red
-teaches nobody anything.
+NOTHING WAS WEAKENED TO GET THERE. The claims stand exactly as they were
+written; it was the transform that was mended.

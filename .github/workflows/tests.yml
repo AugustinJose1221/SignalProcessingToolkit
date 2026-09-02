@@ -323,15 +323,15 @@ jobs:
         # function a caller picks. The benchmark measures and prints, thus a
         # claim could stop being true and the table would still be green.
         #
-        # AT 32 BITS ONLY, AND ON PURPOSE. Two of the twelve claims break at 64
-        # bits, and the cause is not the library: GCC 13.3 builds the same
-        # transform more than six times slower at 64 bits with -O2 than with
-        # -O1, and the answers do not change. perf/cost/README.md holds the
-        # measurement. A job that is known to be red teaches nobody anything,
-        # thus 64 bits waits until the transform is dealt with.
-        if: matrix.width == 32
+        # AT BOTH WIDTHS. Two of the twelve claims used to break at 64 bits,
+        # because the butterfly of the transform handed a cnum_t to a function
+        # and took one back, and at 64 bits that pair is sixteen bytes and what
+        # the optimiser built from it was slower than the same code unoptimised.
+        # The butterfly is now written on the parts, the transform is fourteen
+        # times faster at 64 bits, and all twelve claims hold at both widths.
         run: |
-          cmake -S . -B build/cost -DBUILD_COST_TESTS=ON
+          cmake -S . -B build/cost -DBUILD_COST_TESTS=ON \
+            -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/cost
           ./build/cost/cost
 

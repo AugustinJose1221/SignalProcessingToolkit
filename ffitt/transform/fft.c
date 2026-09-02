@@ -251,6 +251,33 @@ static void fft_build_tables(fft_t* fft)
 // joins pairs of points into groups of 2, then groups of 4, and so on up to
 // the full size. Each step needs one multiplication and one addition for each
 // pair, which is the butterfly.
+//
+// WHY THE BUTTERFLY IS WRITTEN OUT ON THE PARTS AND NOT ON cnum_t.
+//
+// It was written on cnum_t, as cnum_multiply(lower, factor) and so on, which
+// reads far better. Measured against the same transform written on the real
+// and the imaginary parts, in microseconds for one transform of 8192 points
+// with GCC 13.3 at -O2, both giving the SAME ANSWER TO EVERY BIT:
+//
+//   width           on cnum_t     on the parts
+//   32 bit             220.9            103.5
+//   64 bit            2078.3            143.0
+//
+// At 64 bits that is fourteen times. The cost was never the arithmetic; it was
+// handing a cnum_t to a function and taking one back. At 32 bits the pair fits
+// where the compiler wants it and the calls cost little. At 64 bits the pair
+// is sixteen bytes, and what the optimiser then built was slower than the same
+// code with the optimiser told to leave it alone: -O2 measured 2078 against
+// -O1 at 326.
+//
+// The strided read of the turning factor was the first suspect and it was not
+// the cause. Walking that table by a pointer that steps, instead of by a
+// multiplied index, measured 2397 at 64 bits, which is worse than the form it
+// was meant to mend.
+//
+// This is the one place in the library where a module reaches past cnum for
+// the parts of a complex number. It buys a transform that is faster at BOTH
+// widths, and every module that stands on the transform gets it.
 static void fft_transform(fft_t* fft, cnum_t* data)
 {
     uint32_t size = fft->size;
@@ -275,12 +302,27 @@ static void fft_transform(fft_t* fft, cnum_t* data)
         {
             for(uint32_t position = 0; position < half; position++)
             {
-                cnum_t factor = fft->twiddle[position * step];
-                cnum_t upper = data[start + position];
-                cnum_t lower = cnum_multiply(data[start + position + half], factor);
+                uint32_t here = start + position;
+                uint32_t there = here + half;
 
-                data[start + position] = cnum_add(upper, lower);
-                data[start + position + half] = cnum_subtract(upper, lower);
+                real_t factor_re = fft->twiddle[position * step].re;
+                real_t factor_im = fft->twiddle[position * step].im;
+
+                real_t lower_re = data[there].re;
+                real_t lower_im = data[there].im;
+
+                // The turned lower half: a multiplication of two complex
+                // numbers, written on the parts.
+                real_t turned_re = (lower_re * factor_re) - (lower_im * factor_im);
+                real_t turned_im = (lower_re * factor_im) + (lower_im * factor_re);
+
+                real_t upper_re = data[here].re;
+                real_t upper_im = data[here].im;
+
+                data[here].re = upper_re + turned_re;
+                data[here].im = upper_im + turned_im;
+                data[there].re = upper_re - turned_re;
+                data[there].im = upper_im - turned_im;
             }
         }
     }
