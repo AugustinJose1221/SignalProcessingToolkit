@@ -17,6 +17,16 @@ imf_t imf_alloc(uint32_t size)
     imf.y = (real_t*)malloc(sizeof(real_t)*size);
     imf.dynamic_alloc = true;
 
+    if((imf.x == NULL) || (imf.y == NULL))
+    {
+        imf_free(imf);
+
+        imf.x = NULL;
+        imf.y = NULL;
+        imf.size = 0;
+        imf.dynamic_alloc = false;
+    }
+
     return imf;
 }
 

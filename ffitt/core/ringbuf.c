@@ -16,6 +16,12 @@ ringbuf_t ringbuf_alloc(uint32_t size)
     ringbuf.size = size;
     ringbuf.dynamic_alloc = true;
 
+    if(ringbuf.data == NULL)
+    {
+        ringbuf.size = 0;
+        ringbuf.dynamic_alloc = false;
+    }
+
     ringbuf_reset(&ringbuf);
 
     return ringbuf;

@@ -22,6 +22,13 @@ matrix_t matrix_alloc(uint32_t m, uint32_t n)
     matrix.elem = (real_t*)malloc(sizeof(real_t)*m*n);
     matrix.dynamic_alloc = true;
 
+    if(matrix.elem == NULL)
+    {
+        matrix.m = 0;
+        matrix.n = 0;
+        matrix.dynamic_alloc = false;
+    }
+
     return matrix;
 }
 
