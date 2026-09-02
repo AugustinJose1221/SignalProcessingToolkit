@@ -298,6 +298,26 @@ jobs:
           cmake --build build/conformation
           ./build/conformation/conformation
 
+      - name: Build and run the cost tests
+        # THE HEADERS SAY WHAT THINGS COST AND NOTHING HELD THEM TO IT. movavg
+        # says its work does not follow the window, resample says the filtering
+        # costs the output rate and not the input rate, and correlate says the
+        # transform wins above about 300 samples. Those sentences decide which
+        # function a caller picks. The benchmark measures and prints, thus a
+        # claim could stop being true and the table would still be green.
+        #
+        # AT 32 BITS ONLY, AND ON PURPOSE. Two of the twelve claims break at 64
+        # bits, and the cause is not the library: GCC 13.3 builds the same
+        # transform more than six times slower at 64 bits with -O2 than with
+        # -O1, and the answers do not change. perf/cost/README.md holds the
+        # measurement. A job that is known to be red teaches nobody anything,
+        # thus 64 bits waits until the transform is dealt with.
+        if: matrix.width == 32
+        run: |
+          cmake -S . -B build/cost -DBUILD_COST_TESTS=ON
+          cmake --build build/cost
+          ./build/cost/cost
+
       - name: Build and run the benchmark
         # The benchmark needs no external library. The workflow runs it so that
         # a change that stops the benchmark cannot pass without a signal. It
@@ -344,7 +364,7 @@ jobs:
           WIDTH: ${{ matrix.width == 64 && '-DFFITT_REAL_64' || '' }}
         run: |
           status=0
-          for source in ffitt/*/*.c perf/benchmark/*.c perf/conformation/*.c perf/conformation/*/*.c; do
+          for source in ffitt/*/*.c perf/benchmark/*.c perf/cost/*.c perf/conformation/*.c perf/conformation/*/*.c; do
             echo "== $source"
             gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
           done
