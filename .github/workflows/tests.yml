@@ -290,7 +290,7 @@ jobs:
                          RESAMPLE PSD CORRELATE ADAPTIVE CLEAN FILTFILT \
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
                          SPECTROGRAM COHERENCE SHAPES CONTINUOUS \
-                         SURVEY DETECT; do
+                         SURVEY DETECT PLL; do
             echo "== $example"
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} > /dev/null
@@ -412,7 +412,7 @@ jobs:
                          RESAMPLE PSD CORRELATE ADAPTIVE CLEAN FILTFILT \
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
                          SPECTROGRAM COHERENCE SHAPES CONTINUOUS \
-                         SURVEY DETECT; do
+                         SURVEY DETECT PLL; do
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             for source in examples/*.c; do
               gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
