@@ -1,3 +1,9 @@
+## 0.18.3 (2026-09-02)
+
+### Fix
+
+- **benchmark**: Read the clock at a width that can hold it
+
 ## 0.18.2 (2026-09-02)
 
 ### Fix
