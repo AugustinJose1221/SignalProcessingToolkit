@@ -418,7 +418,7 @@ amount away again and again, so that a signal of size 3 gave a residue of a
 million and a half.
 
 **How much is covered, and why the number is 98 and not 99.** The build fails
-below 98 percent of lines. What is left is not untested behaviour: it is the
+below 98 percent of lines and below 90 percent of branches. What is left is not untested behaviour: it is the
 guards against the heap giving nothing and against numbers the width cannot
 hold. Reaching those needs an allocator that fails on purpose, or calls that
 break what the headers say a caller may do. Covering every line a caller CAN
@@ -426,6 +426,21 @@ reach still leaves the whole below 99, thus 99 is a number the code cannot meet
 while those guards stand, and taking them out to meet it would be the wrong
 trade. Two of them were found to be unreachable because the caller's own check
 is stricter than the guard, and those are named where they stand.
+
+The guards against the heap giving nothing ARE now reached. `Test_heap_refusal`
+asks the linker to send `malloc` and `calloc` through a pair of functions that
+refuse on command, which is the only way to ask for a heap that fails. Every
+allocator of the library is held to what `ffitt/core/README.md` says it must
+then do.
+
+**The branch number leaves the assertions out, and it must.** An `ASSERT`
+states what the CALLER must have got right, and its failing side calls abort. A
+suite that passes has by construction never taken that side. There are 964 of
+them, and counted in they hold the whole at 74 percent and hide every real gap
+behind a wall of branches no test could ever turn green. Left out, the number
+is 91.2 and it means something: what is still uncovered is mostly the operand
+combinations inside the validators, where a refusal is tested and which half of
+an `&&` caused it is not.
 
 **Rules are run over and over, not once.** A rule that passes one run has been
 given a few hundred cases. The suite is run 25 times at each width before a
