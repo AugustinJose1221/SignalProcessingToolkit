@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write the table of costs in README.md from the benchmark itself.
+"""Write the table of costs in docs/COSTS.md from the benchmark itself.
 
 WHY THIS EXISTS.
 
@@ -9,10 +9,10 @@ building the benchmark and running it, and the header of a module could say one
 thing while the machine said another.
 
 This builds the benchmark twice, once for a float and once for a double, runs
-each, and writes the two times into README.md side by side. The table thus
+each, and writes the two times into docs/COSTS.md side by side. The table thus
 comes from the benchmark and cannot drift away from it.
 
-    python3 scripts/benchmark_table.py            write README.md
+    python3 scripts/benchmark_table.py            write docs/COSTS.md
     python3 scripts/benchmark_table.py --check    give 1 if a row is missing
 
 --check LOOKS AT THE ROWS AND NEVER AT THE TIMES. A time belongs to the machine
@@ -20,7 +20,7 @@ that measured it, thus asking a second machine for the same number would fail
 on a repository that is perfectly in order. What it does ask is that the table
 holds a row for every operation the benchmark measures, in the same order, so
 that an operation added to the benchmark and forgotten here is caught. The
-numbers are refreshed by a person on one machine, and the README says which.
+numbers are refreshed by a person on one machine, and the page says which.
 
 THE BUILD IS THE PLAIN ONE, WITH NO OPTIMISATION ASKED FOR. That is what a
 reader gets from `cmake -S . -B build`, thus it is the honest number to show
@@ -38,7 +38,7 @@ import sys
 import tempfile
 
 REPOSITORY = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-README = os.path.join(REPOSITORY, "README.md")
+COSTS = os.path.join(REPOSITORY, "docs", "COSTS.md")
 
 FIRST_MARK = "<!-- BENCHMARK TABLE BEGINS. scripts/benchmark_table.py writes it. -->"
 LAST_MARK = "<!-- BENCHMARK TABLE ENDS. -->"
@@ -121,12 +121,12 @@ def table():
 
 
 def written(new_table):
-    """Give what README.md would hold with this table in it."""
-    with open(README) as handle:
+    """Give what docs/COSTS.md would hold with this table in it."""
+    with open(COSTS) as handle:
         text = handle.read()
 
     if (FIRST_MARK not in text) or (LAST_MARK not in text):
-        sys.stderr.write("README.md holds no place for the table. It needs "
+        sys.stderr.write("docs/COSTS.md holds no place for the table. It needs "
                          "the two marks:\n  %s\n  %s\n"
                          % (FIRST_MARK, LAST_MARK))
         sys.exit(1)
@@ -156,7 +156,7 @@ def main():
     checking = "--check" in sys.argv[1:]
     wanted = written(table())
 
-    with open(README) as handle:
+    with open(COSTS) as handle:
         holding = handle.read()
 
     if checking:
@@ -179,10 +179,10 @@ def main():
               "    python3 scripts/benchmark_table.py")
         return 1
 
-    with open(README, "w") as handle:
+    with open(COSTS, "w") as handle:
         handle.write(wanted)
 
-    print("Wrote the table of costs into README.md.")
+    print("Wrote the table of costs into docs/COSTS.md.")
     return 0
 
 

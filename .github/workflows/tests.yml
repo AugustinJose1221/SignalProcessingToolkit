@@ -356,7 +356,7 @@ jobs:
           ./build/benchmark/benchmark
 
       - name: Examine that the table of costs names every operation
-        # README.md holds a table of what each operation costs, written from
+        # docs/COSTS.md holds a table of what each operation costs, written from
         # this benchmark by scripts/benchmark_table.py. This asks that the
         # table still names every operation the benchmark measures, so that an
         # operation added here and forgotten there is caught.
