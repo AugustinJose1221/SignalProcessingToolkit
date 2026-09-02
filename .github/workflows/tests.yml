@@ -167,12 +167,29 @@ jobs:
         # number the code cannot meet while those guards stand, and taking the
         # guards out to meet it would be the wrong trade.
         #
+        # BRANCHES ARE HELD AT 90, AND THE ASSERTIONS ARE LEFT OUT OF THE COUNT.
+        #
+        # An ASSERT states what the CALLER must have got right, and its failing
+        # side calls abort. A suite that passes has by construction never taken
+        # that side, thus counting those branches as uncovered measures nothing
+        # at all. There are 964 of them, and left in they hold the whole at 74
+        # percent and hide every real gap behind a wall of permanently red
+        # branches that no test could ever turn green.
+        #
+        # Left out, the number is 91.2 and it means something. What is still
+        # uncovered is mostly the operand combinations of the conditions in the
+        # validators: a refusal is tested, and which of the two halves of an
+        # `&&` caused it is not. The gate stands at 90, which is the same
+        # margin the line gate keeps against its own 98.3.
+        #
         # gcovr is called straight rather than through the plugin, because the
         # plugin fails by raising an exception and not by saying which number
         # was missed.
         run: |
           gcovr -r . --filter 'ffitt/' --print-summary \
-            --fail-under-line 98 --fail-under-function 100
+            --exclude-lines-by-pattern '\s*ASSERT\(.*' \
+            --fail-under-line 98 --fail-under-function 100 \
+            --fail-under-branch 90
 
       - name: Keep the test report
         if: always()

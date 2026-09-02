@@ -23,7 +23,14 @@ REPOSITORY = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Unity calls these two functions before and after each test. The names come
 # from Unity, thus this repository cannot change them.
-ALLOWED_NAMES = {"setUp", "tearDown", "main"}
+#
+# The two that begin with __wrap_ come from the LINKER. Asked to send a call
+# through a function of the test, it looks for exactly that name and no other.
+# Test_heap_refusal uses it to make the heap refuse, which is the only way to
+# reach the guard that every allocator carries. The names are the linker's and
+# not this library's, thus the scheme cannot ask them to change.
+ALLOWED_NAMES = {"setUp", "tearDown", "main",
+                 "__wrap_malloc", "__wrap_calloc"}
 
 # The library lies under this directory. Each file there holds one module, and
 # the name of the file is the name of the module.
