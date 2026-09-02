@@ -1,5 +1,5 @@
-#ifndef __CONFORMATION_MATRIX_H__
-#define __CONFORMATION_MATRIX_H__
+#ifndef CONFORMATION_MATRIX_H
+#define CONFORMATION_MATRIX_H
 
 #include <ffitt/linalg/matrix.h>
 #include <perf/conformation/support.h>
@@ -51,4 +51,4 @@ static inline bool matrix_is_near_enough(matrix_t* a, matrix_t* b)
 void run_matrix_static_conformation_tests(void);
 void run_matrix_dynamic_conformation_tests(void);
 
-#endif//__CONFORMATION_MATRIX_H__
+#endif//CONFORMATION_MATRIX_H

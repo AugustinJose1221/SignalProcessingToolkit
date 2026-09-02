@@ -1,5 +1,5 @@
-#ifndef __DEF_H__
-#define __DEF_H__
+#ifndef DEF_H
+#define DEF_H
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,4 +11,4 @@
 #define ASSERT(x)
 #endif//TEST
 
-#endif//__DEF_H__
+#endif//DEF_H

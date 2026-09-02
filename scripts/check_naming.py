@@ -127,6 +127,15 @@ def parameter_names(parameters):
     return names
 
 
+# A NAME THAT BEGINS WITH TWO UNDERSCORES BELONGS TO THE IMPLEMENTATION.
+#
+# C keeps every such name for the compiler and its own headers, thus a library
+# that uses one is standing where it was not invited. Fourteen headers guarded
+# themselves with names of that shape, __DEF_H__ among them, while every other
+# header of the library used the clean form. This finds them.
+RESERVED_NAME = re.compile(r"^__")
+
+
 def check_file(path, faults, prefix=None):
     """Examine one file. The prefix is the name of its module, or None."""
     def fault(name, message):
@@ -150,6 +159,10 @@ def check_file(path, faults, prefix=None):
         name = match.group("name")
         if not MACRO_NAME.match(name):
             fault(name, "the macro '%s' must be in upper case" % name)
+        if RESERVED_NAME.match(name):
+            fault(name, "the macro '%s' begins with two underscores, which "
+                        "names a thing that belongs to the compiler and not "
+                        "to this library" % name)
 
     if path.endswith(".h"):
         declarations = list(PROTOTYPE.finditer(text))

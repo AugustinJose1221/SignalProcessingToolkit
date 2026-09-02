@@ -1,9 +1,9 @@
-#ifndef __CONFORMATION_STATS_H__
-#define __CONFORMATION_STATS_H__
+#ifndef CONFORMATION_STATS_H
+#define CONFORMATION_STATS_H
 
 #include <ffitt/util/stats.h>
 #include <perf/conformation/support.h>
 
 void run_stats_conformation_tests(void);
 
-#endif//__CONFORMATION_STATS_H__
+#endif//CONFORMATION_STATS_H

@@ -1,5 +1,5 @@
-#ifndef __CONFORMATION_SUPPORT_H__
-#define __CONFORMATION_SUPPORT_H__
+#ifndef CONFORMATION_SUPPORT_H
+#define CONFORMATION_SUPPORT_H
 
 #include <string.h>
 #include <stdio.h>
@@ -69,4 +69,4 @@ extern int test_cases_failed;
 
 void support_init(void);
 
-#endif//__CONFORMATION_SUPPORT_H__
+#endif//CONFORMATION_SUPPORT_H
