@@ -83,7 +83,7 @@ FROZEN = {
     "quantise":      10,
     "quaternion":    17,
     "real":          6,
-    "resample":      11,
+    "resample":      13,
     "ringbuf":       9,
     "rls":           11,
     "savgol":        8,

@@ -324,3 +324,109 @@ void test_a_longer_filter_stops_more(void)
 
     TEST_ASSERT_TRUE(with_long < with_short);
 }
+
+// THE MEMORY THE CALLER GIVES MUST BUY THE SAME ANSWER AS THE HEAP.
+//
+// Every other module that offers a static road promises that, and a static
+// road that answered differently would be a trap rather than a convenience:
+// the caller would be testing one library and shipping another.
+void test_resample_a_decimator_on_the_caller_s_memory_answers_the_same(void)
+{
+    static const uint32_t FACTOR = 4u;
+    static const uint32_t LENGTH = 65u;
+    static const uint32_t COUNT = 512u;
+
+    real_t pool[RESAMPLE_DECIMATOR_MEMPOOL_SIZE(65u)];
+    real_t input[512];
+    real_t from_heap[512];
+    real_t from_pool[512];
+
+    for(uint32_t index = 0; index < COUNT; index++)
+    {
+        input[index] = REAL_SIN(REAL_C(0.11) * (real_t)index)
+                       + (REAL_C(0.3) * REAL_SIN(REAL_C(1.9) * (real_t)index));
+    }
+
+    resample_t heap = resample_alloc_decimator(FACTOR, LENGTH);
+    resample_t given = resample_static_alloc_decimator(FACTOR, LENGTH, pool);
+
+    TEST_ASSERT_TRUE(heap.dynamic_alloc);
+    TEST_ASSERT_FALSE(given.dynamic_alloc);
+    TEST_ASSERT_EQUAL_UINT32(resample_delay(&heap), resample_delay(&given));
+
+    uint32_t by_heap = resample_decimate_block(&heap, input, from_heap, COUNT);
+    uint32_t by_pool = resample_decimate_block(&given, input, from_pool, COUNT);
+
+    TEST_ASSERT_EQUAL_UINT32(by_heap, by_pool);
+
+    for(uint32_t index = 0; index < by_heap; index++)
+    {
+        TEST_ASSERT_EQUAL_REAL(from_heap[index], from_pool[index]);
+    }
+
+    resample_free(&heap);
+    resample_free(&given);
+}
+
+void test_resample_an_interpolator_on_the_caller_s_memory_answers_the_same(void)
+{
+    static const uint32_t FACTOR = 4u;
+    static const uint32_t LENGTH = 65u;
+    static const uint32_t COUNT = 128u;
+
+    real_t pool[RESAMPLE_INTERPOLATOR_MEMPOOL_SIZE(4u, 65u)];
+    real_t input[128];
+    real_t from_heap[128 * 4];
+    real_t from_pool[128 * 4];
+
+    for(uint32_t index = 0; index < COUNT; index++)
+    {
+        input[index] = REAL_SIN(REAL_C(0.07) * (real_t)index);
+    }
+
+    resample_t heap = resample_alloc_interpolator(FACTOR, LENGTH);
+    resample_t given = resample_static_alloc_interpolator(FACTOR, LENGTH, pool);
+
+    TEST_ASSERT_FALSE(given.dynamic_alloc);
+
+    uint32_t by_heap = resample_interpolate_block(&heap, input, from_heap,
+                                                  COUNT);
+    uint32_t by_pool = resample_interpolate_block(&given, input, from_pool,
+                                                  COUNT);
+
+    TEST_ASSERT_EQUAL_UINT32(by_heap, by_pool);
+
+    for(uint32_t index = 0; index < by_heap; index++)
+    {
+        TEST_ASSERT_EQUAL_REAL(from_heap[index], from_pool[index]);
+    }
+
+    resample_free(&heap);
+    resample_free(&given);
+}
+
+// A resampler on the caller's memory is given to resample_free like any other,
+// and that call must then do nothing at all. One road serves both kinds, thus
+// a caller need not remember which it built.
+void test_resample_freeing_one_on_the_caller_s_memory_is_harmless(void)
+{
+    real_t pool[RESAMPLE_DECIMATOR_MEMPOOL_SIZE(33u)];
+    resample_t given = resample_static_alloc_decimator(2u, 33u, pool);
+
+    resample_free(&given);
+    resample_free(&given);
+
+    // The memory is the caller's and it is still there, thus the same pool
+    // builds another resampler that works.
+    resample_t again = resample_static_alloc_decimator(2u, 33u, pool);
+    real_t out = REAL_C(0.0);
+
+    for(uint32_t index = 0; index < 64u; index++)
+    {
+        (void)resample_decimate(&again, REAL_C(1.0), &out);
+    }
+
+    // A steady input of one gives a steady output of one, because the filter
+    // passes what does not move.
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.01), REAL_C(1.0), out);
+}
