@@ -85,6 +85,31 @@ always agree with `real_t`. The `pmatrix` module needs them: before `real_t`
 existed a caller could give it `sinf` directly, and that now builds without a
 word and gives nonsense at 64 bits.
 
+## nolibm.h
+
+**The arithmetic, without a maths library.**
+
+Every call this library makes into the mathematics of the system passes through
+the `REAL_` macros of `real.h`. That is one seam, thus one place to stand
+behind. Build with `FFITT_NO_LIBM` and this file stands there: the library then
+links with no mathematics library at all.
+
+It is for a target whose toolchain ships no libm, one whose libm is large
+beside a flash of tens of kilobytes, one whose licence for it is awkward, and
+anyone who must account for every line that went into the image.
+
+**Read the table in the header before switching it on.** Each function is a
+reduction of the argument and then a series, and each is measured against the
+system's own over 200000 points. Most stand at eleven digits or better, which
+is far past what a float holds. Two do not: `sin` and `cos` lose a little to
+the reduction of a large angle, and `erf` is held at what the approximation it
+uses can do. At 32 bits every one of them is below what a float holds; at 64
+bits those two are not, and the header says so rather than letting a caller
+find out.
+
+The whole property suite is run against these as well as against the system's
+functions, at both widths, thus the table is a tested number and not a hope.
+
 ## ringbuf.h
 
 A program that reads a signal as it arrives needs the samples that came before

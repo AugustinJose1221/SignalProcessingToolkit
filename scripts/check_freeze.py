@@ -73,6 +73,7 @@ FROZEN = {
     "matrix":        36,
     "medfilt":       10,
     "movavg":        11,
+    "nolibm":        21,
     "peakdetect":    7,
     "pll":           12,
     "pmatrix":       11,
