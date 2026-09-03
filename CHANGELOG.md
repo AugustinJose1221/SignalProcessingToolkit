@@ -1,3 +1,12 @@
+## 0.19.0 (2026-09-03)
+
+### Feat
+
+- **build**: Let an area be left out of the build entirely
+- **core**: Give the library its own arithmetic, and link no maths library
+- **transform**: Watch a few frequencies without holding a block
+- **filter**: Let a caller give the memory a resampler works in
+
 ## 0.18.4 (2026-09-03)
 
 ### Fix
