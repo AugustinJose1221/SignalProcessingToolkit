@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_INTERPOLATE is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_INTERPOLATE
+
 #ifndef TEST
 #include <ffitt/interpolate/cspline.h>
 #include <ffitt/core/defs.h>
@@ -267,3 +272,11 @@ static void update_coefficients(cspline_t* cspline, cspline_mempool_t mempool)
         cspline->d[index] = (cspline->b[index] + cspline->b[index+1] - (2*mempool.dp[index]))/(mempool.dx[index]*mempool.dx[index]);
     }
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int cspline_is_not_in_this_build_t;
+
+#endif//FFITT_NO_INTERPOLATE

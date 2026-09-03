@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_UTIL is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_UTIL
+
 #ifndef TEST
 #include <ffitt/util/stats.h>
 #include <ffitt/core/defs.h>
@@ -315,3 +320,11 @@ real_t stats_mad(const real_t* data, uint32_t size, real_t* work)
 
     return stats_median(work, size);
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int stats_is_not_in_this_build_t;
+
+#endif//FFITT_NO_UTIL

@@ -138,6 +138,19 @@ cmake -S . -B build -DBUILD_EXAMPLE=ON && cmake --build build
 
 The directory [examples](examples) says which examples there are.
 
+### Leaving an area out
+
+The linker drops what nothing calls. To go further and never compile an area at
+all, there is a switch for each:
+
+```bash
+cmake -S . -B build -DFFITT_NO_ESTIMATE=ON -DFFITT_NO_DETECT=ON
+```
+
+`core` always stays. The guide of [core](ffitt/core) holds the table of which
+area needs which, and the build refuses a combination that cannot stand rather
+than failing later.
+
 ### Without a mathematics library
 
 Every call into the mathematics of the system passes through one seam. One

@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_FILTER is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_FILTER
+
 #ifndef TEST
 #include <ffitt/filter/iir.h>
 #include <ffitt/core/defs.h>
@@ -1285,3 +1290,11 @@ static void iir_set_pass_through(iir_t* iir)
         iir_set_section(iir, section, REAL_C(1.0), REAL_C(0.0), REAL_C(0.0), REAL_C(1.0), REAL_C(0.0), REAL_C(0.0));
     }
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int iir_is_not_in_this_build_t;
+
+#endif//FFITT_NO_FILTER

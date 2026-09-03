@@ -328,6 +328,58 @@ jobs:
           cmake --build build/conformation
           ./build/conformation/conformation
 
+      - name: Build the smallest useful combination
+        # THE SWITCHES THAT LEAVE AN AREA OUT MUST NOT ROT. Each one is off by
+        # default, thus nothing else in this workflow would ever build with one
+        # on, and a source that stopped compiling without its neighbours could
+        # sit broken for a long time.
+        #
+        # This builds core, linalg and util alone, which is the smallest
+        # combination the dependency table allows, and then links a small
+        # program against it. A library that builds and cannot be linked
+        # against has not been tested.
+        if: matrix.width == 32
+        run: |
+          cmake -S . -B build/smallest \
+            -DFFITT_NO_TRANSFORM=ON -DFFITT_NO_FILTER=ON \
+            -DFFITT_NO_ESTIMATE=ON -DFFITT_NO_DECOMPOSE=ON \
+            -DFFITT_NO_DETECT=ON -DFFITT_NO_INTERPOLATE=ON
+          cmake --build build/smallest
+          cat > /tmp/smallest.c <<'PROGRAM'
+          #include <ffitt/core/ringbuf.h>
+          #include <ffitt/linalg/matrix.h>
+          #include <ffitt/util/stats.h>
+          #include <stdio.h>
+          int main(void){
+              real_t data[8];
+              ringbuf_t buffer = ringbuf_alloc(8);
+              for(int i=0;i<8;i++){ data[i]=(real_t)(i+1); ringbuf_put(&buffer,data[i]); }
+              matrix_t m = matrix_create_unit_matrix(3);
+              printf("mean %.2f determinant %.2f\n",
+                     (double)stats_mean(data,8), (double)matrix_determinant(&m));
+              matrix_free(&m); ringbuf_free(&buffer);
+              return 0;}
+          PROGRAM
+          sed -i 's/^          //' /tmp/smallest.c
+          gcc -std=c99 -O2 -I. /tmp/smallest.c -Lbuild/smallest -lffitt -lm -o /tmp/smallest
+          /tmp/smallest
+
+      - name: Examine that a combination which cannot stand is refused
+        # The build must NAME the fault and stop. A switch that quietly gave a
+        # library missing what a caller needs would be worse than no switch.
+        if: matrix.width == 32
+        run: |
+          if cmake -S . -B build/impossible -DFFITT_NO_TRANSFORM=ON > /tmp/out 2>&1; then
+            echo "The build took a combination that cannot stand."
+            exit 1
+          fi
+          grep -q "calls into transform" /tmp/out || {
+            echo "The build refused, but not for the reason it should have:"
+            cat /tmp/out
+            exit 1
+          }
+          echo "Refused, and it said why."
+
       - name: Build and run the cost tests
         # THE HEADERS SAY WHAT THINGS COST AND NOTHING HELD THEM TO IT. movavg
         # says its work does not follow the window, resample says the filtering

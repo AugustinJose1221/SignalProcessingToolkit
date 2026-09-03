@@ -31,70 +31,175 @@ option(FFITT_REAL_64 "Hold every number in a double rather than a float." OFF)
 # file holds the measured error of every function it stands in for.
 option(FFITT_NO_LIBM "Use the library's own arithmetic and link no mathematics library." OFF)
 
-# The library sources. These sources use only the C standard library.
-set(FFITT_SOURCES
+# THE AREAS, AND LEAVING ONE OUT OF THE BUILD.
+#
+# The linker already drops what nothing calls. These switches go one step
+# further and never compile the area at all, which is what a build on a very
+# small flash wants to reason about, and what a shop that must account for
+# every line in the image needs.
+#
+# core cannot be left out: everything stands on it. What each of the others
+# needs is written below and the build refuses a combination that cannot
+# stand, rather than failing later with a name the caller has never heard of.
+# The list came from the symbols themselves and not from the includes: hht
+# names a type of decompose and calls nothing of it, thus transform does NOT
+# need decompose, which reading the includes would have said it did.
+
+option(FFITT_NO_LINALG "Leave the linalg area out of the build. It needs nothing else." OFF)
+option(FFITT_NO_UTIL "Leave the util area out of the build. It needs nothing else." OFF)
+option(FFITT_NO_INTERPOLATE "Leave the interpolate area out of the build. It needs util." OFF)
+option(FFITT_NO_DECOMPOSE "Leave the decompose area out of the build. It needs interpolate, util." OFF)
+option(FFITT_NO_ESTIMATE "Leave the estimate area out of the build. It needs linalg." OFF)
+option(FFITT_NO_TRANSFORM "Leave the transform area out of the build. It needs linalg." OFF)
+option(FFITT_NO_FILTER "Leave the filter area out of the build. It needs linalg, transform, util." OFF)
+option(FFITT_NO_DETECT "Leave the detect area out of the build. It needs transform, util." OFF)
+
+# A combination that cannot stand is named here and not left to the linker.
+function(ffitt_area_needs area needed)
+    if((NOT FFITT_NO_${area}) AND FFITT_NO_${needed})
+        string(TOLOWER "${area}" lower_area)
+        string(TOLOWER "${needed}" lower_needed)
+        message(FATAL_ERROR
+            "FFITT_NO_${needed} was asked for while the ${lower_area} area is "
+            "still in the build, and ${lower_area} calls into ${lower_needed}. "
+            "Leave ${lower_area} out as well, or keep ${lower_needed} in.")
+    endif()
+endfunction()
+
+ffitt_area_needs(INTERPOLATE UTIL)
+ffitt_area_needs(DECOMPOSE INTERPOLATE)
+ffitt_area_needs(DECOMPOSE UTIL)
+ffitt_area_needs(ESTIMATE LINALG)
+ffitt_area_needs(TRANSFORM LINALG)
+ffitt_area_needs(FILTER LINALG)
+ffitt_area_needs(FILTER TRANSFORM)
+ffitt_area_needs(FILTER UTIL)
+ffitt_area_needs(DETECT TRANSFORM)
+ffitt_area_needs(DETECT UTIL)
+
+# The sources, area by area, so that one can be left out whole.
+set(FFITT_SOURCES)
+
+list(APPEND FFITT_SOURCES
     ffitt/core/nolibm.c
     ffitt/core/real.c
     ffitt/core/ringbuf.c
-    ffitt/linalg/cmatrix.c
-    ffitt/linalg/cnum.c
-    ffitt/linalg/matrix.c
-    ffitt/linalg/eigen.c
-    ffitt/linalg/lstsq.c
-    ffitt/linalg/pmatrix.c
-    ffitt/linalg/poly.c
-    ffitt/linalg/quaternion.c
-    ffitt/linalg/vector.c
-    ffitt/linalg/vector2d.c
-    ffitt/interpolate/cspline.c
-    ffitt/interpolate/interp.c
-    ffitt/transform/bluestein.c
-    ffitt/transform/cepstrum.c
-    ffitt/transform/dct.c
-    ffitt/transform/dwt.c
-    ffitt/transform/fft.c
-    ffitt/transform/goertzel.c
-    ffitt/transform/hht.c
-    ffitt/transform/hilbert.c
-    ffitt/transform/window.c
-    ffitt/transform/correlate.c
-    ffitt/transform/convolve.c
-    ffitt/transform/csd.c
-    ffitt/transform/psd.c
-    ffitt/transform/slide.c
-    ffitt/transform/spectrogram.c
-    ffitt/transform/stft.c
-    ffitt/filter/fir.c
-    ffitt/filter/iir.c
-    ffitt/filter/savgol.c
-    ffitt/filter/movavg.c
-    ffitt/filter/medfilt.c
-    ffitt/filter/dcblock.c
-    ffitt/filter/detrend.c
-    ffitt/filter/hampel.c
-    ffitt/filter/adaptive.c
-    ffitt/filter/resample.c
-    ffitt/filter/lattice.c
-    ffitt/filter/rls.c
-    ffitt/filter/filtfilt.c
-    ffitt/filter/farrow.c
-    ffitt/estimate/ekf.c
-    ffitt/estimate/kalman.c
-    ffitt/estimate/propagate.c
-    ffitt/estimate/pll.c
-    ffitt/estimate/ukf.c
-    ffitt/decompose/emd.c
-    ffitt/decompose/imf.c
-    ffitt/util/binarysearch.c
-    ffitt/util/curve.c
-    ffitt/util/generate.c
-    ffitt/util/quantise.c
-    ffitt/util/stats.c
-    ffitt/util/peakdetect.c
-    ffitt/util/valleydetect.c
-    ffitt/detect/matched.c
-    ffitt/detect/delay.c
-    ffitt/detect/changepoint.c)
+)
+
+if(NOT FFITT_NO_LINALG)
+    list(APPEND FFITT_SOURCES
+        ffitt/linalg/cmatrix.c
+        ffitt/linalg/cnum.c
+        ffitt/linalg/eigen.c
+        ffitt/linalg/lstsq.c
+        ffitt/linalg/matrix.c
+        ffitt/linalg/pmatrix.c
+        ffitt/linalg/poly.c
+        ffitt/linalg/quaternion.c
+        ffitt/linalg/vector.c
+        ffitt/linalg/vector2d.c
+    )
+else()
+    add_compile_definitions(FFITT_NO_LINALG)
+endif()
+
+if(NOT FFITT_NO_UTIL)
+    list(APPEND FFITT_SOURCES
+        ffitt/util/binarysearch.c
+        ffitt/util/curve.c
+        ffitt/util/generate.c
+        ffitt/util/peakdetect.c
+        ffitt/util/quantise.c
+        ffitt/util/stats.c
+        ffitt/util/valleydetect.c
+    )
+else()
+    add_compile_definitions(FFITT_NO_UTIL)
+endif()
+
+if(NOT FFITT_NO_INTERPOLATE)
+    list(APPEND FFITT_SOURCES
+        ffitt/interpolate/cspline.c
+        ffitt/interpolate/interp.c
+    )
+else()
+    add_compile_definitions(FFITT_NO_INTERPOLATE)
+endif()
+
+if(NOT FFITT_NO_DECOMPOSE)
+    list(APPEND FFITT_SOURCES
+        ffitt/decompose/emd.c
+        ffitt/decompose/imf.c
+    )
+else()
+    add_compile_definitions(FFITT_NO_DECOMPOSE)
+endif()
+
+if(NOT FFITT_NO_ESTIMATE)
+    list(APPEND FFITT_SOURCES
+        ffitt/estimate/ekf.c
+        ffitt/estimate/kalman.c
+        ffitt/estimate/pll.c
+        ffitt/estimate/propagate.c
+        ffitt/estimate/ukf.c
+    )
+else()
+    add_compile_definitions(FFITT_NO_ESTIMATE)
+endif()
+
+if(NOT FFITT_NO_TRANSFORM)
+    list(APPEND FFITT_SOURCES
+        ffitt/transform/bluestein.c
+        ffitt/transform/cepstrum.c
+        ffitt/transform/convolve.c
+        ffitt/transform/correlate.c
+        ffitt/transform/csd.c
+        ffitt/transform/dct.c
+        ffitt/transform/dwt.c
+        ffitt/transform/fft.c
+        ffitt/transform/goertzel.c
+        ffitt/transform/hht.c
+        ffitt/transform/hilbert.c
+        ffitt/transform/psd.c
+        ffitt/transform/slide.c
+        ffitt/transform/spectrogram.c
+        ffitt/transform/stft.c
+        ffitt/transform/window.c
+    )
+else()
+    add_compile_definitions(FFITT_NO_TRANSFORM)
+endif()
+
+if(NOT FFITT_NO_FILTER)
+    list(APPEND FFITT_SOURCES
+        ffitt/filter/adaptive.c
+        ffitt/filter/dcblock.c
+        ffitt/filter/detrend.c
+        ffitt/filter/farrow.c
+        ffitt/filter/filtfilt.c
+        ffitt/filter/fir.c
+        ffitt/filter/hampel.c
+        ffitt/filter/iir.c
+        ffitt/filter/lattice.c
+        ffitt/filter/medfilt.c
+        ffitt/filter/movavg.c
+        ffitt/filter/resample.c
+        ffitt/filter/rls.c
+        ffitt/filter/savgol.c
+    )
+else()
+    add_compile_definitions(FFITT_NO_FILTER)
+endif()
+
+if(NOT FFITT_NO_DETECT)
+    list(APPEND FFITT_SOURCES
+        ffitt/detect/changepoint.c
+        ffitt/detect/delay.c
+        ffitt/detect/matched.c
+    )
+else()
+    add_compile_definitions(FFITT_NO_DETECT)
+endif()
 
 # The repository gives a library, thus the first target is a library. A library
 # needs no main function, and it always builds.

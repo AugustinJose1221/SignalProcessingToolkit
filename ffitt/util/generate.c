@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_UTIL is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_UTIL
+
 #ifndef TEST
 #include <ffitt/util/generate.h>
 #include <ffitt/core/defs.h>
@@ -561,3 +566,11 @@ bool generate_block(generate_t* generate, real_t* output, uint32_t count)
 
     return true;
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int generate_is_not_in_this_build_t;
+
+#endif//FFITT_NO_UTIL
