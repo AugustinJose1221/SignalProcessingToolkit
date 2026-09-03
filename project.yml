@@ -165,6 +165,19 @@
 #       '*':            # Add '-foo' to compilation of all files in all test executables
 #         - -foo
 
+# THE ONE TEST THAT NEEDS THE LINKER'S HELP.
+#
+# Test_heap_refusal examines what every allocator of the library does when the
+# heap gives nothing. There is no way to ask for that from inside C, thus the
+# linker is told to send malloc and calloc through a pair of functions in the
+# test, which refuse on command. Only that one executable is built this way.
+:flags:
+  :test:
+    :link:
+      'Test_heap_refusal':
+        - -Wl,--wrap=malloc
+        - -Wl,--wrap=calloc
+
 # Configuration Options specific to CMock. See CMock docs for details
 :cmock:
   # Core conffiguration

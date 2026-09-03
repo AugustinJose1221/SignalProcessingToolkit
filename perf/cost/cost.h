@@ -1,5 +1,5 @@
-#ifndef __COST_H__
-#define __COST_H__
+#ifndef COST_H
+#define COST_H
 
 #include <ffitt/core/real.h>
 
@@ -108,4 +108,4 @@ void run_movavg_cost_tests(void);
 void run_goertzel_cost_tests(void);
 void run_convolve_cost_tests(void);
 
-#endif//__COST_H__
+#endif//COST_H

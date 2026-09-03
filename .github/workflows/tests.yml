@@ -167,12 +167,29 @@ jobs:
         # number the code cannot meet while those guards stand, and taking the
         # guards out to meet it would be the wrong trade.
         #
+        # BRANCHES ARE HELD AT 90, AND THE ASSERTIONS ARE LEFT OUT OF THE COUNT.
+        #
+        # An ASSERT states what the CALLER must have got right, and its failing
+        # side calls abort. A suite that passes has by construction never taken
+        # that side, thus counting those branches as uncovered measures nothing
+        # at all. There are 964 of them, and left in they hold the whole at 74
+        # percent and hide every real gap behind a wall of permanently red
+        # branches that no test could ever turn green.
+        #
+        # Left out, the number is 91.2 and it means something. What is still
+        # uncovered is mostly the operand combinations of the conditions in the
+        # validators: a refusal is tested, and which of the two halves of an
+        # `&&` caused it is not. The gate stands at 90, which is the same
+        # margin the line gate keeps against its own 98.3.
+        #
         # gcovr is called straight rather than through the plugin, because the
         # plugin fails by raising an exception and not by saying which number
         # was missed.
         run: |
           gcovr -r . --filter 'ffitt/' --print-summary \
-            --fail-under-line 98 --fail-under-function 100
+            --exclude-lines-by-pattern '\s*ASSERT\(.*' \
+            --fail-under-line 98 --fail-under-function 100 \
+            --fail-under-branch 90
 
       - name: Keep the test report
         if: always()
@@ -261,7 +278,7 @@ jobs:
           sed -i 's/RUN_EXAMPLE     RUN_NONE/RUN_EXAMPLE     RUN_MATRIX_EXAMPLE/' examples/run_example.h
           cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/example
-          ./build/example/signalproc_example
+          ./build/example/ffitt_example
 
       - name: Build every example
         # Each example holds its own main function inside a condition on
@@ -273,12 +290,13 @@ jobs:
                          RESAMPLE PSD CORRELATE ADAPTIVE CLEAN FILTFILT \
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
                          SPECTROGRAM COHERENCE SHAPES CONTINUOUS \
-                         SURVEY DETECT; do
+                         SURVEY DETECT PLL DETREND INTERP QUANTISE \
+                         DCT CONVOLVE CEPSTRUM BLUESTEIN FARROW LATTICE; do
             echo "== $example"
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} > /dev/null
             cmake --build build/example > /dev/null
-            ./build/example/signalproc_example > /dev/null
+            ./build/example/ffitt_example > /dev/null
           done
           git checkout examples/run_example.h
 
@@ -306,15 +324,15 @@ jobs:
         # function a caller picks. The benchmark measures and prints, thus a
         # claim could stop being true and the table would still be green.
         #
-        # AT 32 BITS ONLY, AND ON PURPOSE. Two of the twelve claims break at 64
-        # bits, and the cause is not the library: GCC 13.3 builds the same
-        # transform more than six times slower at 64 bits with -O2 than with
-        # -O1, and the answers do not change. perf/cost/README.md holds the
-        # measurement. A job that is known to be red teaches nobody anything,
-        # thus 64 bits waits until the transform is dealt with.
-        if: matrix.width == 32
+        # AT BOTH WIDTHS. Two of the twelve claims used to break at 64 bits,
+        # because the butterfly of the transform handed a cnum_t to a function
+        # and took one back, and at 64 bits that pair is sixteen bytes and what
+        # the optimiser built from it was slower than the same code unoptimised.
+        # The butterfly is now written on the parts, the transform is fourteen
+        # times faster at 64 bits, and all twelve claims hold at both widths.
         run: |
-          cmake -S . -B build/cost -DBUILD_COST_TESTS=ON
+          cmake -S . -B build/cost -DBUILD_COST_TESTS=ON \
+            -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/cost
           ./build/cost/cost
 
@@ -339,7 +357,7 @@ jobs:
           ./build/benchmark/benchmark
 
       - name: Examine that the table of costs names every operation
-        # README.md holds a table of what each operation costs, written from
+        # docs/COSTS.md holds a table of what each operation costs, written from
         # this benchmark by scripts/benchmark_table.py. This asks that the
         # table still names every operation the benchmark measures, so that an
         # operation added here and forgotten there is caught.
@@ -395,7 +413,8 @@ jobs:
                          RESAMPLE PSD CORRELATE ADAPTIVE CLEAN FILTFILT \
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
                          SPECTROGRAM COHERENCE SHAPES CONTINUOUS \
-                         SURVEY DETECT; do
+                         SURVEY DETECT PLL DETREND INTERP QUANTISE \
+                         DCT CONVOLVE CEPSTRUM BLUESTEIN FARROW LATTICE; do
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             for source in examples/*.c; do
               gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1

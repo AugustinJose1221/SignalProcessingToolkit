@@ -495,3 +495,101 @@ void test_two_attitudes_almost_the_same_are_joined_by_a_straight_line(void)
     quaternion_t at_start = quaternion_slerp(a, b, REAL_C(0.0));
     TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), a.w, at_start.w);
 }
+
+// EVERY OUT PARAMETER MAY BE NULL, AND EACH ONE ON ITS OWN.
+//
+// The header says "Give NULL for anything not wanted". The tests gave NULL for
+// the three of the axis together and never for one alone, thus the guard on
+// each one was never reached by itself. A caller who wants the axis and not
+// the angle, or one part of the axis and not the others, is doing what the
+// header invites.
+void test_quaternion_each_answer_of_the_axis_and_angle_may_be_left_out(void)
+{
+    quaternion_t q = quaternion_from_axis_angle(REAL_C(0.0), REAL_C(0.0),
+                                                REAL_C(1.0), REAL_C(1.2));
+    real_t x = REAL_C(-9.0);
+    real_t y = REAL_C(-9.0);
+    real_t z = REAL_C(-9.0);
+    real_t angle = REAL_C(-9.0);
+
+    // The axis without the angle.
+    quaternion_to_axis_angle(q, &x, &y, &z, NULL);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(1.0), z);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(-9.0), angle);
+
+    // One part of the axis at a time, the others left out.
+    x = REAL_C(-9.0);
+    quaternion_to_axis_angle(q, &x, NULL, NULL, NULL);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0), x);
+
+    y = REAL_C(-9.0);
+    quaternion_to_axis_angle(q, NULL, &y, NULL, NULL);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0), y);
+
+    z = REAL_C(-9.0);
+    quaternion_to_axis_angle(q, NULL, NULL, &z, NULL);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(1.0), z);
+
+    // Nothing at all wanted. It must simply do nothing and not fall over.
+    quaternion_to_axis_angle(q, NULL, NULL, NULL, NULL);
+}
+
+// A turn of nothing has no axis, and each answer of it may be left out too.
+void test_quaternion_a_turn_of_nothing_answers_each_part_on_its_own(void)
+{
+    quaternion_t q = quaternion_identity();
+    real_t x = REAL_C(-9.0);
+    real_t y = REAL_C(-9.0);
+    real_t z = REAL_C(-9.0);
+
+    // The chosen axis of a turn of nothing is 1, 0, 0.
+    quaternion_to_axis_angle(q, &x, NULL, NULL, NULL);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(1.0), x);
+
+    quaternion_to_axis_angle(q, NULL, &y, NULL, NULL);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0), y);
+
+    quaternion_to_axis_angle(q, NULL, NULL, &z, NULL);
+    TEST_ASSERT_REAL_WITHIN(REAL_C(0.0001), REAL_C(0.0), z);
+
+    quaternion_to_axis_angle(q, NULL, NULL, NULL, NULL);
+}
+
+// THE FOUR ROADS OUT OF A MATRIX, ONE FOR EACH LARGEST ELEMENT.
+//
+// Reading a quaternion back from a matrix divides by a root, and the root that
+// is largest decides which of four forms is used, so that the division never
+// runs close to nothing. Which form is taken depends on which of the trace,
+// m00, m11 and m22 is largest. A turn about each of the three axes, and one
+// about none of them, reaches all four.
+void test_quaternion_every_road_out_of_a_matrix_gives_the_turn_back(void)
+{
+    static const real_t AXIS[4][3] = {
+        {REAL_C(0.0), REAL_C(0.0), REAL_C(1.0)},   // a small turn: the trace
+        {REAL_C(1.0), REAL_C(0.0), REAL_C(0.0)},   // half a circle about x
+        {REAL_C(0.0), REAL_C(1.0), REAL_C(0.0)},   // half a circle about y
+        {REAL_C(0.0), REAL_C(0.0), REAL_C(1.0)}    // half a circle about z
+    };
+    static const real_t ANGLE[4] = {
+        REAL_C(0.3), REAL_C(3.1), REAL_C(3.1), REAL_C(3.1)
+    };
+
+    for(uint32_t which = 0; which < 4u; which++)
+    {
+        quaternion_t q = quaternion_from_axis_angle(AXIS[which][0],
+                                                    AXIS[which][1],
+                                                    AXIS[which][2],
+                                                    ANGLE[which]);
+        matrix_t rotation = matrix_alloc(3, 3);
+
+        quaternion_to_matrix_into(q, &rotation);
+
+        quaternion_t back = quaternion_from_matrix(&rotation);
+
+        // A quaternion and its negation are the same attitude, thus the two
+        // are compared as attitudes and not number by number.
+        TEST_ASSERT_TRUE(quaternion_is_same_attitude(q, back, REAL_C(0.0001)));
+
+        matrix_free(&rotation);
+    }
+}

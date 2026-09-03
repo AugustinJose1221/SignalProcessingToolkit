@@ -1,9 +1,9 @@
-#ifndef __CONFORMATION_POLY_H__
-#define __CONFORMATION_POLY_H__
+#ifndef CONFORMATION_POLY_H
+#define CONFORMATION_POLY_H
 
 #include <ffitt/linalg/poly.h>
 #include <perf/conformation/support.h>
 
 void run_poly_conformation_tests(void);
 
-#endif//__CONFORMATION_POLY_H__
+#endif//CONFORMATION_POLY_H

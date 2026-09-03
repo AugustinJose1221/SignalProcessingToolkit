@@ -353,6 +353,51 @@ def find_functions_without_a_comment():
     return faults
 
 
+# A link in a Markdown file of this repository, and where it points.
+MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)#]+?)(?:#[^)]*)?\)")
+
+
+def find_links_that_point_nowhere():
+    """Name every link of a Markdown file that points at a file not there.
+
+    WHY THIS IS EXAMINED. README.md was split, and the parts that moved out of
+    it left a pointer behind. A pointer that names a file that is not there is
+    worse than no pointer: it reads as an answer and gives none. Nothing caught
+    such a link, thus a file could be moved or renamed and every pointer to it
+    left broken with the build still green.
+
+    A link that names something outside this repository is left alone; only a
+    path is followed.
+    """
+    faults = []
+
+    for root, directories, names in os.walk(REPOSITORY):
+        directories[:] = [d for d in directories
+                          if d not in ("build", "vendor", "node_modules")
+                          and not d.startswith(".")]
+
+        for name in sorted(names):
+            if not name.endswith(".md"):
+                continue
+
+            path = os.path.join(root, name)
+
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                text = handle.read()
+
+            for match in MARKDOWN_LINK.finditer(text):
+                target = match.group(1).strip()
+
+                if target.startswith(("http://", "https://", "mailto:")):
+                    continue
+
+                if not os.path.exists(os.path.join(root, target)):
+                    faults.append("%s points at %s, which is not there."
+                                  % (os.path.relpath(path, REPOSITORY), target))
+
+    return faults
+
+
 def main(argv):
     check = "--check" in argv[1:]
     documents = build_documents()
@@ -360,6 +405,8 @@ def main(argv):
     faults = find_functions_without_a_comment()
 
     faults.extend(find_areas_without_a_guide())
+
+    faults.extend(find_links_that_point_nowhere())
 
     for path in find_files_that_belong_to_no_module(documents):
         faults.append("%s belongs to no module any more. Remove it."

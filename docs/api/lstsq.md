@@ -98,8 +98,10 @@ least total squared error.
 The coefficients hold LSTSQ_COEFFICIENT_COUNT values, lowest power first:
 the first is the constant, the second multiplies x, the third x squared.
 
-This function gets memory from the heap for the matrices it needs. It runs
-once, when a calibration is worked out, and not while a device runs.
+WHAT MEMORY THIS TAKES. The matrices of the fit come from the heap, and
+nothing else does: the places are brought near zero as they are read and
+never copied into a list. A fit runs once, when a calibration is worked out,
+and not while a device runs.
 
 Give false if lstsq_is_valid_fit is false, or if the points cannot fix a
 polynomial of that order. That happens when too many of them share an x,
@@ -120,7 +122,7 @@ width then comes back as 1, which changes nothing and lets the caller carry
 ### `lstsq_polyfit_scaled`
 
 ```c
-// are not a polynomial in x and using them as one gives nonsense. bool lstsq_polyfit_scaled(const real_t* x, const real_t* y, uint32_t size, uint32_t order, real_t* coefficients,
+// This takes the same memory as lstsq_polyfit and no more. bool lstsq_polyfit_scaled(const real_t* x, const real_t* y, uint32_t size, uint32_t order, real_t* coefficients,
 ```
 
 Fit a polynomial through the points, bringing x to a range about -1 to 1
@@ -132,6 +134,7 @@ fails at any order and at either width.
 
 The coefficients are for the SCALED place, thus they must be read with
 lstsq_evaluate_scaled and the centre and the width that come back here. They
+are not a polynomial in x and using them as one gives nonsense.
 
 ### `lstsq_evaluate_scaled`
 

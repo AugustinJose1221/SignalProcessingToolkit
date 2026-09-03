@@ -1,9 +1,9 @@
-#ifndef __CONFORMATION_FFT_H__
-#define __CONFORMATION_FFT_H__
+#ifndef CONFORMATION_FFT_H
+#define CONFORMATION_FFT_H
 
 #include <ffitt/transform/fft.h>
 #include <perf/conformation/support.h>
 
 void run_fft_conformation_tests(void);
 
-#endif//__CONFORMATION_FFT_H__
+#endif//CONFORMATION_FFT_H

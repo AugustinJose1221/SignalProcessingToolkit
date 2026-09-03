@@ -205,8 +205,10 @@ bool lstsq_solve(matrix_t* model, matrix_t* readings, matrix_t* answer,
 // The coefficients hold LSTSQ_COEFFICIENT_COUNT values, lowest power first:
 // the first is the constant, the second multiplies x, the third x squared.
 //
-// This function gets memory from the heap for the matrices it needs. It runs
-// once, when a calibration is worked out, and not while a device runs.
+// WHAT MEMORY THIS TAKES. The matrices of the fit come from the heap, and
+// nothing else does: the places are brought near zero as they are read and
+// never copied into a list. A fit runs once, when a calibration is worked out,
+// and not while a device runs.
 //
 // Give false if lstsq_is_valid_fit is false, or if the points cannot fix a
 // polynomial of that order. That happens when too many of them share an x,
@@ -234,6 +236,8 @@ void lstsq_scaling(const real_t* x, uint32_t size, real_t* centre,
 // The coefficients are for the SCALED place, thus they must be read with
 // lstsq_evaluate_scaled and the centre and the width that come back here. They
 // are not a polynomial in x and using them as one gives nonsense.
+//
+// This takes the same memory as lstsq_polyfit and no more.
 bool lstsq_polyfit_scaled(const real_t* x, const real_t* y, uint32_t size,
                           uint32_t order, real_t* coefficients,
                           real_t* centre, real_t* width);

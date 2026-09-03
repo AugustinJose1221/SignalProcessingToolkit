@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.17)
 
 # Keep this version the same as the newest entry of CHANGELOG.md and the newest
 # git tag. The section "Making a release" of README.md gives the steps.
-project(Ffitt VERSION 0.18.3 LANGUAGES C)
+project(Ffitt VERSION 0.18.4 LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -24,7 +24,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 option(FFITT_REAL_64 "Hold every number in a double rather than a float." OFF)
 
 # The library sources. These sources use only the C standard library.
-set(SIGNALPROC_SOURCES
+set(FFITT_SOURCES
     ffitt/core/real.c
     ffitt/core/ringbuf.c
     ffitt/linalg/cmatrix.c
@@ -88,15 +88,15 @@ set(SIGNALPROC_SOURCES
 
 # The repository gives a library, thus the first target is a library. A library
 # needs no main function, and it always builds.
-add_library(signalproc STATIC ${SIGNALPROC_SOURCES})
-target_link_libraries(signalproc m)
+add_library(ffitt STATIC ${FFITT_SOURCES})
+target_link_libraries(ffitt m)
 
 # PUBLIC and not PRIVATE, because the width is part of what a caller sees. Every
 # structure of the library holds real_t, thus a program built at one width
 # cannot use a library built at the other. The example, the benchmark and the
 # conformation tests all link this target and take the width with it.
 if(FFITT_REAL_64)
-    target_compile_definitions(signalproc PUBLIC FFITT_REAL_64)
+    target_compile_definitions(ffitt PUBLIC FFITT_REAL_64)
 endif()
 
 # Say which width was built. The reading stands in the log of every build, so
@@ -113,7 +113,7 @@ endif()
 option(BUILD_EXAMPLE "Build the example program. First choose an example in examples/run_example.h." OFF)
 
 if(BUILD_EXAMPLE)
-    add_executable(signalproc_example
+    add_executable(ffitt_example
         examples/emd.c
         examples/matrix.c
         examples/fft.c
@@ -140,9 +140,19 @@ if(BUILD_EXAMPLE)
         examples/shapes.c
         examples/continuous.c
         examples/survey.c
-        examples/detect.c)
+        examples/detect.c
+        examples/pll.c
+        examples/detrend.c
+        examples/interp.c
+        examples/quantise.c
+        examples/dct.c
+        examples/convolve.c
+        examples/cepstrum.c
+        examples/bluestein.c
+        examples/farrow.c
+        examples/lattice.c)
 
-    target_link_libraries(signalproc_example signalproc m)
+    target_link_libraries(ffitt_example ffitt m)
 endif()
 
 # The benchmark measures how long each operation of the library takes. It needs
@@ -162,7 +172,7 @@ if(BUILD_BENCHMARK)
         perf/benchmark/estimate.c
         perf/benchmark/run.c)
 
-    target_link_libraries(benchmark signalproc m)
+    target_link_libraries(benchmark ffitt m)
 endif()
 
 # The cost tests hold the headers to what they claim an operation costs. The
@@ -200,7 +210,7 @@ if(BUILD_COST_TESTS)
         perf/cost/convolve.c
         perf/cost/run.c)
 
-    target_link_libraries(cost signalproc m)
+    target_link_libraries(cost ffitt m)
 endif()
 
 # The conformation tests compare the results of the library with the results of
@@ -226,5 +236,5 @@ if(BUILD_CONFORMATION_TESTS)
         perf/conformation/dwt/dwt.c
         perf/conformation/run.c)
 
-    target_link_libraries(conformation signalproc GSL::gsl GSL::gslcblas m)
+    target_link_libraries(conformation ffitt GSL::gsl GSL::gslcblas m)
 endif()

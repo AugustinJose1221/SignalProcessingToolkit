@@ -24,6 +24,8 @@
 #include <ffitt/linalg/cnum.h>
 #include <ffitt/linalg/vector.h>
 #include <ffitt/linalg/vector2d.h>
+#include <ffitt/linalg/eigen.h>
+#include <ffitt/linalg/poly.h>
 #include <math.h>
 #include <stdio.h>
 
@@ -250,11 +252,120 @@ static void how_alike_are_two_readings(void)
     vector_free(&c);
 }
 
+
+// ---------------------------------------------------------------------------
+// Which way does the structure give, and by how much more.
+//
+// Two accelerometers on a machine frame, at right angles. Under running the
+// frame wobbles, and the wobble is not the same size in every direction: the
+// frame is stiff one way and soft another, and the soft way is where a crack
+// will start.
+//
+// The covariance between the two readings holds that, and its eigenvectors are
+// the two directions themselves: the largest eigenvalue is the soft direction,
+// where the frame moves most, and the smallest is the stiff one. The ratio of
+// the two says how much more one gives than the other, which is what
+// eigen_condition answers.
+//
+// A number near 1 means the frame gives equally in every direction. A large
+// number means one direction is far softer, and that direction is where to
+// look.
+// ---------------------------------------------------------------------------
+static void which_way_does_it_give(void)
+{
+    printf("\nWHICH WAY THE FRAME GIVES\n");
+
+    // The covariance of the two readings, worked out from a run. It is
+    // symmetric, which is the shape eigen_solve is written for.
+    matrix_t covariance = matrix_alloc(2, 2);
+    matrix_t directions = matrix_alloc(2, 2);
+    real_t sizes[2];
+
+    matrix_add_element(&covariance, 0, 0, REAL_C(4.2));
+    matrix_add_element(&covariance, 0, 1, REAL_C(2.6));
+    matrix_add_element(&covariance, 1, 0, REAL_C(2.6));
+    matrix_add_element(&covariance, 1, 1, REAL_C(2.8));
+
+    if(!eigen_solve(&covariance, sizes, &directions))
+    {
+        printf("  The eigenvalues could not be found.\n");
+    }
+    else
+    {
+        printf("  The frame moves by %.2f one way and %.2f the other.\n",
+               (double)sizes[0], (double)sizes[1]);
+        printf("  The soft direction is (%.2f, %.2f) in the axes of the two\n",
+               (double)matrix_get_element(&directions, 0, 0),
+               (double)matrix_get_element(&directions, 1, 0));
+        printf("  sensors, which is not either sensor's own axis: nobody\n");
+        printf("  mounted them along the way the frame gives.\n");
+        printf("  One way gives %.1f times as much as the other.\n",
+               (double)eigen_condition(sizes, 2u));
+    }
+
+    matrix_free(&covariance);
+    matrix_free(&directions);
+}
+
+// ---------------------------------------------------------------------------
+// Will this filter stay put, or will it run away.
+//
+// A filter with feedback is stable only if the roots of its denominator lie
+// inside the unit circle. Outside it, the filter's own output feeds back
+// larger than it went in, and the answer grows without bound: the first
+// recording is fine, and an hour later the output is nonsense.
+//
+// A caller who designs a filter through the iir module gets a stable one. A
+// caller who edits the coefficients by hand, or reads them from a file, or
+// works them out on a machine with fewer digits than the design assumed, may
+// not. This is the check to run before trusting them.
+// ---------------------------------------------------------------------------
+static void will_the_filter_stay_put(void)
+{
+    printf("\nWILL THE FILTER STAY PUT\n");
+
+    // Two denominators of order 2, written lowest power first.
+    static const real_t STEADY[3] = {
+        REAL_C(0.25), REAL_C(-0.90), REAL_C(1.0)
+    };
+    static const real_t RUNAWAY[3] = {
+        REAL_C(1.30), REAL_C(-1.90), REAL_C(1.0)
+    };
+
+    static const real_t* const WHICH[2] = {STEADY, RUNAWAY};
+    static const char* const NAME[2] = {"the designed one", "one edited by hand"};
+
+    for(uint32_t index = 0; index < 2u; index++)
+    {
+        cnum_t roots[2];
+        bool inside = poly_is_inside_circle(WHICH[index], 2u);
+
+        printf("  %-20s %s\n", NAME[index],
+               inside ? "stays put" : "RUNS AWAY");
+
+        // WHERE the roots are, for the one that does not stay put. A caller
+        // mending a filter needs to know which pole went out, and by how far.
+        if(!inside && poly_roots(WHICH[index], 2u, roots))
+        {
+            for(uint32_t which = 0; which < 2u; which++)
+            {
+                printf("      a pole at %.3f%+.3fi, which is %.3f from the\n",
+                       (double)cnum_real(roots[which]),
+                       (double)cnum_imaginary(roots[which]),
+                       (double)cnum_magnitude(roots[which]));
+                printf("      middle, and anything past 1.000 runs away\n");
+            }
+        }
+    }
+}
+
 int main(void)
 {
     the_rotating_joint();
     the_coupled_coils();
     how_alike_are_two_readings();
+    which_way_does_it_give();
+    will_the_filter_stay_put();
 
     return 0;
 }

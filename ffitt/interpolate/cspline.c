@@ -29,7 +29,21 @@ cspline_t cspline_alloc(uint32_t size)
     cspline.c = (real_t*)malloc((size-1)*sizeof(real_t));
     cspline.d = (real_t*)malloc((size-1)*sizeof(real_t));
     cspline.dynamic_alloc = true;
-    
+
+    if((cspline.x == NULL) || (cspline.y == NULL) || (cspline.b == NULL)
+       || (cspline.c == NULL) || (cspline.d == NULL))
+    {
+        cspline_free(cspline);
+
+        cspline.x = NULL;
+        cspline.y = NULL;
+        cspline.b = NULL;
+        cspline.c = NULL;
+        cspline.d = NULL;
+        cspline.size = 0;
+        cspline.dynamic_alloc = false;
+    }
+
     return cspline;
 }
 
@@ -63,6 +77,19 @@ cspline_mempool_t cspline_alloc_mempool(uint32_t size)
     mempool.dp = (real_t*)malloc((size-1)*sizeof(real_t));
     mempool.dx = (real_t*)malloc((size-1)*sizeof(real_t));
     mempool.dynamic_alloc = true;
+
+    if((mempool.d == NULL) || (mempool.b == NULL) || (mempool.q == NULL)
+       || (mempool.dp == NULL) || (mempool.dx == NULL))
+    {
+        cspline_free_mempool(mempool);
+
+        mempool.d = NULL;
+        mempool.b = NULL;
+        mempool.q = NULL;
+        mempool.dp = NULL;
+        mempool.dx = NULL;
+        mempool.dynamic_alloc = false;
+    }
 
     return mempool;
 }

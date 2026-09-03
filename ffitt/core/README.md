@@ -12,6 +12,32 @@ share, thus they hold no `.c` file and no function.
 | `defs.h` | `ASSERT` |
 | `point2d.h` | A point on a plane |
 
+## When the heap gives nothing
+
+Every module that takes memory offers two ways to get it: a `*_alloc` that
+takes it from the heap, and a `*_static_alloc` that uses memory the caller
+already holds. The static way cannot fail. The heap way can, and every module
+answers it THE SAME WAY:
+
+- what was already got is given back,
+- every pointer is left NULL,
+- the size fields are set to nothing,
+- `dynamic_alloc` is set to false, because a thing that holds nothing owns
+  nothing, and giving it to `*_free` must stay harmless,
+- and that struct is given back.
+
+Thus a caller examines a size, or a pointer, to know whether it got what it
+asked for. A struct that says it holds nothing is safe to free and safe to
+throw away.
+
+**Why this is written down.** Eleven modules did not do it. They read the
+answer of `malloc` straight into the struct and carried on, and four of them —
+`fir`, `iir`, `medfilt` and `savgol` — then cleared the list they had just
+failed to get, which is a write through NULL. The other seven handed back a
+struct whose size said it held memory that it did not. The modules that did
+guard, `rls` and `bluestein` among them, already worked this way; this is their
+rule, written down and made to hold everywhere.
+
 ## real.h
 
 **Every number in the library is a `real_t`.** No module anywhere spells

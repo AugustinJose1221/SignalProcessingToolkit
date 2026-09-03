@@ -23,7 +23,14 @@ REPOSITORY = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Unity calls these two functions before and after each test. The names come
 # from Unity, thus this repository cannot change them.
-ALLOWED_NAMES = {"setUp", "tearDown", "main"}
+#
+# The two that begin with __wrap_ come from the LINKER. Asked to send a call
+# through a function of the test, it looks for exactly that name and no other.
+# Test_heap_refusal uses it to make the heap refuse, which is the only way to
+# reach the guard that every allocator carries. The names are the linker's and
+# not this library's, thus the scheme cannot ask them to change.
+ALLOWED_NAMES = {"setUp", "tearDown", "main",
+                 "__wrap_malloc", "__wrap_calloc"}
 
 # The library lies under this directory. Each file there holds one module, and
 # the name of the file is the name of the module.
@@ -127,6 +134,15 @@ def parameter_names(parameters):
     return names
 
 
+# A NAME THAT BEGINS WITH TWO UNDERSCORES BELONGS TO THE IMPLEMENTATION.
+#
+# C keeps every such name for the compiler and its own headers, thus a library
+# that uses one is standing where it was not invited. Fourteen headers guarded
+# themselves with names of that shape, __DEF_H__ among them, while every other
+# header of the library used the clean form. This finds them.
+RESERVED_NAME = re.compile(r"^__")
+
+
 def check_file(path, faults, prefix=None):
     """Examine one file. The prefix is the name of its module, or None."""
     def fault(name, message):
@@ -150,6 +166,10 @@ def check_file(path, faults, prefix=None):
         name = match.group("name")
         if not MACRO_NAME.match(name):
             fault(name, "the macro '%s' must be in upper case" % name)
+        if RESERVED_NAME.match(name):
+            fault(name, "the macro '%s' begins with two underscores, which "
+                        "names a thing that belongs to the compiler and not "
+                        "to this library" % name)
 
     if path.endswith(".h"):
         declarations = list(PROTOTYPE.finditer(text))

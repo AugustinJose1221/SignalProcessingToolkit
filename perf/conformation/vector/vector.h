@@ -1,5 +1,5 @@
-#ifndef __CONFORMATION_VECTOR_H__
-#define __CONFORMATION_VECTOR_H__
+#ifndef CONFORMATION_VECTOR_H
+#define CONFORMATION_VECTOR_H
 
 #include <ffitt/linalg/vector.h>
 #include <perf/conformation/support.h>
@@ -44,4 +44,4 @@ static inline bool vector_is_near_enough(vector_t* a, vector_t* b)
 void run_vector_static_conformation_tests(void);
 void run_vector_dynamic_conformation_tests(void);
 
-#endif//__CONFORMATION_VECTOR_H__
+#endif//CONFORMATION_VECTOR_H

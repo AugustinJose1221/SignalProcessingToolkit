@@ -28,6 +28,20 @@ adaptive_t adaptive_alloc(uint32_t length)
     adaptive.energy = REAL_C(0.0);
     adaptive.dynamic_alloc = true;
 
+    // The reset writes through the list, thus it must not be reached with
+    // nothing to write to. The history is a buffer of its own and answers for
+    // itself: a size of nothing says it got nothing.
+    if((adaptive.coefficient == NULL) || (adaptive.history.size == 0u))
+    {
+        adaptive_free(&adaptive);
+
+        adaptive.coefficient = NULL;
+        adaptive.length = 0;
+        adaptive.dynamic_alloc = false;
+
+        return adaptive;
+    }
+
     adaptive_reset(&adaptive);
 
     return adaptive;

@@ -18,6 +18,12 @@ vector_t vector_alloc(uint32_t size)
     vector.data = (real_t*)malloc(sizeof(real_t)*size);
     vector.dynamic_alloc = true;
 
+    if(vector.data == NULL)
+    {
+        vector.size = 0;
+        vector.dynamic_alloc = false;
+    }
+
     return vector;
 }
 
@@ -98,7 +104,13 @@ real_t vector_norm(vector_t* x)
 void vector_free(vector_t* vector)
 {
     ASSERT(vector != NULL);
-    ASSERT(vector->data != NULL);
+
+    // THE DATA IS NOT ASSERTED TO BE THERE. A vector whose allocation was
+    // refused by the heap holds nothing, and ffitt/core/README.md says such a
+    // vector must stay safe to free. An assertion here took that away, and no
+    // other free of the library carried one. It never fired because the tests
+    // were built with assertions switched off and nothing could ask the heap
+    // to refuse.
 
     if(vector->dynamic_alloc)
     {

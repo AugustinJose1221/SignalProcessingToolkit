@@ -28,6 +28,18 @@ fir_t fir_alloc(uint32_t length)
     fir.position = 0;
     fir.dynamic_alloc = true;
 
+    // The clearing below writes through both lists, thus it must not be
+    // reached with nothing to write to.
+    if((fir.coefficient == NULL) || (fir.history == NULL))
+    {
+        fir_free(&fir);
+
+        fir.length = 0;
+        fir.dynamic_alloc = false;
+
+        return fir;
+    }
+
     for(uint32_t index = 0; index < length; index++)
     {
         fir.coefficient[index] = REAL_C(0.0);
@@ -378,10 +390,15 @@ bool fir_design_band_pass(fir_t* fir, real_t low_cutoff, real_t high_cutoff)
 bool fir_design_band_stop(fir_t* fir, real_t low_cutoff, real_t high_cutoff)
 {
     ASSERT(fir != NULL);
+
     // The change of the sign works with a middle coefficient only, thus the
     // length must be odd.
-    ASSERT((fir->length % 2) == 1);
-
+    //
+    // THIS IS ANSWERED AND NOT ASSERTED. The header promises false for an even
+    // length, thus an even length is not a caller bug but an answer the caller
+    // is entitled to. An assertion stood here as well and would have stopped
+    // the program instead of giving that answer; it never fired only because
+    // the tests were built with assertions switched off.
     if((fir->length % 2u) != 1u)
     {
         return false;

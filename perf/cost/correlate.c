@@ -25,11 +25,10 @@
 // plain method walks its samples in order, which a machine does well. Thus the
 // claim is held at four times and the margin is in the comment and not hidden.
 //
-// THIS CLAIM BREAKS AT 64 BITS AND HOLDS AT 32, AND THE LIBRARY IS NOT THE
-// REASON. GCC 13.3 builds the same transform more than six times slower at 64
-// bits with -O2 than it does with -O1, and the answers do not change by a
-// digit. perf/cost/README.md holds the measurement. Nothing here is weakened
-// to hide it.
+// THIS CLAIM ONCE BROKE AT 64 BITS AND NOW HOLDS AT BOTH. The butterfly of the
+// transform handed a cnum_t to a function and took one back, which at 64 bits
+// is a sixteen byte pair that GCC 13.3 built badly at -O2. It is written on the
+// parts now. This measured 1.52 against the 4.00 it asks for; it measures 15.95.
 
 #include <perf/cost/cost.h>
 

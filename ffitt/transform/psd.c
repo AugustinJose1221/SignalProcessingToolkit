@@ -32,6 +32,22 @@ psd_t psd_alloc(uint32_t block)
     psd.window_power = REAL_C(0.0);
     psd.dynamic_alloc = true;
 
+    // The design writes the window through the lists, thus it must not be
+    // reached with nothing to write to.
+    if((psd.window == NULL) || (psd.windowed == NULL) || (psd.spectrum == NULL)
+       || (psd.fft.size == 0u))
+    {
+        psd_free(&psd);
+
+        psd.window = NULL;
+        psd.windowed = NULL;
+        psd.spectrum = NULL;
+        psd.block = 0;
+        psd.dynamic_alloc = false;
+
+        return psd;
+    }
+
     psd_design(&psd, block / 2u, WINDOW_HANN, REAL_C(0.0));
 
     return psd;
