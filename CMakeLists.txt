@@ -166,7 +166,9 @@ if(BUILD_EXAMPLE)
         examples/cepstrum.c
         examples/bluestein.c
         examples/farrow.c
-        examples/lattice.c)
+        examples/lattice.c
+        examples/noheap.c
+        examples/listen.c)
 
     target_link_libraries(ffitt_example ffitt m)
 endif()

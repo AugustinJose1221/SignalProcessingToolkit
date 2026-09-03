@@ -56,6 +56,8 @@
 #define RUN_INTERP_EXAMPLE          35
 #define RUN_DETREND_EXAMPLE         36
 #define RUN_QUANTISE_EXAMPLE        37
+#define RUN_NOHEAP_EXAMPLE          38
+#define RUN_LISTEN_EXAMPLE          39
 
 #define RUN_EXAMPLE     RUN_NONE
 

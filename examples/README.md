@@ -38,6 +38,8 @@ comment that says so.
 | `RUN_BLUESTEIN_EXAMPLE` | [bluestein.c](bluestein.c) | A power quality analyser | How strong is each harmonic, from a block that is no power of two? |
 | `RUN_FARROW_EXAMPLE` | [farrow.c](farrow.c) | Two recorders with their own crystals | How do I line up two streams that stand a fraction of a sample apart? |
 | `RUN_LATTICE_EXAMPLE` | [lattice.c](lattice.c) | A vibration sensor on a bearing | Is there a pattern in this reading, or is it only noise? |
+| `RUN_NOHEAP_EXAMPLE` | [noheap.c](noheap.c) | A microcontroller with no allocator | How do I run a whole chain when malloc does not exist? |
+| `RUN_LISTEN_EXAMPLE` | [listen.c](listen.c) | An always-on listener | Is the alarm sounding, asked at every sample, on a kilobyte? |
 | `RUN_PSD_EXAMPLE` | [psd.c](psd.c) | An accelerometer on a pump | Which band holds the energy, and is the bearing failing? |
 | `RUN_CORRELATE_EXAMPLE` | [correlate.c](correlate.c) | Two microphones | Which way did that sound come from? |
 | `RUN_ADAPTIVE_EXAMPLE` | [adaptive.c](adaptive.c) | Two microphones, one at a fan | How do I hear a voice over a fan? |
