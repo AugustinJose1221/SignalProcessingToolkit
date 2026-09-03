@@ -29,6 +29,7 @@ name and shape of every function.
 | [`correlate`](api/correlate.md) | How alike two signals are |
 | [`convolve`](api/convolve.md) | Sliding one signal along another |
 | [`goertzel`](api/goertzel.md) | Detection of one frequency |
+| [`slide`](api/slide.md) | One frequency, answered at every sample |
 | [`hilbert`](api/hilbert.md) | The Hilbert transform |
 | [`hht`](api/hht.md) | The Hilbert-Huang transform |
 | [`dwt`](api/dwt.md) | The discrete wavelet transform |
@@ -134,6 +135,7 @@ name and shape of every function.
 | Module | What it holds |
 | --- | --- |
 | [`real`](api/real.md) | The one type that holds every number |
+| [`nolibm`](api/nolibm.md) | The arithmetic, without a maths library |
 | [`ringbuf`](api/ringbuf.md) | A buffer of the last samples |
 | [`point2d`](api/point2d.md) | A point on a plane |
 | [`callback`](api/callback.md) | The print callback |

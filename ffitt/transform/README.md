@@ -430,6 +430,33 @@ and it is a number about nothing.
 second apart hold the same events at different sample numbers, and every answer
 here is then about a relation that is not there.
 
+## slide
+
+**One frequency, answered at every sample.**
+
+`fft` needs the whole block in memory and answers when the block is full.
+`goertzel` needs no block but answers once per block and must be reset between
+them. Between the two sits the case that neither serves: a program that must
+know, at EVERY sample, how much of two or three known frequencies the last N
+samples held.
+
+A watcher holds one running total for each frequency. Each new sample costs one
+complex multiplication and two additions per frequency, whatever N is. The
+window itself is still kept, so that the sample which leaves can be taken away,
+and that is the only part whose memory follows N.
+
+**Read the damping before using it.** The recurrence is only just stable: the
+turning factor has a magnitude of exactly one, thus every rounding error stays
+in and circles for ever. The damping makes the factor a shade smaller so that
+errors fade, and the price is an answer that reads about 1.3 percent low. The
+header measures both halves, at both widths, and the answer is not the same at
+each: at 64 bits the plain recurrence drifted by four parts in ten thousand
+million over twenty million samples, and a caller there who wants the answer to
+read true should switch the damping off.
+
+Take `fft` when the whole spectrum is wanted. Past about log2(N) frequencies
+the whole transform is cheaper, which is the same crossover `goertzel` names.
+
 ## dct
 
 `fft` turns a signal into sines **and** cosines, which is what you need to say

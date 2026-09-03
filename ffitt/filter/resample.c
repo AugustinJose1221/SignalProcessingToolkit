@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_FILTER is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_FILTER
+
 #ifndef TEST
 #include <ffitt/filter/resample.h>
 #include <ffitt/core/defs.h>
@@ -53,6 +58,33 @@ bool resample_is_valid_factor(uint32_t factor)
 // is going. A decimator reads one coefficient for each sample it holds. An
 // interpolator reads only every factor-th coefficient for each sample, thus it
 // needs factor times fewer of them.
+// The design, which is the same whichever road the memory came by. The filter
+// and the buffer are already built when this is called; this only decides what
+// goes in them, thus the two roads cannot drift apart.
+static void resample_design(resample_t* resample, uint32_t factor,
+                            uint32_t length, real_t gain)
+{
+    resample->factor = factor;
+    resample->phase = 0;
+
+    fir_design_low_pass(&resample->filter,
+                        RESAMPLE_CUTOFF_PART / (real_t)factor);
+
+    // An interpolator puts zeros between the samples, and zeros carry no
+    // energy. Each output then comes out factor times too small, thus the
+    // coefficients are made factor times larger once, here, rather than the
+    // answer being multiplied for every sample.
+    if(gain != REAL_C(1.0))
+    {
+        for(uint32_t index = 0; index < length; index++)
+        {
+            fir_set_coefficient(&resample->filter, index,
+                                gain * fir_get_coefficient(&resample->filter,
+                                                           index));
+        }
+    }
+}
+
 static resample_t resample_build(uint32_t factor, uint32_t length,
                                  uint32_t history_size, real_t gain)
 {
@@ -64,22 +96,43 @@ static resample_t resample_build(uint32_t factor, uint32_t length,
     resample.phase = 0;
     resample.dynamic_alloc = true;
 
-    fir_design_low_pass(&resample.filter,
-                        RESAMPLE_CUTOFF_PART / (real_t)factor);
-
-    // An interpolator puts zeros between the samples, and zeros carry no
-    // energy. Each output then comes out factor times too small, thus the
-    // coefficients are made factor times larger once, here, rather than the
-    // answer being multiplied for every sample.
-    if(gain != REAL_C(1.0))
+    // The two below answer for themselves: a length or a size of nothing says
+    // the heap gave nothing. The design writes through both of them, thus it
+    // must not be reached with nothing to write to.
+    if((resample.filter.length == 0u) || (resample.history.size == 0u))
     {
-        for(uint32_t index = 0; index < length; index++)
-        {
-            fir_set_coefficient(&resample.filter, index,
-                                gain * fir_get_coefficient(&resample.filter,
-                                                           index));
-        }
+        resample_free(&resample);
+
+        resample.factor = 0;
+        resample.phase = 0;
+        resample.dynamic_alloc = false;
+
+        return resample;
     }
+
+    resample_design(&resample, factor, length, gain);
+
+    return resample;
+}
+
+// The memory of a resampler, carved out of the one list the caller gave.
+//
+// The filter takes its coefficients and its history, the length each. What is
+// left over is the buffer of samples at the input rate, and how much that
+// needs is the one thing that differs between a decimator and an
+// interpolator.
+static resample_t resample_build_static(uint32_t factor, uint32_t length,
+                                        uint32_t history_size, real_t gain,
+                                        real_t* mempool)
+{
+    resample_t resample;
+
+    resample.filter = fir_static_alloc(length, &mempool[0], &mempool[length]);
+    resample.history = ringbuf_static_alloc(history_size,
+                                            &mempool[2u * length]);
+    resample.dynamic_alloc = false;
+
+    resample_design(&resample, factor, length, gain);
 
     return resample;
 }
@@ -104,6 +157,31 @@ resample_t resample_alloc_interpolator(uint32_t factor, uint32_t length)
     uint32_t needed = ((length + factor) - 1u) / factor;
 
     return resample_build(factor, length, needed, (real_t)factor);
+}
+
+resample_t resample_static_alloc_decimator(uint32_t factor, uint32_t length,
+                                           real_t* mempool)
+{
+    ASSERT(resample_is_valid_factor(factor));
+    ASSERT(length > 0);
+    ASSERT((length % 2u) == 1u);
+    ASSERT(mempool != NULL);
+
+    return resample_build_static(factor, length, length, REAL_C(1.0), mempool);
+}
+
+resample_t resample_static_alloc_interpolator(uint32_t factor, uint32_t length,
+                                              real_t* mempool)
+{
+    ASSERT(resample_is_valid_factor(factor));
+    ASSERT(length > 0);
+    ASSERT((length % 2u) == 1u);
+    ASSERT(mempool != NULL);
+
+    uint32_t needed = ((length + factor) - 1u) / factor;
+
+    return resample_build_static(factor, length, needed, (real_t)factor,
+                                 mempool);
 }
 
 void resample_reset(resample_t* resample)
@@ -241,3 +319,11 @@ void resample_free(resample_t* resample)
     fir_free(&resample->filter);
     ringbuf_free(&resample->history);
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int resample_is_not_in_this_build_t;
+
+#endif//FFITT_NO_FILTER

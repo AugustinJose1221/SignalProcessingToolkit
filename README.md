@@ -27,7 +27,7 @@ directory there:
 
 | Area | Directory | Modules | What you do with them |
 | --- | --- | --- | --- |
-| Transforms | `ffitt/transform` | `fft`, `bluestein`, `window`, `psd`, `csd`, `stft`, `spectrogram`, `correlate`, `convolve`, `goertzel`, `hilbert`, `hht`, `dwt`, `dct`, `cepstrum` | Find which frequencies a signal holds, and where |
+| Transforms | `ffitt/transform` | `fft`, `bluestein`, `window`, `psd`, `csd`, `stft`, `spectrogram`, `correlate`, `convolve`, `goertzel`, `slide`, `hilbert`, `hht`, `dwt`, `dct`, `cepstrum` | Find which frequencies a signal holds, and where |
 | Filters | `ffitt/filter` | `fir`, `iir`, `savgol`, `movavg`, `medfilt`, `dcblock`, `detrend`, `hampel`, `adaptive`, `rls`, `lattice`, `resample`, `filtfilt`, `farrow` | Take a band of frequencies away, or smooth a signal |
 | Estimation | `ffitt/estimate` | `kalman`, `ekf`, `ukf`, `propagate`, `pll` | Follow a state behind a noisy measurement |
 | Decomposition | `ffitt/decompose` | `emd`, `imf` | Split a signal into simpler parts |
@@ -35,7 +35,7 @@ directory there:
 | Interpolation | `ffitt/interpolate` | `cspline`, `interp` | Give a smooth curve through a set of points |
 | Linear algebra | `ffitt/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `quaternion`, `eigen`, `poly`, `lstsq`, `vector`, `vector2d` | The arithmetic that the areas above need |
 | Utilities | `ffitt/util` | `generate`, `curve`, `quantise`, `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Make a signal to test with, and find a place, a peak or a valley in a list |
-| Core | `ffitt/core` | `real`, `ringbuf`, `callback`, `defs`, `point2d` | The type that holds every number, a buffer of the last samples, and the types that every module shares |
+| Core | `ffitt/core` | `real`, `nolibm`, `ringbuf`, `callback`, `defs`, `point2d` | The type that holds every number, a buffer of the last samples, and the types that every module shares |
 
 Include a module by its area:
 
@@ -137,6 +137,33 @@ cmake -S . -B build -DBUILD_EXAMPLE=ON && cmake --build build
 ```
 
 The directory [examples](examples) says which examples there are.
+
+### Leaving an area out
+
+The linker drops what nothing calls. To go further and never compile an area at
+all, there is a switch for each:
+
+```bash
+cmake -S . -B build -DFFITT_NO_ESTIMATE=ON -DFFITT_NO_DETECT=ON
+```
+
+`core` always stays. The guide of [core](ffitt/core) holds the table of which
+area needs which, and the build refuses a combination that cannot stand rather
+than failing later.
+
+### Without a mathematics library
+
+Every call into the mathematics of the system passes through one seam. One
+option puts the library's own arithmetic behind it, and nothing then links
+against libm:
+
+```bash
+cmake -S . -B build -DFFITT_NO_LIBM=ON && cmake --build build
+```
+
+[ffitt/core/nolibm.h](ffitt/core/nolibm.h) holds the measured error of every
+function it stands in for. The whole property suite is run against it at both
+widths, thus that table is tested and not claimed.
 
 ## Tests
 

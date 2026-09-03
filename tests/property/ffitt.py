@@ -22,7 +22,11 @@ REAL_T = ctypes.c_double if REAL_64 else ctypes.c_float
 WIDTH = "64" if REAL_64 else "32"
 
 BUILD_DIRECTORY = os.path.join(REPOSITORY, "build", "property")
-LIBRARY_PATH = os.path.join(BUILD_DIRECTORY, "libffitt%s.so" % WIDTH)
+LIBRARY_PATH = os.path.join(
+    BUILD_DIRECTORY,
+    "libffitt%s%s.so" % (WIDTH,
+                        "-nolibm" if os.environ.get("FFITT_NO_LIBM", "")
+                        else ""))
 
 # The same list of sources as SIGNALPROC_SOURCES in CMakeLists.txt.
 SOURCES = [
@@ -46,6 +50,8 @@ SOURCES = [
     "ffitt/transform/dwt.c",
     "ffitt/transform/fft.c",
     "ffitt/transform/goertzel.c",
+    "ffitt/transform/slide.c",
+    "ffitt/core/nolibm.c",
     "ffitt/transform/hht.c",
     "ffitt/transform/hilbert.c",
     "ffitt/transform/window.c",
@@ -89,6 +95,11 @@ SOURCES = [
 ]
 
 
+# True when the rules are to be run against the library's own arithmetic
+# rather than the system's. FFITT_NO_LIBM in the environment says so.
+NO_LIBM = bool(os.environ.get("FFITT_NO_LIBM", ""))
+
+
 def build_library():
     """Build the shared object. Give the path to it."""
     os.makedirs(BUILD_DIRECTORY, exist_ok=True)
@@ -98,6 +109,14 @@ def build_library():
     ]
     if REAL_64:
         command.append("-DFFITT_REAL_64")
+
+    # THE SAME RULES, RUN AGAINST THE ARITHMETIC OF THIS LIBRARY INSTEAD OF THE
+    # SYSTEM'S. FFITT_NO_LIBM swaps every call into the mathematics of the
+    # system for one worked out in ffitt/core/nolibm.c, and the accuracy that
+    # file claims is only a claim until the whole suite is run against it.
+    if NO_LIBM:
+        command.append("-DFFITT_NO_LIBM")
+
     command += ["-o", LIBRARY_PATH]
     command += [os.path.join(REPOSITORY, source) for source in SOURCES] + ["-lm"]
 
@@ -342,6 +361,20 @@ class Fir(ctypes.Structure):
         ("coefficient", ctypes.POINTER(REAL_T)),
         ("history", ctypes.POINTER(REAL_T)),
         ("position", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Slide(ctypes.Structure):
+    _fields_ = [
+        ("history", Ringbuf),
+        ("total", ctypes.POINTER(Cnum)),
+        ("turn", ctypes.POINTER(Cnum)),
+        ("departing", REAL_T),
+        ("damping", REAL_T),
+        ("size", ctypes.c_uint32),
+        ("count", ctypes.c_uint32),
+        ("seen", ctypes.c_uint32),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -1873,6 +1906,38 @@ def load_library():
         function.restype = None
     library.dwt_threshold.argtypes = [FLOAT_POINTER, ctypes.c_uint32, REAL_T]
     library.dwt_threshold.restype = None
+
+    # slide
+    library.slide_is_valid_size.argtypes = [ctypes.c_uint32]
+    library.slide_is_valid_size.restype = ctypes.c_bool
+    library.slide_is_valid_damping.argtypes = [REAL_T]
+    library.slide_is_valid_damping.restype = ctypes.c_bool
+    library.slide_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.slide_alloc.restype = Slide
+    library.slide_design.argtypes = [ctypes.POINTER(Slide), REAL_T]
+    library.slide_design.restype = ctypes.c_bool
+    library.slide_watch.argtypes = [ctypes.POINTER(Slide), ctypes.c_uint32,
+                                    ctypes.c_uint32]
+    library.slide_watch.restype = ctypes.c_bool
+    library.slide_bin_frequency.argtypes = [ctypes.POINTER(Slide),
+                                            ctypes.c_uint32, REAL_T]
+    library.slide_bin_frequency.restype = REAL_T
+    library.slide_reset.argtypes = [ctypes.POINTER(Slide)]
+    library.slide_reset.restype = None
+    library.slide_process_sample.argtypes = [ctypes.POINTER(Slide), REAL_T]
+    library.slide_process_sample.restype = None
+    library.slide_process_block.argtypes = [ctypes.POINTER(Slide),
+                                            ctypes.POINTER(REAL_T),
+                                            ctypes.c_uint32]
+    library.slide_process_block.restype = None
+    library.slide_is_full.argtypes = [ctypes.POINTER(Slide)]
+    library.slide_is_full.restype = ctypes.c_bool
+    library.slide_get.argtypes = [ctypes.POINTER(Slide), ctypes.c_uint32]
+    library.slide_get.restype = Cnum
+    library.slide_magnitude.argtypes = [ctypes.POINTER(Slide), ctypes.c_uint32]
+    library.slide_magnitude.restype = REAL_T
+    library.slide_free.argtypes = [ctypes.POINTER(Slide)]
+    library.slide_free.restype = None
 
     # goertzel
     library.goertzel_init.argtypes = [REAL_T, REAL_T, ctypes.c_uint32]

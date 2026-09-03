@@ -108,6 +108,22 @@ typedef struct{
 // nothing and a factor of 0 means nothing.
 bool resample_is_valid_factor(uint32_t factor);
 
+// How many values the memory of a decimator must hold, for the caller who
+// gives that memory rather than taking it from the heap.
+//
+// The filter keeps its coefficients and its history, which is the length
+// twice, and the resampler keeps the samples at the input rate, which is the
+// length once more.
+#define RESAMPLE_DECIMATOR_MEMPOOL_SIZE(length)         (3u * (length))
+
+// How many values the memory of an interpolator must hold.
+//
+// The filter keeps the same two lists. The history is shorter here: one input
+// sample feeds every factor-th coefficient, thus only the length divided by
+// the factor, rounded up, is ever read.
+#define RESAMPLE_INTERPOLATOR_MEMPOOL_SIZE(factor, length) \
+    ((2u * (length)) + ((((length) + (factor)) - 1u) / (factor)))
+
 // Give a decimator that keeps one sample for each factor, with a filter of the
 // given length. The memory comes from the heap.
 //
@@ -119,6 +135,25 @@ resample_t resample_alloc_decimator(uint32_t factor, uint32_t length);
 // Give an interpolator that makes factor samples for each one, with a filter
 // of the given length. The memory comes from the heap.
 resample_t resample_alloc_interpolator(uint32_t factor, uint32_t length);
+
+// Give a decimator that uses the memory the caller holds, which must hold as
+// many values as RESAMPLE_DECIMATOR_MEMPOOL_SIZE gives for the same length.
+// This function takes no memory from the heap and cannot fail for want of it.
+//
+// THE COEFFICIENTS ARE STILL WORKED OUT HERE, thus this call does the same
+// arithmetic as the one that takes memory from the heap. It is the memory that
+// the caller has taken over and not the design.
+//
+// A decimator built this way is given to resample_free like any other, and
+// that call then does nothing, thus one road serves both kinds.
+resample_t resample_static_alloc_decimator(uint32_t factor, uint32_t length,
+                                           real_t* mempool);
+
+// Give an interpolator that uses the memory the caller holds, which must hold
+// as many values as RESAMPLE_INTERPOLATOR_MEMPOOL_SIZE gives for the same
+// factor and length. This function takes no memory from the heap.
+resample_t resample_static_alloc_interpolator(uint32_t factor, uint32_t length,
+                                              real_t* mempool);
 
 // Forget every sample. The filter keeps its coefficients.
 void resample_reset(resample_t* resample);

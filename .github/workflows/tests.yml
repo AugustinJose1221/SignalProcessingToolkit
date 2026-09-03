@@ -227,6 +227,17 @@ jobs:
           # chooses the width for the C build and for the Python that reads it.
           FFITT_REAL_64: ${{ matrix.width == 64 && '1' || '' }}
 
+      - name: Run the same rules against the library's own arithmetic
+        # FFITT_NO_LIBM swaps every call into the mathematics of the system for
+        # one worked out in ffitt/core/nolibm.c. That file claims an accuracy
+        # for each function, and a claim in a comment is worth nothing until
+        # the rules are run against it. This runs the whole suite a second
+        # time, at the same width, with the substitutes underneath.
+        run: python -m pytest tests/property/ -q
+        env:
+          FFITT_REAL_64: ${{ matrix.width == 64 && '1' || '' }}
+          FFITT_NO_LIBM: '1'
+
   build:
     name: Build (${{ matrix.width }} bit)
     runs-on: ubuntu-latest
@@ -291,7 +302,8 @@ jobs:
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
                          SPECTROGRAM COHERENCE SHAPES CONTINUOUS \
                          SURVEY DETECT PLL DETREND INTERP QUANTISE \
-                         DCT CONVOLVE CEPSTRUM BLUESTEIN FARROW LATTICE; do
+                         DCT CONVOLVE CEPSTRUM BLUESTEIN FARROW LATTICE \
+                         NOHEAP LISTEN; do
             echo "== $example"
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             cmake -S . -B build/example -DBUILD_EXAMPLE=ON -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }} > /dev/null
@@ -315,6 +327,58 @@ jobs:
             -DFFITT_REAL_64=${{ matrix.width == 64 && 'ON' || 'OFF' }}
           cmake --build build/conformation
           ./build/conformation/conformation
+
+      - name: Build the smallest useful combination
+        # THE SWITCHES THAT LEAVE AN AREA OUT MUST NOT ROT. Each one is off by
+        # default, thus nothing else in this workflow would ever build with one
+        # on, and a source that stopped compiling without its neighbours could
+        # sit broken for a long time.
+        #
+        # This builds core, linalg and util alone, which is the smallest
+        # combination the dependency table allows, and then links a small
+        # program against it. A library that builds and cannot be linked
+        # against has not been tested.
+        if: matrix.width == 32
+        run: |
+          cmake -S . -B build/smallest \
+            -DFFITT_NO_TRANSFORM=ON -DFFITT_NO_FILTER=ON \
+            -DFFITT_NO_ESTIMATE=ON -DFFITT_NO_DECOMPOSE=ON \
+            -DFFITT_NO_DETECT=ON -DFFITT_NO_INTERPOLATE=ON
+          cmake --build build/smallest
+          cat > /tmp/smallest.c <<'PROGRAM'
+          #include <ffitt/core/ringbuf.h>
+          #include <ffitt/linalg/matrix.h>
+          #include <ffitt/util/stats.h>
+          #include <stdio.h>
+          int main(void){
+              real_t data[8];
+              ringbuf_t buffer = ringbuf_alloc(8);
+              for(int i=0;i<8;i++){ data[i]=(real_t)(i+1); ringbuf_put(&buffer,data[i]); }
+              matrix_t m = matrix_create_unit_matrix(3);
+              printf("mean %.2f determinant %.2f\n",
+                     (double)stats_mean(data,8), (double)matrix_determinant(&m));
+              matrix_free(&m); ringbuf_free(&buffer);
+              return 0;}
+          PROGRAM
+          sed -i 's/^          //' /tmp/smallest.c
+          gcc -std=c99 -O2 -I. /tmp/smallest.c -Lbuild/smallest -lffitt -lm -o /tmp/smallest
+          /tmp/smallest
+
+      - name: Examine that a combination which cannot stand is refused
+        # The build must NAME the fault and stop. A switch that quietly gave a
+        # library missing what a caller needs would be worse than no switch.
+        if: matrix.width == 32
+        run: |
+          if cmake -S . -B build/impossible -DFFITT_NO_TRANSFORM=ON > /tmp/out 2>&1; then
+            echo "The build took a combination that cannot stand."
+            exit 1
+          fi
+          grep -q "calls into transform" /tmp/out || {
+            echo "The build refused, but not for the reason it should have:"
+            cat /tmp/out
+            exit 1
+          }
+          echo "Refused, and it said why."
 
       - name: Build and run the cost tests
         # THE HEADERS SAY WHAT THINGS COST AND NOTHING HELD THEM TO IT. movavg
@@ -407,6 +471,12 @@ jobs:
             echo "== $source"
             gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
           done
+          # And the library again with its own arithmetic behind the seam, so
+          # that a warning cannot hide inside the profile that is off by
+          # default.
+          for source in ffitt/*/*.c; do
+            gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -DFFITT_NO_LIBM -c -I. -o /dev/null "$source" || status=1
+          done
           # Each example holds its code inside a condition on RUN_EXAMPLE, thus
           # the build must switch each one on to see its code at all.
           for example in FFT FILTER HHT EKF GOERTZEL DWT SAVGOL EMD MATRIX \
@@ -414,7 +484,8 @@ jobs:
                          KALMAN STREAM CALIBRATE LINALG ATTITUDE FITCURVE \
                          SPECTROGRAM COHERENCE SHAPES CONTINUOUS \
                          SURVEY DETECT PLL DETREND INTERP QUANTISE \
-                         DCT CONVOLVE CEPSTRUM BLUESTEIN FARROW LATTICE; do
+                         DCT CONVOLVE CEPSTRUM BLUESTEIN FARROW LATTICE \
+                         NOHEAP LISTEN; do
             sed -i "s/#define RUN_EXAMPLE     RUN_[A-Z_]*/#define RUN_EXAMPLE     RUN_${example}_EXAMPLE/" examples/run_example.h
             for source in examples/*.c; do
               gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1

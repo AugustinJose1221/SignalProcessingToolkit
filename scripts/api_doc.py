@@ -33,6 +33,13 @@ MODULE_DIRECTORY = os.path.join(REPOSITORY, "docs", "api")
 
 # The order of the modules in the documentation. A reader meets the simple
 # modules first and the modules that build on them later.
+# The library lies under this directory.
+LIBRARY_DIRECTORY = "ffitt"
+
+# The headers that hold no module of their own. They give a type or a macro,
+# and no document is made for them.
+HEADERS_WITHOUT_A_MODULE = {"callback", "defs"}
+
 MODULES = [
     ("matrix", "ffitt/linalg/matrix.h", "Matrices of float values"),
     ("cnum", "ffitt/linalg/cnum.h", "Complex numbers"),
@@ -66,6 +73,7 @@ MODULES = [
     ("kalman", "ffitt/estimate/kalman.h", "The Kalman filter"),
     ("ekf", "ffitt/estimate/ekf.h", "The extended Kalman filter"),
     ("ukf", "ffitt/estimate/ukf.h", "The unscented Kalman filter"),
+    ("slide", "ffitt/transform/slide.h", "One frequency, answered at every sample"),
     ("goertzel", "ffitt/transform/goertzel.h", "Detection of one frequency"),
     ("cepstrum", "ffitt/transform/cepstrum.h", "Finding what repeats in a spectrum"),
     ("dct", "ffitt/transform/dct.h", "Turning a signal into cosines"),
@@ -93,6 +101,7 @@ MODULES = [
     ("peakdetect", "ffitt/util/peakdetect.h", "Peak detection"),
     ("valleydetect", "ffitt/util/valleydetect.h", "Valley detection"),
     ("real", "ffitt/core/real.h", "The one type that holds every number"),
+    ("nolibm", "ffitt/core/nolibm.h", "The arithmetic, without a maths library"),
     ("ringbuf", "ffitt/core/ringbuf.h", "A buffer of the last samples"),
     ("point2d", "ffitt/core/point2d.h", "A point on a plane"),
     ("callback", "ffitt/core/callback.h", "The print callback"),
@@ -185,8 +194,8 @@ def read_header(path):
 AREAS = [
     ("transform", "Transforms", ["fft", "bluestein", "window", "psd", "csd",
                                  "stft", "spectrogram", "correlate",
-                                 "convolve", "goertzel", "hilbert", "hht",
-                                 "dwt", "dct", "cepstrum"]),
+                                 "convolve", "goertzel", "slide", "hilbert",
+                                 "hht", "dwt", "dct", "cepstrum"]),
     ("filter", "Filters", ["fir", "iir", "savgol", "movavg", "medfilt",
                            "dcblock", "detrend", "hampel", "adaptive", "rls", "lattice",
                            "resample", "filtfilt", "farrow"]),
@@ -200,7 +209,7 @@ AREAS = [
     ("detect", "Detection", ["matched", "delay", "changepoint"]),
     ("util", "Utilities", ["generate", "curve", "quantise", "stats", "binarysearch",
                            "peakdetect", "valleydetect"]),
-    ("core", "Core", ["real", "ringbuf", "point2d", "callback"]),
+    ("core", "Core", ["real", "nolibm", "ringbuf", "point2d", "callback"]),
 ]
 
 GENERATED_NOTE = ("This file comes from the comments in the headers. Do not change it by "
@@ -323,6 +332,38 @@ def find_areas_without_a_guide():
     return missing
 
 
+def find_modules_with_no_document():
+    """Name every module of the library that MODULES does not list.
+
+    WHY THIS IS EXAMINED. MODULES is written by hand, and a module left out of
+    it is simply skipped: no file is made for it, no fault is reported, and the
+    check passes. The slide module was added and documented nowhere, and this
+    check said all was well. The other direction - a file for a module that
+    went away - was already caught; this is the half that was missing.
+    """
+    faults = []
+    listed = {name for name, path, title in MODULES}
+
+    for area, title, names in AREAS:
+        directory = os.path.join(REPOSITORY, LIBRARY_DIRECTORY, area)
+
+        if not os.path.isdir(directory):
+            continue
+
+        for name in sorted(os.listdir(directory)):
+            if not name.endswith(".h"):
+                continue
+
+            module = name[:-2]
+
+            if (module not in listed) and (module not in HEADERS_WITHOUT_A_MODULE):
+                faults.append("the module %s/%s has no place in MODULES, thus "
+                              "no documentation is made for it."
+                              % (area, module))
+
+    return faults
+
+
 def find_files_that_belong_to_no_module(documents):
     """Give the files in docs/api that no module writes any more."""
     if not os.path.isdir(MODULE_DIRECTORY):
@@ -405,6 +446,8 @@ def main(argv):
     faults = find_functions_without_a_comment()
 
     faults.extend(find_areas_without_a_guide())
+
+    faults.extend(find_modules_with_no_document())
 
     faults.extend(find_links_that_point_nowhere())
 

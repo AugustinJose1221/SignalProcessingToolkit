@@ -36,6 +36,7 @@
 #include "kalman.h"
 #include "fft.h"
 #include "psd.h"
+#include "slide.h"
 
 // The modules that the ones above stand on. They are named so that the test
 // links against them, which is how ceedling decides what to build.
@@ -157,6 +158,7 @@ void test_the_transforms_hold_nothing_when_the_heap_refuses(void)
     heap_refuses = true;
     fft_t fft = fft_alloc(64u);
     psd_t psd = psd_alloc(64u);
+    slide_t slide = slide_alloc(64u, 2u);
     heap_refuses = false;
 
     // The tables of the transform are written through both lists.
@@ -166,8 +168,15 @@ void test_the_transforms_hold_nothing_when_the_heap_refuses(void)
     TEST_ASSERT_NULL(psd.window);
     TEST_ASSERT_EQUAL_UINT32(0u, psd.block);
 
+    // The building of a watcher writes a turning factor for every frequency
+    // it holds, thus it too must not be reached with nothing to write to.
+    TEST_ASSERT_NULL(slide.total);
+    TEST_ASSERT_EQUAL_UINT32(0u, slide.size);
+    TEST_ASSERT_EQUAL_UINT32(0u, slide.count);
+
     fft_free(&fft);
     psd_free(&psd);
+    slide_free(&slide);
 }
 
 void test_the_spline_and_what_stands_on_it_hold_nothing_when_the_heap_refuses(void)

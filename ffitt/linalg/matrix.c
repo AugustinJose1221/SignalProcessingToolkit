@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_LINALG is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_LINALG
+
 #ifndef TEST
 #include <ffitt/linalg/matrix.h>
 #include <ffitt/core/defs.h>
@@ -923,3 +928,11 @@ bool matrix_inverse_into(matrix_t* matrix, matrix_t* dest, matrix_t* scratch)
 
     return true;
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int matrix_is_not_in_this_build_t;
+
+#endif//FFITT_NO_LINALG

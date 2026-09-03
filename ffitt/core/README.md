@@ -12,6 +12,42 @@ share, thus they hold no `.c` file and no function.
 | `defs.h` | `ASSERT` |
 | `point2d.h` | A point on a plane |
 
+## Leaving an area out of the build
+
+The linker already drops what nothing calls. These switches go one step
+further and never compile the area at all, which is what a build on a very
+small flash wants to reason about, and what a shop that must account for every
+line in the image needs.
+
+```bash
+cmake -S . -B build -DFFITT_NO_ESTIMATE=ON -DFFITT_NO_DETECT=ON
+```
+
+**`core` cannot be left out.** Everything stands on it. What each of the others
+needs is this, and it came from the SYMBOLS and not from the includes:
+
+| Area | Needs |
+| --- | --- |
+| `linalg` | nothing else |
+| `util` | nothing else |
+| `interpolate` | `util` |
+| `decompose` | `interpolate`, `util` |
+| `estimate` | `linalg` |
+| `transform` | `linalg` |
+| `filter` | `linalg`, `transform`, `util` |
+| `detect` | `transform`, `util` |
+
+Reading the includes would have said `transform` needs `decompose`, because
+`hht.h` names a type of it. It calls nothing of it, thus it does not, and the
+table above is the one that is true at link time.
+
+**A combination that cannot stand is refused by name.** Ask to leave
+`transform` out while `filter` is still in, and the build says so and stops,
+rather than failing later with a name the caller has never heard of.
+
+Measured on one machine, the static library built for 32 bits: the whole
+library is 619586 bytes, and `core` with `linalg` and `util` alone is 207072.
+
 ## When the heap gives nothing
 
 Every module that takes memory offers two ways to get it: a `*_alloc` that
@@ -84,6 +120,31 @@ address, thus none of them can be GIVEN to something that takes a function.
 always agree with `real_t`. The `pmatrix` module needs them: before `real_t`
 existed a caller could give it `sinf` directly, and that now builds without a
 word and gives nonsense at 64 bits.
+
+## nolibm.h
+
+**The arithmetic, without a maths library.**
+
+Every call this library makes into the mathematics of the system passes through
+the `REAL_` macros of `real.h`. That is one seam, thus one place to stand
+behind. Build with `FFITT_NO_LIBM` and this file stands there: the library then
+links with no mathematics library at all.
+
+It is for a target whose toolchain ships no libm, one whose libm is large
+beside a flash of tens of kilobytes, one whose licence for it is awkward, and
+anyone who must account for every line that went into the image.
+
+**Read the table in the header before switching it on.** Each function is a
+reduction of the argument and then a series, and each is measured against the
+system's own over 200000 points. Most stand at eleven digits or better, which
+is far past what a float holds. Two do not: `sin` and `cos` lose a little to
+the reduction of a large angle, and `erf` is held at what the approximation it
+uses can do. At 32 bits every one of them is below what a float holds; at 64
+bits those two are not, and the header says so rather than letting a caller
+find out.
+
+The whole property suite is run against these as well as against the system's
+functions, at both widths, thus the table is a tested number and not a hope.
 
 ## ringbuf.h
 

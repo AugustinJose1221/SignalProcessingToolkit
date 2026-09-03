@@ -66,6 +66,28 @@
 // REAL_C writes the right one for the build. Use it for EVERY number in the
 // source that is not a whole number used as a count.
 
+// WHERE THE ARITHMETIC COMES FROM.
+//
+// Every call this library makes into the mathematics of the system passes
+// through the macros below, and that is on purpose: it is one seam, thus one
+// place to stand behind.
+//
+// FFITT_NO_LIBM puts ffitt/core/nolibm.c behind it, and the library then links
+// with no mathematics library at all. That file says what the swap costs, with
+// the error of every function measured against the system's own. A target
+// whose toolchain ships no libm, or whose libm is large beside a small flash,
+// or who must account for every line in the image, wants that switch.
+//
+// The two lists that follow are the same names either way, thus nothing else
+// in the library knows or cares which is in use.
+#ifdef FFITT_NO_LIBM
+#ifndef TEST
+#include <ffitt/core/nolibm.h>
+#else
+#include "nolibm.h"
+#endif
+#endif
+
 #if defined(FFITT_REAL_64)
 
 // A build in 64 bits must have a double that is really wider than a float.
@@ -84,6 +106,31 @@ typedef double real_t;
 #define REAL_DIGITS     DBL_DIG
 #define REAL_LARGEST    DBL_MAX
 #define REAL_SMALLEST   DBL_MIN
+
+#ifdef FFITT_NO_LIBM
+
+#define REAL_SQRT(x)        nolibm_sqrt(x)
+#define REAL_HYPOT(x, y)    nolibm_hypot((x), (y))
+#define REAL_ERF(x)         nolibm_erf(x)
+#define REAL_SIN(x)         nolibm_sin(x)
+#define REAL_COS(x)         nolibm_cos(x)
+#define REAL_TAN(x)         nolibm_tan(x)
+#define REAL_ABS(x)         nolibm_fabs(x)
+#define REAL_POW(x, y)      nolibm_pow((x), (y))
+#define REAL_EXP(x)         nolibm_exp(x)
+#define REAL_LOG(x)         nolibm_log(x)
+#define REAL_LOG10(x)       nolibm_log10(x)
+#define REAL_ATAN2(y, x)    nolibm_atan2((y), (x))
+#define REAL_SINH(x)        nolibm_sinh(x)
+#define REAL_COSH(x)        nolibm_cosh(x)
+#define REAL_ASIN(x)        nolibm_asin(x)
+#define REAL_ASINH(x)       nolibm_asinh(x)
+#define REAL_ACOSH(x)       nolibm_acosh(x)
+#define REAL_FLOOR(x)       nolibm_floor(x)
+#define REAL_CEIL(x)        nolibm_ceil(x)
+#define REAL_FMOD(x, y)     nolibm_fmod((x), (y))
+
+#else
 
 #define REAL_SQRT(x)        sqrt(x)
 #define REAL_HYPOT(x, y)    hypot((x), (y))
@@ -106,6 +153,8 @@ typedef double real_t;
 #define REAL_CEIL(x)        ceil(x)
 #define REAL_FMOD(x, y)     fmod((x), (y))
 
+#endif
+
 #else
 
 typedef float real_t;
@@ -116,6 +165,31 @@ typedef float real_t;
 #define REAL_DIGITS     FLT_DIG
 #define REAL_LARGEST    FLT_MAX
 #define REAL_SMALLEST   FLT_MIN
+
+#ifdef FFITT_NO_LIBM
+
+#define REAL_SQRT(x)        ((float)nolibm_sqrt(x))
+#define REAL_HYPOT(x, y)    ((float)nolibm_hypot((x), (y)))
+#define REAL_ERF(x)         ((float)nolibm_erf(x))
+#define REAL_SIN(x)         ((float)nolibm_sin(x))
+#define REAL_COS(x)         ((float)nolibm_cos(x))
+#define REAL_TAN(x)         ((float)nolibm_tan(x))
+#define REAL_ABS(x)         ((float)nolibm_fabs(x))
+#define REAL_POW(x, y)      ((float)nolibm_pow((x), (y)))
+#define REAL_EXP(x)         ((float)nolibm_exp(x))
+#define REAL_LOG(x)         ((float)nolibm_log(x))
+#define REAL_LOG10(x)       ((float)nolibm_log10(x))
+#define REAL_ATAN2(y, x)    ((float)nolibm_atan2((y), (x)))
+#define REAL_SINH(x)        ((float)nolibm_sinh(x))
+#define REAL_COSH(x)        ((float)nolibm_cosh(x))
+#define REAL_ASIN(x)        ((float)nolibm_asin(x))
+#define REAL_ASINH(x)       ((float)nolibm_asinh(x))
+#define REAL_ACOSH(x)       ((float)nolibm_acosh(x))
+#define REAL_FLOOR(x)       ((float)nolibm_floor(x))
+#define REAL_CEIL(x)        ((float)nolibm_ceil(x))
+#define REAL_FMOD(x, y)     ((float)nolibm_fmod((x), (y)))
+
+#else
 
 #define REAL_SQRT(x)        sqrtf(x)
 #define REAL_HYPOT(x, y)    hypotf((x), (y))
@@ -137,6 +211,8 @@ typedef float real_t;
 #define REAL_FLOOR(x)       floorf(x)
 #define REAL_CEIL(x)        ceilf(x)
 #define REAL_FMOD(x, y)     fmodf((x), (y))
+
+#endif
 
 #endif//FFITT_REAL_64
 
