@@ -35,7 +35,7 @@ directory there:
 | Interpolation | `ffitt/interpolate` | `cspline`, `interp` | Give a smooth curve through a set of points |
 | Linear algebra | `ffitt/linalg` | `matrix`, `cmatrix`, `pmatrix`, `cnum`, `quaternion`, `eigen`, `poly`, `lstsq`, `vector`, `vector2d` | The arithmetic that the areas above need |
 | Utilities | `ffitt/util` | `generate`, `curve`, `quantise`, `stats`, `binarysearch`, `peakdetect`, `valleydetect` | Make a signal to test with, and find a place, a peak or a valley in a list |
-| Core | `ffitt/core` | `real`, `ringbuf`, `callback`, `defs`, `point2d` | The type that holds every number, a buffer of the last samples, and the types that every module shares |
+| Core | `ffitt/core` | `real`, `nolibm`, `ringbuf`, `callback`, `defs`, `point2d` | The type that holds every number, a buffer of the last samples, and the types that every module shares |
 
 Include a module by its area:
 
@@ -137,6 +137,20 @@ cmake -S . -B build -DBUILD_EXAMPLE=ON && cmake --build build
 ```
 
 The directory [examples](examples) says which examples there are.
+
+### Without a mathematics library
+
+Every call into the mathematics of the system passes through one seam. One
+option puts the library's own arithmetic behind it, and nothing then links
+against libm:
+
+```bash
+cmake -S . -B build -DFFITT_NO_LIBM=ON && cmake --build build
+```
+
+[ffitt/core/nolibm.h](ffitt/core/nolibm.h) holds the measured error of every
+function it stands in for. The whole property suite is run against it at both
+widths, thus that table is tested and not claimed.
 
 ## Tests
 

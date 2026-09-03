@@ -46,6 +46,126 @@ The one type that holds every number. Declared in `ffitt/core/real.h`.
 ### `REAL_SQRT`
 
 ```c
+#define REAL_SQRT(x)        nolibm_sqrt(x)
+```
+
+### `REAL_HYPOT`
+
+```c
+#define REAL_HYPOT(x, y)    nolibm_hypot((x), (y))
+```
+
+### `REAL_ERF`
+
+```c
+#define REAL_ERF(x)         nolibm_erf(x)
+```
+
+### `REAL_SIN`
+
+```c
+#define REAL_SIN(x)         nolibm_sin(x)
+```
+
+### `REAL_COS`
+
+```c
+#define REAL_COS(x)         nolibm_cos(x)
+```
+
+### `REAL_TAN`
+
+```c
+#define REAL_TAN(x)         nolibm_tan(x)
+```
+
+### `REAL_ABS`
+
+```c
+#define REAL_ABS(x)         nolibm_fabs(x)
+```
+
+### `REAL_POW`
+
+```c
+#define REAL_POW(x, y)      nolibm_pow((x), (y))
+```
+
+### `REAL_EXP`
+
+```c
+#define REAL_EXP(x)         nolibm_exp(x)
+```
+
+### `REAL_LOG`
+
+```c
+#define REAL_LOG(x)         nolibm_log(x)
+```
+
+### `REAL_LOG10`
+
+```c
+#define REAL_LOG10(x)       nolibm_log10(x)
+```
+
+### `REAL_ATAN2`
+
+```c
+#define REAL_ATAN2(y, x)    nolibm_atan2((y), (x))
+```
+
+### `REAL_SINH`
+
+```c
+#define REAL_SINH(x)        nolibm_sinh(x)
+```
+
+### `REAL_COSH`
+
+```c
+#define REAL_COSH(x)        nolibm_cosh(x)
+```
+
+### `REAL_ASIN`
+
+```c
+#define REAL_ASIN(x)        nolibm_asin(x)
+```
+
+### `REAL_ASINH`
+
+```c
+#define REAL_ASINH(x)       nolibm_asinh(x)
+```
+
+### `REAL_ACOSH`
+
+```c
+#define REAL_ACOSH(x)       nolibm_acosh(x)
+```
+
+### `REAL_FLOOR`
+
+```c
+#define REAL_FLOOR(x)       nolibm_floor(x)
+```
+
+### `REAL_CEIL`
+
+```c
+#define REAL_CEIL(x)        nolibm_ceil(x)
+```
+
+### `REAL_FMOD`
+
+```c
+#define REAL_FMOD(x, y)     nolibm_fmod((x), (y))
+```
+
+### `REAL_SQRT`
+
+```c
 #define REAL_SQRT(x)        sqrt(x)
 ```
 
@@ -191,6 +311,126 @@ The one type that holds every number. Declared in `ffitt/core/real.h`.
 
 ```c
 #define REAL_SMALLEST   FLT_MIN
+```
+
+### `REAL_SQRT`
+
+```c
+#define REAL_SQRT(x)        ((float)nolibm_sqrt(x))
+```
+
+### `REAL_HYPOT`
+
+```c
+#define REAL_HYPOT(x, y)    ((float)nolibm_hypot((x), (y)))
+```
+
+### `REAL_ERF`
+
+```c
+#define REAL_ERF(x)         ((float)nolibm_erf(x))
+```
+
+### `REAL_SIN`
+
+```c
+#define REAL_SIN(x)         ((float)nolibm_sin(x))
+```
+
+### `REAL_COS`
+
+```c
+#define REAL_COS(x)         ((float)nolibm_cos(x))
+```
+
+### `REAL_TAN`
+
+```c
+#define REAL_TAN(x)         ((float)nolibm_tan(x))
+```
+
+### `REAL_ABS`
+
+```c
+#define REAL_ABS(x)         ((float)nolibm_fabs(x))
+```
+
+### `REAL_POW`
+
+```c
+#define REAL_POW(x, y)      ((float)nolibm_pow((x), (y)))
+```
+
+### `REAL_EXP`
+
+```c
+#define REAL_EXP(x)         ((float)nolibm_exp(x))
+```
+
+### `REAL_LOG`
+
+```c
+#define REAL_LOG(x)         ((float)nolibm_log(x))
+```
+
+### `REAL_LOG10`
+
+```c
+#define REAL_LOG10(x)       ((float)nolibm_log10(x))
+```
+
+### `REAL_ATAN2`
+
+```c
+#define REAL_ATAN2(y, x)    ((float)nolibm_atan2((y), (x)))
+```
+
+### `REAL_SINH`
+
+```c
+#define REAL_SINH(x)        ((float)nolibm_sinh(x))
+```
+
+### `REAL_COSH`
+
+```c
+#define REAL_COSH(x)        ((float)nolibm_cosh(x))
+```
+
+### `REAL_ASIN`
+
+```c
+#define REAL_ASIN(x)        ((float)nolibm_asin(x))
+```
+
+### `REAL_ASINH`
+
+```c
+#define REAL_ASINH(x)       ((float)nolibm_asinh(x))
+```
+
+### `REAL_ACOSH`
+
+```c
+#define REAL_ACOSH(x)       ((float)nolibm_acosh(x))
+```
+
+### `REAL_FLOOR`
+
+```c
+#define REAL_FLOOR(x)       ((float)nolibm_floor(x))
+```
+
+### `REAL_CEIL`
+
+```c
+#define REAL_CEIL(x)        ((float)nolibm_ceil(x))
+```
+
+### `REAL_FMOD`
+
+```c
+#define REAL_FMOD(x, y)     ((float)nolibm_fmod((x), (y)))
 ```
 
 ### `REAL_SQRT`

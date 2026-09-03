@@ -101,6 +101,7 @@ MODULES = [
     ("peakdetect", "ffitt/util/peakdetect.h", "Peak detection"),
     ("valleydetect", "ffitt/util/valleydetect.h", "Valley detection"),
     ("real", "ffitt/core/real.h", "The one type that holds every number"),
+    ("nolibm", "ffitt/core/nolibm.h", "The arithmetic, without a maths library"),
     ("ringbuf", "ffitt/core/ringbuf.h", "A buffer of the last samples"),
     ("point2d", "ffitt/core/point2d.h", "A point on a plane"),
     ("callback", "ffitt/core/callback.h", "The print callback"),
@@ -208,7 +209,7 @@ AREAS = [
     ("detect", "Detection", ["matched", "delay", "changepoint"]),
     ("util", "Utilities", ["generate", "curve", "quantise", "stats", "binarysearch",
                            "peakdetect", "valleydetect"]),
-    ("core", "Core", ["real", "ringbuf", "point2d", "callback"]),
+    ("core", "Core", ["real", "nolibm", "ringbuf", "point2d", "callback"]),
 ]
 
 GENERATED_NOTE = ("This file comes from the comments in the headers. Do not change it by "

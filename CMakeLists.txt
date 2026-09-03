@@ -23,8 +23,17 @@ include_directories(${PROJECT_SOURCE_DIR})
 # why it stood for so long.
 option(FFITT_REAL_64 "Hold every number in a double rather than a float." OFF)
 
+# THE ARITHMETIC OF THE LIBRARY INSTEAD OF THE SYSTEM'S.
+#
+# Every call into the mathematics of the system passes through the REAL_
+# macros of ffitt/core/real.h. This switch puts ffitt/core/nolibm.c behind
+# them, and the library then links with no mathematics library at all. That
+# file holds the measured error of every function it stands in for.
+option(FFITT_NO_LIBM "Use the library's own arithmetic and link no mathematics library." OFF)
+
 # The library sources. These sources use only the C standard library.
 set(FFITT_SOURCES
+    ffitt/core/nolibm.c
     ffitt/core/real.c
     ffitt/core/ringbuf.c
     ffitt/linalg/cmatrix.c
@@ -98,6 +107,12 @@ target_link_libraries(ffitt m)
 # conformation tests all link this target and take the width with it.
 if(FFITT_REAL_64)
     target_compile_definitions(ffitt PUBLIC FFITT_REAL_64)
+endif()
+
+if(FFITT_NO_LIBM)
+    # PUBLIC, because a caller that included real.h without it would reach for
+    # the system's functions while the library reached for its own.
+    target_compile_definitions(ffitt PUBLIC FFITT_NO_LIBM)
 endif()
 
 # Say which width was built. The reading stands in the log of every build, so

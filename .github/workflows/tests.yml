@@ -227,6 +227,17 @@ jobs:
           # chooses the width for the C build and for the Python that reads it.
           FFITT_REAL_64: ${{ matrix.width == 64 && '1' || '' }}
 
+      - name: Run the same rules against the library's own arithmetic
+        # FFITT_NO_LIBM swaps every call into the mathematics of the system for
+        # one worked out in ffitt/core/nolibm.c. That file claims an accuracy
+        # for each function, and a claim in a comment is worth nothing until
+        # the rules are run against it. This runs the whole suite a second
+        # time, at the same width, with the substitutes underneath.
+        run: python -m pytest tests/property/ -q
+        env:
+          FFITT_REAL_64: ${{ matrix.width == 64 && '1' || '' }}
+          FFITT_NO_LIBM: '1'
+
   build:
     name: Build (${{ matrix.width }} bit)
     runs-on: ubuntu-latest
@@ -406,6 +417,12 @@ jobs:
           for source in ffitt/*/*.c perf/benchmark/*.c perf/cost/*.c perf/conformation/*.c perf/conformation/*/*.c; do
             echo "== $source"
             gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -c -I. -o /dev/null "$source" || status=1
+          done
+          # And the library again with its own arithmetic behind the seam, so
+          # that a warning cannot hide inside the profile that is off by
+          # default.
+          for source in ffitt/*/*.c; do
+            gcc -std=c99 -O2 -Wall -Wextra -Werror -Wmissing-prototypes -Wstrict-prototypes $WIDTH -DFFITT_NO_LIBM -c -I. -o /dev/null "$source" || status=1
           done
           # Each example holds its code inside a condition on RUN_EXAMPLE, thus
           # the build must switch each one on to see its code at all.
