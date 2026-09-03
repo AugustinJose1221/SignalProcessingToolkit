@@ -87,6 +87,7 @@ FROZEN = {
     "ringbuf":       9,
     "rls":           11,
     "savgol":        8,
+    "slide":         14,
     "spectrogram":   5,
     "stats":         10,
     "stft":          15,

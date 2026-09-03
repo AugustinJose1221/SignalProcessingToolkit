@@ -46,6 +46,7 @@ SOURCES = [
     "ffitt/transform/dwt.c",
     "ffitt/transform/fft.c",
     "ffitt/transform/goertzel.c",
+    "ffitt/transform/slide.c",
     "ffitt/transform/hht.c",
     "ffitt/transform/hilbert.c",
     "ffitt/transform/window.c",
@@ -342,6 +343,20 @@ class Fir(ctypes.Structure):
         ("coefficient", ctypes.POINTER(REAL_T)),
         ("history", ctypes.POINTER(REAL_T)),
         ("position", ctypes.c_uint32),
+        ("dynamic_alloc", ctypes.c_bool),
+    ]
+
+
+class Slide(ctypes.Structure):
+    _fields_ = [
+        ("history", Ringbuf),
+        ("total", ctypes.POINTER(Cnum)),
+        ("turn", ctypes.POINTER(Cnum)),
+        ("departing", REAL_T),
+        ("damping", REAL_T),
+        ("size", ctypes.c_uint32),
+        ("count", ctypes.c_uint32),
+        ("seen", ctypes.c_uint32),
         ("dynamic_alloc", ctypes.c_bool),
     ]
 
@@ -1873,6 +1888,38 @@ def load_library():
         function.restype = None
     library.dwt_threshold.argtypes = [FLOAT_POINTER, ctypes.c_uint32, REAL_T]
     library.dwt_threshold.restype = None
+
+    # slide
+    library.slide_is_valid_size.argtypes = [ctypes.c_uint32]
+    library.slide_is_valid_size.restype = ctypes.c_bool
+    library.slide_is_valid_damping.argtypes = [REAL_T]
+    library.slide_is_valid_damping.restype = ctypes.c_bool
+    library.slide_alloc.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    library.slide_alloc.restype = Slide
+    library.slide_design.argtypes = [ctypes.POINTER(Slide), REAL_T]
+    library.slide_design.restype = ctypes.c_bool
+    library.slide_watch.argtypes = [ctypes.POINTER(Slide), ctypes.c_uint32,
+                                    ctypes.c_uint32]
+    library.slide_watch.restype = ctypes.c_bool
+    library.slide_bin_frequency.argtypes = [ctypes.POINTER(Slide),
+                                            ctypes.c_uint32, REAL_T]
+    library.slide_bin_frequency.restype = REAL_T
+    library.slide_reset.argtypes = [ctypes.POINTER(Slide)]
+    library.slide_reset.restype = None
+    library.slide_process_sample.argtypes = [ctypes.POINTER(Slide), REAL_T]
+    library.slide_process_sample.restype = None
+    library.slide_process_block.argtypes = [ctypes.POINTER(Slide),
+                                            ctypes.POINTER(REAL_T),
+                                            ctypes.c_uint32]
+    library.slide_process_block.restype = None
+    library.slide_is_full.argtypes = [ctypes.POINTER(Slide)]
+    library.slide_is_full.restype = ctypes.c_bool
+    library.slide_get.argtypes = [ctypes.POINTER(Slide), ctypes.c_uint32]
+    library.slide_get.restype = Cnum
+    library.slide_magnitude.argtypes = [ctypes.POINTER(Slide), ctypes.c_uint32]
+    library.slide_magnitude.restype = REAL_T
+    library.slide_free.argtypes = [ctypes.POINTER(Slide)]
+    library.slide_free.restype = None
 
     # goertzel
     library.goertzel_init.argtypes = [REAL_T, REAL_T, ctypes.c_uint32]
