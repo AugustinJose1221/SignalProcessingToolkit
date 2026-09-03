@@ -1,3 +1,15 @@
+## 0.18.4 (2026-09-03)
+
+### Fix
+
+- **transform**: Write the butterfly on the parts, not on cnum_t
+- **core**: Run the tests against the library that ships
+- **core**: Answer a heap that gives nothing, the same way in every module
+- **linalg**: Work out the determinant by elimination, not by cofactors
+- **linalg**: Bring the places near zero without a list to hold them
+- **build**: Name the build target after the library
+- **core**: Guard the headers with names that C does not keep for itself
+
 ## 0.18.3 (2026-09-02)
 
 ### Fix
