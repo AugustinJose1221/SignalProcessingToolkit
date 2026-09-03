@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_LINALG is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_LINALG
+
 #ifndef TEST
 #include <ffitt/linalg/lstsq.h>
 #include <ffitt/core/defs.h>
@@ -535,3 +540,11 @@ real_t lstsq_fit_quality(const real_t* x, const real_t* y, uint32_t size,
     // curve does not follow the readings.
     return (quality < REAL_C(0.0)) ? REAL_C(0.0) : quality;
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int lstsq_is_not_in_this_build_t;
+
+#endif//FFITT_NO_LINALG

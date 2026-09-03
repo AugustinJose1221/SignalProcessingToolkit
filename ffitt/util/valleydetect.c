@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_UTIL is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_UTIL
+
 #ifndef TEST
 #include <ffitt/util/valleydetect.h>
 #include <ffitt/core/defs.h>
@@ -28,3 +33,11 @@ uint32_t valleydetect_get_valley(real_t* input, real_t* index_buffer, real_t* va
 
     return valleycount;
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int valleydetect_is_not_in_this_build_t;
+
+#endif//FFITT_NO_UTIL

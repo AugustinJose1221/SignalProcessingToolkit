@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_DETECT is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_DETECT
+
 #ifndef TEST
 #include <ffitt/detect/changepoint.h>
 #include <ffitt/core/defs.h>
@@ -256,3 +261,11 @@ static void changepoint_start_again(changepoint_t* changepoint)
     changepoint->since_high = 0u;
     changepoint->since_low = 0u;
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int changepoint_is_not_in_this_build_t;
+
+#endif//FFITT_NO_DETECT

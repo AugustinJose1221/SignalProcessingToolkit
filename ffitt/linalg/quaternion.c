@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_LINALG is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_LINALG
+
 #ifndef TEST
 #include <ffitt/linalg/quaternion.h>
 #include <ffitt/core/defs.h>
@@ -341,3 +346,11 @@ quaternion_t quaternion_slerp(quaternion_t a, quaternion_t b, real_t part)
 
     return quaternion_add(quaternion_scale(a, from), quaternion_scale(b, to));
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int quaternion_is_not_in_this_build_t;
+
+#endif//FFITT_NO_LINALG

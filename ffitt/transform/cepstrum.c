@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_TRANSFORM is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_TRANSFORM
+
 #ifndef TEST
 #include <ffitt/transform/cepstrum.h>
 #include <ffitt/core/defs.h>
@@ -244,3 +249,11 @@ void cepstrum_free(cepstrum_t* cepstrum)
     cepstrum->window = NULL;
     cepstrum->windowed = NULL;
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int cepstrum_is_not_in_this_build_t;
+
+#endif//FFITT_NO_TRANSFORM

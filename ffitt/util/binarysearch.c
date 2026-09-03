@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_UTIL is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_UTIL
+
 #ifndef TEST
 #include <ffitt/util/binarysearch.h>
 #include <ffitt/core/defs.h>
@@ -41,3 +46,11 @@ uint32_t binarysearch_get_index(real_t* data, real_t value, uint32_t size)
 
     return left;
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int binarysearch_is_not_in_this_build_t;
+
+#endif//FFITT_NO_UTIL

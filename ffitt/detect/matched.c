@@ -1,3 +1,8 @@
+// This file is left out of the build when FFITT_NO_DETECT is defined.
+// ffitt/core/README.md says which areas may be left out and
+// which of them need which others.
+#ifndef FFITT_NO_DETECT
+
 #ifndef TEST
 #include <ffitt/detect/matched.h>
 #include <ffitt/core/defs.h>
@@ -258,3 +263,11 @@ static real_t matched_normal_above(real_t part)
            / ((((((MATCHED_B[0] * r) + MATCHED_B[1]) * r + MATCHED_B[2]) * r
                 + MATCHED_B[3]) * r + MATCHED_B[4]) * r + REAL_C(1.0));
 }
+
+#else
+
+// An empty translation unit is not C, thus one name is
+// declared and nothing is defined. Nothing links against it.
+typedef int matched_is_not_in_this_build_t;
+
+#endif//FFITT_NO_DETECT
