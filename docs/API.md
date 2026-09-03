@@ -29,6 +29,7 @@ name and shape of every function.
 | [`correlate`](api/correlate.md) | How alike two signals are |
 | [`convolve`](api/convolve.md) | Sliding one signal along another |
 | [`goertzel`](api/goertzel.md) | Detection of one frequency |
+| [`slide`](api/slide.md) | One frequency, answered at every sample |
 | [`hilbert`](api/hilbert.md) | The Hilbert transform |
 | [`hht`](api/hht.md) | The Hilbert-Huang transform |
 | [`dwt`](api/dwt.md) | The discrete wavelet transform |

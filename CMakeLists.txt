@@ -52,6 +52,7 @@ set(FFITT_SOURCES
     ffitt/transform/convolve.c
     ffitt/transform/csd.c
     ffitt/transform/psd.c
+    ffitt/transform/slide.c
     ffitt/transform/spectrogram.c
     ffitt/transform/stft.c
     ffitt/filter/fir.c
