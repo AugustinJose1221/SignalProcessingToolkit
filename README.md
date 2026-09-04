@@ -138,6 +138,37 @@ cmake -S . -B build -DBUILD_EXAMPLE=ON && cmake --build build
 
 The directory [examples](examples) says which examples there are.
 
+### Installing it
+
+The library can be vendored: copy the sources in, or point a build at the tree.
+That is the shortest road for a small target and it needs nothing at all.
+
+To install it once and build many programs against it:
+
+```bash
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr/local
+cmake --build build
+cmake --install build
+```
+
+Two roads out, because callers use both:
+
+```cmake
+find_package(ffitt REQUIRED)
+target_link_libraries(mine ffitt::ffitt)
+```
+
+```bash
+cc $(pkg-config --cflags ffitt) mine.c $(pkg-config --libs ffitt)
+```
+
+**The width and the arithmetic travel with the library.** A program built
+against a 64 bit library must itself be built for 64 bits, and both roads carry
+that: neither a `find_package` caller nor a `pkg-config` one has to know or
+remember. Getting it wrong is not a small error - every structure of the
+library holds `real_t` - and [tests/consumer](tests/consumer) is built against
+both flavours in the build so that it cannot quietly stop being true.
+
 ### Leaving an area out
 
 The linker drops what nothing calls. To go further and never compile an area at
