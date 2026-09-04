@@ -9,6 +9,11 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 include_directories(${PROJECT_SOURCE_DIR})
 
+# The places a system puts a library, its headers and its description of
+# itself. GNUInstallDirs answers that for the system in hand rather than this
+# file guessing at it.
+include(GNUInstallDirs)
+
 # THE WIDTH THAT EVERY NUMBER IS HELD IN.
 #
 # Off gives a float, which keeps about 7 digits. On gives a double, which keeps
@@ -204,7 +209,24 @@ endif()
 # The repository gives a library, thus the first target is a library. A library
 # needs no main function, and it always builds.
 add_library(ffitt STATIC ${FFITT_SOURCES})
-target_link_libraries(ffitt m)
+
+# WHERE A CALLER FINDS THE HEADERS, IN THE TREE AND ONCE INSTALLED.
+#
+# The directory level include above serves this build. It says nothing to a
+# caller who installs the library and builds against it somewhere else, thus
+# the target carries its own answer for both cases.
+target_include_directories(ffitt PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
+# THE MATHS LIBRARY IS LINKED ONLY WHERE IT IS USED.
+#
+# It was linked always, which made a liar of the switch beside it: a build that
+# asked for no maths library still handed -lm to everything that linked this
+# one. Nothing needs it when the library holds its own arithmetic.
+if(NOT FFITT_NO_LIBM)
+    target_link_libraries(ffitt PUBLIC m)
+endif()
 
 # PUBLIC and not PRIVATE, because the width is part of what a caller sees. Every
 # structure of the library holds real_t, thus a program built at one width
@@ -227,6 +249,85 @@ if(FFITT_REAL_64)
 else()
     message(STATUS "ffitt: every number is held in a float, 32 bits")
 endif()
+
+# ---------------------------------------------------------------------------
+# INSTALLING THE LIBRARY, SO THAT SOMETHING ELSE CAN USE IT.
+#
+# Until now this repository could only be vendored: copy the sources in, or
+# point a build at the tree. That serves the caller who wants the sources, and
+# it is still the shortest road for a small target. It does not serve the
+# caller who wants to install the library once and build many programs against
+# it, and it does not serve a package manager at all.
+#
+# Two roads are laid, because callers use both and neither can be assumed:
+#
+#   find_package(ffitt)      for a build that uses CMake
+#   pkg-config --libs ffitt  for one that does not
+#
+# THE WIDTH AND THE ARITHMETIC TRAVEL WITH THE LIBRARY. Every structure holds
+# real_t, thus a program built at one width cannot use a library built at the
+# other, and a program that reached for the system's arithmetic while the
+# library held its own would disagree with it about what a sine is. Both are
+# PUBLIC on the target above, thus the export carries them and a caller cannot
+# get them wrong by forgetting a flag.
+# ---------------------------------------------------------------------------
+
+install(TARGETS ffitt
+    EXPORT ffittTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+# The headers keep the layout they have in the tree, thus an include reads the
+# same whether the library was installed or vendored.
+install(DIRECTORY ffitt
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.h")
+
+install(EXPORT ffittTargets
+    FILE ffittTargets.cmake
+    NAMESPACE ffitt::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ffitt)
+
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+    ${PROJECT_SOURCE_DIR}/cmake/ffittConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ffittConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ffitt)
+
+# SameMajorVersion, because that is what the freeze means from 1.0.0 onward: a
+# caller who asked for 1.2 is served by 1.7 and never by 2.0.
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/ffittConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/ffittConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/ffittConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ffitt)
+
+# The description for a build that does not use CMake. The flags that must
+# travel with the library are worked out here rather than written twice.
+set(FFITT_PC_CFLAGS "")
+
+if(FFITT_REAL_64)
+    set(FFITT_PC_CFLAGS "${FFITT_PC_CFLAGS} -DFFITT_REAL_64")
+endif()
+
+if(FFITT_NO_LIBM)
+    set(FFITT_PC_CFLAGS "${FFITT_PC_CFLAGS} -DFFITT_NO_LIBM")
+    set(FFITT_PC_LIBS "")
+else()
+    set(FFITT_PC_LIBS " -lm")
+endif()
+
+configure_file(
+    ${PROJECT_SOURCE_DIR}/cmake/ffitt.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/ffitt.pc
+    @ONLY)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ffitt.pc
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 # The example program. Choose the example in examples/run_example.h. The value
 # RUN_NONE gives no main function, thus the program cannot link. For that
