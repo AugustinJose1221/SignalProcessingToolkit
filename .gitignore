@@ -7,3 +7,12 @@ build
 __pycache__
 .venv
 .hypothesis
+
+# Archives of readings. A 170 megabyte one sat at the root of this repository
+# for weeks: not versioned, which was right, but one careless `git add` from a
+# commit that would have burdened every clone for ever. Data belongs beside the
+# repository and not inside it.
+*.zip
+*.tar
+*.tar.gz
+*.7z
