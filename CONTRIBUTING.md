@@ -44,17 +44,27 @@ that no link of any Markdown file points at something that is not there:
 python3 scripts/api_doc.py --check
 ```
 
-## The feature freeze
+## The freeze, and what it became at 1.0.0
 
-**From the release of 0.17.0 this library is in a feature freeze.** It takes
-fixes, tests and documentation. It does not take new modules or new public
-functions.
+**From 0.17.0 to 0.19.0 this library was in a feature freeze.** It took fixes,
+tests and documentation, and no new modules or public functions. That freeze
+was a rehearsal, and 1.0.0 is what it was rehearsing for.
+
+**From 1.0.0 the freeze is the CONTRACT and not a project rule.** A public
+function cannot be removed, and its shape cannot change, without a major
+version. That is what semantic versioning means and it is now what this
+repository means by it: `major_version_zero` is false in `cz.yaml`, thus a
+breaking change counts as major rather than folding into a minor.
+
+Adding a function is a MINOR version and is welcome. Taking one away, or
+changing what one does, is a MAJOR version and needs a reason a caller would
+accept.
 
 The freeze is not a note in a file. `scripts/check_freeze.py` counts the public
-functions in every header and compares them against the counts recorded at
-0.17.0, and it runs as its own job in the workflow. Adding a function fails the
-build, and so does taking one away: removing one changes what callers may rely
-on, and a freeze is exactly the time not to do that by accident.
+functions in every header and compares them against the counts recorded, and it
+runs as its own job in the workflow. Adding a function fails the build, and so
+does taking one away: the check does not know which of the two is happening,
+thus it stops both and asks a person to say which.
 
 To lift it on purpose for a release, run
 
@@ -63,7 +73,9 @@ python3 scripts/check_freeze.py --show
 ```
 
 and paste the answer into `FROZEN` in that file, so that the change is one a
-reviewer can see in the diff.
+reviewer can see in the diff. **Lifting it for a function that is REMOVED is a
+major version**, and the diff is where that must be noticed: the counts falling
+looks exactly like the counts rising until someone reads which module moved.
 
 **What the freeze is for.** An audit before it found 96.5 percent of lines
 covered and no function between nothing and sixty percent, but 21 modules that

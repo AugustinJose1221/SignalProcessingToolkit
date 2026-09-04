@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+# The library takes nothing with it, thus this file has nothing to find before
+# it can answer. It names the targets and stops.
+include("${CMAKE_CURRENT_LIST_DIR}/ffittTargets.cmake")
+
+check_required_components(ffitt)

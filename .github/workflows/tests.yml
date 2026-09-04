@@ -328,6 +328,72 @@ jobs:
           cmake --build build/conformation
           ./build/conformation/conformation
 
+      - name: Install the library and build something against it
+        # INSTALL RULES THAT NOBODY CONSUMED ARE INSTALL RULES THAT DO NOT
+        # WORK. A library that builds, installs, and cannot be linked against
+        # has not been tested, and nothing else in this workflow would notice.
+        #
+        # Both roads are walked, because callers use both: find_package for a
+        # build that uses CMake, and pkg-config for one that does not.
+        #
+        # The consumer never says which width or which arithmetic it wants.
+        # The package must carry both, thus this step runs it twice: against a
+        # plain install, and against one built for 64 bits with the library's
+        # own arithmetic. The program prints the width it really got and gives
+        # 1 if the filter it designs does not behave, thus a library that
+        # installed wrong fails here rather than printing something that looks
+        # like an answer.
+        run: |
+          set -e
+          for flavour in plain wide; do
+            if [ "$flavour" = "plain" ]; then
+              extra=""
+              wanted=32
+            else
+              extra="-DFFITT_REAL_64=ON -DFFITT_NO_LIBM=ON"
+              wanted=64
+            fi
+
+            rm -rf build/install "$PWD/prefix-$flavour"
+            cmake -S . -B build/install $extra \
+              -DCMAKE_INSTALL_PREFIX="$PWD/prefix-$flavour"
+            cmake --build build/install
+            cmake --install build/install
+
+            echo "== $flavour, by find_package"
+            rm -rf build/consumer
+            cmake -S tests/consumer -B build/consumer \
+              -DCMAKE_PREFIX_PATH="$PWD/prefix-$flavour"
+            cmake --build build/consumer
+            got=$(./build/consumer/use)
+            echo "$got"
+            echo "$got" | grep -q "width $wanted bits" || {
+              echo "The width did not travel with the package."
+              exit 1
+            }
+
+            echo "== $flavour, by pkg-config"
+            export PKG_CONFIG_PATH="$PWD/prefix-$flavour/lib/pkgconfig"
+            cc -std=c99 $(pkg-config --cflags ffitt) tests/consumer/use.c \
+               $(pkg-config --libs ffitt) -o /tmp/use-$flavour
+            got=$(/tmp/use-$flavour)
+            echo "$got"
+            echo "$got" | grep -q "width $wanted bits" || {
+              echo "The width did not travel in the pkg-config flags."
+              exit 1
+            }
+          done
+
+          # And the one that must NOT be there when the library holds its own
+          # arithmetic, because the switch would otherwise be a promise the
+          # build did not keep.
+          export PKG_CONFIG_PATH="$PWD/prefix-wide/lib/pkgconfig"
+          if pkg-config --libs ffitt | grep -q -- "-lm"; then
+            echo "FFITT_NO_LIBM was asked for and the flags still name -lm."
+            exit 1
+          fi
+          echo "A build that holds its own arithmetic names no maths library."
+
       - name: Build the smallest useful combination
         # THE SWITCHES THAT LEAVE AN AREA OUT MUST NOT ROT. Each one is off by
         # default, thus nothing else in this workflow would ever build with one
