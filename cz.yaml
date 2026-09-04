@@ -1,6 +1,6 @@
 ---
 commitizen:
-  major_version_zero: true
+  major_version_zero: false
   name: cz_conventional_commits
   tag_format: $version
   update_changelog_on_bump: true

@@ -1,3 +1,9 @@
+## 1.0.0 (2026-09-04)
+
+### Feat
+
+- **build**: Install the library, and hold it to being consumable
+
 ## 0.19.0 (2026-09-03)
 
 ### Feat
