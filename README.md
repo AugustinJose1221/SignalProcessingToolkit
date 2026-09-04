@@ -232,4 +232,8 @@ how they are made again after a header changes.
 ## Contributing
 
 [CONTRIBUTING.md](CONTRIBUTING.md) holds the naming scheme, the branch flow, the
-feature freeze that has been in force since 0.17.0, and how a release is made.
+freeze that became the contract at 1.0.0, and how a release is made.
+
+**What 1.0.0 means here.** A public function cannot be removed, and its shape
+cannot change, without a major version. The freeze that held from 0.17.0 was
+the rehearsal for that; from now it is what the version number promises.
