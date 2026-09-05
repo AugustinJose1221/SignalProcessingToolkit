@@ -2,6 +2,7 @@
 #include "real_assert.h"
 #include "emd.h"
 #include <stdlib.h>
+#include <string.h>
 #include "Mock_peakdetect.h"
 #include "Mock_valleydetect.h"
 #include "Mock_cspline.h"
@@ -19,8 +20,17 @@ void tearDown(void)
 
 void test_emd_alloc(void)
 {
-    cspline_t cspline;;
+    // The spline must say that it got its memory. emd_alloc reads the size of
+    // the spline to find out whether the spline got what it asked for, and it
+    // frees everything when the size is zero. A spline left as the stack found
+    // it holds whatever was there before, thus this test passed or failed by
+    // luck: it passed on one machine and failed on the build machine, where
+    // that stack held zeros.
+    cspline_t cspline;
     cspline_mempool_t cspline_mempool;
+    memset(&cspline, 0, sizeof(cspline));
+    memset(&cspline_mempool, 0, sizeof(cspline_mempool));
+    cspline.size = 3;
     cspline_alloc_ExpectAndReturn(3, cspline);
     cspline_alloc_mempool_ExpectAndReturn(3, cspline_mempool);
     emd_t emd = emd_alloc(3);
@@ -43,6 +53,9 @@ void test_emd_static_alloc(void)
     real_t *mempool_ptr = mempool;
     cspline_t cspline;
     cspline_mempool_t cspline_mempool;
+    memset(&cspline, 0, sizeof(cspline));
+    memset(&cspline_mempool, 0, sizeof(cspline_mempool));
+    cspline.size = 3;
     cspline_static_alloc_ExpectAndReturn(3, membank_ptr, cspline);
     cspline_static_alloc_mempool_ExpectAndReturn(mempool_ptr, cspline_mempool);
     emd_t emd = emd_static_alloc(3, membank_ptr, mempool_ptr, peak_buffer, valley_buffer);
