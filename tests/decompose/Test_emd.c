@@ -75,7 +75,13 @@ void test_emd_initialize(void)
     real_t peak_index_buffer[3] = {13, 14, 15};
     real_t valley_index_buffer[3] = {16, 17, 18};
     imf_t imf[3];
+    // emd_initialize writes the fields it is given and reads none of them,
+    // thus this struct is safe as it stands. It is set to zero all the same,
+    // because a test that leaves a struct as the stack found it is safe only
+    // until the function it calls begins to read a field. That is how the
+    // fault in test_emd_alloc came about.
     emd_t emd;
+    memset(&emd, 0, sizeof(emd));
     emd.valley_buffer = valley_index_buffer;
     emd_initialize(&emd, 3, imf, x, y, residue, working_buffer, peak_index_buffer, valley_index_buffer);
     TEST_ASSERT_EQUAL(3, emd.imf_count);
