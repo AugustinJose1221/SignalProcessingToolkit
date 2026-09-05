@@ -12,6 +12,8 @@ on:
       - 'test/**'
       - 'ci/**'
       - 'perf/**'
+      - 'docs/**'
+      - 'chore/**'
   pull_request:
     branches:
       - main

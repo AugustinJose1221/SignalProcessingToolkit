@@ -4,6 +4,10 @@
 
 - **build**: Install the library, and hold it to being consumable
 
+### Fix
+
+- **test**: Give the spline a size the test sets itself
+
 ## 0.19.0 (2026-09-03)
 
 ### Feat
